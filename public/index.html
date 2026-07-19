@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pantau Konten Tokder</title>
+<link rel="icon" href="tokderlogo.png">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="dashboard.css">
+</head>
+<body data-theme="light">
+
+<aside>
+  <div class="brand" style="justify-content: space-between; width: 100%;">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <img src="tokderlogo.png" alt="Logo" style="width: 32px; height: 32px; border-radius: 8px; object-fit: contain;">
+      <div class="brand-name">Pantau Konten Tokder</div>
+    </div>
+    <button id="sidebarThemeToggle" class="theme-toggle" title="Ganti Tema" style="width: 34px; height: 34px; font-size: 14px; background: rgba(255,255,255,0.05); border: 1px solid var(--sidebar-line); color: var(--sidebar-text); padding: 0;">
+      <i data-lucide="moon" class="theme-icon" style="width: 18px; height: 18px;"></i>
+    </button>
+  </div>
+  <nav id="navList">
+    <div class="nav-item active" data-view="dashboard"><i data-lucide="layout-dashboard" style="width:18px;height:18px;margin-right:8px;opacity:0.7;"></i><span>Dashboard</span></div>
+    <div class="nav-item" data-view="editor"><i data-lucide="users" style="width:18px;height:18px;margin-right:8px;opacity:0.7;"></i><span>Editor</span></div>
+    <div class="nav-item" data-view="konten"><i data-lucide="play-square" style="width:18px;height:18px;margin-right:8px;opacity:0.7;"></i><span>Konten</span></div>
+    <div class="nav-item" data-view="unmatched"><i data-lucide="file-question" style="width:18px;height:18px;margin-right:8px;opacity:0.7;"></i><span>Belum teridentifikasi</span></div>
+    <div class="nav-item" data-view="pengaturan"><i data-lucide="settings" style="width:18px;height:18px;margin-right:8px;opacity:0.7;"></i><span>Pengaturan</span></div>
+  </nav>
+  <div class="sidebar-foot" style="margin-top: auto;">
+    <span class="pulse-dot"></span>Mode demo — Mock DB Aktif<br>
+    Status server lokal ditampilkan.
+  </div>
+</aside>
+
+<!-- Mobile Overlay -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<!-- Mobile Header -->
+<div class="mobile-header">
+  <div style="display: flex; align-items: center; gap: 10px;">
+    <img src="tokderlogo.png" alt="Logo" style="width: 28px; height: 28px; border-radius: 6px; object-fit: contain;">
+    <div class="brand-name" style="color: var(--ink); font-size: 15px;">Pantau Konten</div>
+  </div>
+  <button id="mobileMenuBtn" class="btn" style="padding: 6px; font-size: 18px; line-height: 1; border: none; background: transparent; color: var(--ink);">
+    <i data-lucide="menu"></i>
+  </button>
+</div>
+
+<main>
+
+  <!-- ===== DASHBOARD ===== -->
+  <div class="view active" id="view-dashboard">
+    <header class="page-head">
+      <div>
+        <h1>Ringkasan performa</h1>
+        <div class="sub">Data metrik dari YouTube, Instagram, dan Facebook</div>
+      </div>
+      <div class="toolbar">
+        <select id="filterEditor"><option value="all">Semua editor</option></select>
+        <select id="filterPlatform">
+          <option value="all">Semua platform</option>
+          <option value="youtube">YouTube</option>
+          <option value="instagram">Instagram</option>
+          <option value="facebook">Facebook</option>
+        </select>
+        <select id="filterRange">
+          <option value="7">7 hari terakhir</option>
+          <option value="30" selected>30 hari terakhir</option>
+          <option value="90">90 hari terakhir</option>
+        </select>
+        <button class="btn btn-primary" id="refreshBtn">
+          <span class="btn-text">Sinkronkan sekarang</span>
+        </button>
+      </div>
+    </header>
+
+    <section class="metrics" id="metricCards"></section>
+
+    <section class="grid-2">
+      <div class="panel" style="position: relative;">
+        <div class="panel-head">
+          <div class="panel-title">Tren views mingguan</div>
+          <div class="panel-note">Sesuai filter aktif</div>
+        </div>
+        <canvas id="trendChart"></canvas>
+      </div>
+      <div class="panel" style="position: relative;">
+        <div class="panel-head">
+          <div class="panel-title">Papan performa editor</div>
+          <div class="panel-note">Klik untuk detail</div>
+        </div>
+        <div id="editorLeaderboard"></div>
+      </div>
+    </section>
+
+    <section class="panel" style="position: relative;">
+      <div class="panel-head">
+        <div class="panel-title">Konten terbaru</div>
+        <div class="panel-note" id="tableCount"></div>
+      </div>
+      <div style="overflow-x: auto;">
+        <table>
+          <thead><tr>
+            <th>Konten</th><th>Platform</th><th>Editor</th>
+            <th style="text-align:right">Views</th><th style="text-align:right">Likes</th>
+            <th style="text-align:right">Komentar</th><th>Status</th>
+          </tr></thead>
+          <tbody id="contentTable"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <!-- ===== EDITOR ===== -->
+  <div class="view" id="view-editor">
+    <header class="page-head">
+      <div>
+        <h1>Editor</h1>
+        <div class="sub">Kelola daftar editor dan lihat performa masing-masing</div>
+      </div>
+      <div class="toolbar">
+        <button class="btn btn-primary" id="addEditorBtn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg> Tambah editor
+        </button>
+      </div>
+    </header>
+    <div class="card-grid" id="editorCards"></div>
+  </div>
+
+  <!-- ===== KONTEN ===== -->
+  <div class="view" id="view-konten">
+    <header class="page-head">
+      <div>
+        <h1>Semua konten</h1>
+        <div class="sub">Seluruh konten yang terdeteksi sistem</div>
+      </div>
+      <div class="toolbar">
+        <input type="text" id="searchKonten" placeholder="Cari judul konten...">
+      </div>
+    </header>
+    <section class="panel">
+      <div style="overflow-x: auto;">
+        <table>
+          <thead><tr>
+            <th>Konten</th><th>Platform</th><th>Editor</th>
+            <th style="text-align:right">Views</th><th style="text-align:right">Likes</th>
+            <th style="text-align:right">Komentar</th><th>Status</th>
+          </tr></thead>
+          <tbody id="kontenFullTable"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <!-- ===== UNMATCHED ===== -->
+  <div class="view" id="view-unmatched">
+    <header class="page-head">
+      <div>
+        <h1>Belum teridentifikasi</h1>
+        <div class="sub">Konten yang kode editornya tidak ditemukan di caption/deskripsi</div>
+      </div>
+      <div class="toolbar">
+      </div>
+    </header>
+    <section class="panel">
+      <div style="overflow-x: auto;">
+        <table>
+          <thead><tr><th>Konten</th><th>Platform</th><th style="text-align:right">Views</th><th>Aksi</th></tr></thead>
+          <tbody id="unmatchedTable"></tbody>
+        </table>
+      </div>
+      <div class="empty-note" id="unmatchedEmpty" style="display:none;">Tidak ada konten yang perlu ditinjau. Semua sudah teridentifikasi.</div>
+    </section>
+  </div>
+
+  <!-- ===== PENGATURAN ===== -->
+  <div class="view" id="view-pengaturan">
+    <header class="page-head">
+      <div>
+        <h1>Pengaturan</h1>
+        <div class="sub">Kode identifikasi editor dan preferensi sinkronisasi</div>
+      </div>
+      <div class="toolbar">
+      </div>
+    </header>
+
+    <section class="panel" style="margin-bottom:16px;">
+      <div class="panel-head"><div class="panel-title">Kode identifikasi editor</div></div>
+      <div style="overflow-x: auto;">
+        <table>
+          <thead><tr><th>Editor</th><th>Kode wajib di caption</th><th>Status</th><th></th></tr></thead>
+          <tbody id="codeTable"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><div class="panel-title">Jadwal sinkronisasi otomatis</div></div>
+      <div class="field" style="max-width:260px;">
+        <label>Frekuensi scan</label>
+        <select id="syncFreq">
+          <option>Tiap 3 jam</option>
+          <option selected>Tiap 6 jam</option>
+          <option>Tiap 12 jam</option>
+          <option>1x sehari</option>
+        </select>
+      </div>
+      <button class="btn btn-primary btn-sm" id="saveSyncBtn">Simpan pengaturan</button>
+    </section>
+  </div>
+
+</main>
+
+<!-- Modal: detail konten -->
+<div class="overlay" id="contentModal">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Detail konten</div>
+      <button class="modal-close" data-close><i data-lucide="x" style="width: 20px; height: 20px;"></i></button>
+    </div>
+    <div id="contentModalBody"></div>
+  </div>
+</div>
+
+<!-- Modal: detail editor -->
+<div class="overlay" id="editorModal">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="editorModalName">Detail editor</div>
+      <button class="modal-close" data-close><i data-lucide="x" style="width: 20px; height: 20px;"></i></button>
+    </div>
+    <div id="editorModalBody"></div>
+  </div>
+</div>
+
+<!-- Modal: tambah editor -->
+<div class="overlay" id="addEditorModal">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Tambah editor</div>
+      <button class="modal-close" data-close><i data-lucide="x" style="width: 20px; height: 20px;"></i></button>
+    </div>
+    <div class="field"><label>Nama editor</label><input type="text" id="newEditorName" placeholder="cth. Wulan"></div>
+    <div class="field"><label>Kode identifikasi (untuk caption)</label><input type="text" id="newEditorCode" placeholder="cth. ED-WL"></div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="saveEditorBtn">Simpan editor</button>
+      <button class="btn" data-close>Batal</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: assign editor untuk konten unmatched -->
+<div class="overlay" id="assignModal">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Tandai editor untuk konten ini</div>
+      <button class="modal-close" data-close><i data-lucide="x" style="width: 20px; height: 20px;"></i></button>
+    </div>
+    <div class="field">
+      <label>Pilih editor</label>
+      <select id="assignEditorSelect"></select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="confirmAssignBtn">Tandai konten</button>
+      <button class="btn" data-close>Batal</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="dashboard.js?v=3"></script>
+</body>
+</html>
