@@ -1,3 +1,12 @@
 node_modules
 .env
 .DS_Store
+api/.env
+api/.env.example
+api/node_modules
+api/server.js
+api/package.json
+api/package-lock.json
+migrations/
+reel-watch-backend/
+package-lock.json

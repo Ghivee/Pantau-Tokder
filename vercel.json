@@ -1,5 +1,27 @@
 {
   "version": 2,
+  "builds": [
+    {
+      "src": "api/index.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "index.html",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "dashboard.css",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "dashboard.js",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "tokderlogo.png",
+      "use": "@vercel/static"
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/(.*)",
