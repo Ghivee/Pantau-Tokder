@@ -1,15 +1,19 @@
 const { Pool } = require('pg');
-require('dotenv').config();
+try { require('dotenv').config(); } catch (e) { /* .env not present */ }
 
 let isMock = false;
 let pool;
 
-if (process.env.DATABASE_URL) {
+const dbUrl = process.env.DATABASE_URL || '';
+const isPlaceholder = !dbUrl || dbUrl.includes('user:password') || dbUrl.includes('host:5432');
+
+if (dbUrl && !isPlaceholder) {
   pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
+    connectionString: dbUrl,
+    ssl: { rejectUnauthorized: false }
   });
 } else {
-  console.log("DATABASE_URL not found. Using in-memory mock database.");
+  console.log("DATABASE_URL belum diatur. Menggunakan data dummy.");
   isMock = true;
 }
 
