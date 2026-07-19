@@ -1,0 +1,25 @@
+const express = require('express');
+const cors = require('cors');
+
+const editorsRouter = require('./routes/editors');
+const contentRouter = require('./routes/content');
+const scanRouter = require('./routes/scan');
+const metricsRouter = require('./routes/metrics');
+
+const app = express();
+
+app.use(cors());
+app.use(express.json());
+
+app.use('/api/editors', editorsRouter);
+app.use('/api/content', contentRouter);
+app.use('/api/scan', scanRouter);
+app.use('/api/metrics', metricsRouter);
+
+// Error handler
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: 'Internal Server Error' });
+});
+
+module.exports = app;
