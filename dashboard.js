@@ -223,12 +223,13 @@ function renderLeaderboard() {
 function contentRowHtml(c) {
   const editor = editorById(c.editor_id);
   const tipeBadge = c.tipe_video === 'short' 
-    ? '<span style="font-size:10px; background:var(--surface-hover); color:var(--ink); padding:2px 6px; border-radius:4px; margin-left:8px; vertical-align:middle; border:1px solid var(--line);">Shorts/Reels</span>' 
-    : '';
+    ? '<span class="status-pill status-warn" style="font-size:11px;">Shorts</span>' 
+    : '<span class="status-pill status-ok" style="font-size:11px;">Panjang</span>';
   return `
     <tr class="clickable" data-content="${c.id}">
-      <td data-label="Konten" class="content-title">${c.judul} ${tipeBadge}</td>
+      <td data-label="Konten" class="content-title">${c.judul}</td>
       <td data-label="Platform"><span class="plat ${platformClass(c.platform)}">${platformLabel(c.platform)}</span></td>
+      <td data-label="Jenis">${tipeBadge}</td>
       <td data-label="Editor">${editor ? editor.nama : "—"}</td>
       <td data-label="Views" class="num-cell">${fmt(c.views)}</td>
       <td data-label="Likes" class="num-cell">${fmt(c.likes)}</td>
@@ -515,7 +516,7 @@ function renderDistChart() {
   ctx.style.display = "";
   
   // Adjust height dynamically based on number of editors
-  const dynamicHeight = Math.max(240, stats.length * 40 + 60);
+  const dynamicHeight = Math.max(320, stats.length * 40 + 120);
   ctx.parentElement.style.height = `${dynamicHeight}px`;
   
   const isDark = document.body.getAttribute("data-theme") === "dark";
@@ -711,13 +712,15 @@ function renderKontenFull() {
   const platform = document.getElementById("kontenFilterPlatform")?.value || "all";
   const editor = document.getElementById("kontenFilterEditor")?.value || "all";
   const status = document.getElementById("kontenFilterStatus")?.value || "all";
-
+  const jenis = document.getElementById("kontenFilterJenis")?.value || "all";
+  
   const allRows = content.filter(c => {
     if (q && !c.judul.toLowerCase().includes(q)) return false;
     if (platform !== "all" && c.platform !== platform) return false;
     if (editor !== "all" && String(c.editor_id) !== editor) return false;
     if (status !== "all" && status === "matched" && c.status_identifikasi !== "matched") return false;
     if (status !== "all" && status === "unmatched" && c.status_identifikasi !== "unmatched") return false;
+    if (jenis !== "all" && String(c.tipe_video) !== jenis) return false;
     return true;
   });
   
@@ -980,6 +983,7 @@ document.getElementById("exportKontenBtn")?.addEventListener("click", () => {
   const platform = document.getElementById("kontenFilterPlatform")?.value || "all";
   const editor = document.getElementById("kontenFilterEditor")?.value || "all";
   const status = document.getElementById("kontenFilterStatus")?.value || "all";
+  const jenis = document.getElementById("kontenFilterJenis")?.value || "all";
 
   const allRows = content.filter(c => {
     if (q && !c.judul.toLowerCase().includes(q)) return false;
@@ -987,6 +991,7 @@ document.getElementById("exportKontenBtn")?.addEventListener("click", () => {
     if (editor !== "all" && String(c.editor_id) !== editor) return false;
     if (status !== "all" && status === "matched" && c.status_identifikasi !== "matched") return false;
     if (status !== "all" && status === "unmatched" && c.status_identifikasi !== "unmatched") return false;
+    if (jenis !== "all" && String(c.tipe_video) !== jenis) return false;
     return true;
   });
   
@@ -1035,7 +1040,7 @@ function renderGoal() {
 document.getElementById("editGoalBtn")?.addEventListener("click", () => {
   document.getElementById("goalInputTarget").value = currentGoal.target_omset;
   document.getElementById("goalInputTercapai").value = currentGoal.tercapai;
-  document.getElementById("goalModal").classList.add("show");
+  openModal("goalModal");
 });
 
 document.getElementById("saveGoalBtn")?.addEventListener("click", async () => {
@@ -1055,7 +1060,7 @@ document.getElementById("saveGoalBtn")?.addEventListener("click", async () => {
     if (res.ok) {
       currentGoal = await res.json();
       renderGoal();
-      document.getElementById("goalModal").classList.remove("show");
+      closeModal("goalModal");
       showToast("Target berhasil diperbarui");
     }
   } catch (e) {
