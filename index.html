@@ -180,30 +180,32 @@
         <h1>Semua konten</h1>
         <div class="sub">Seluruh konten yang terdeteksi sistem</div>
       </div>
-      <div class="filter-bar">
-        <input type="text" id="searchKonten" placeholder="Cari judul..." style="flex:1;">
-        <select id="kontenFilterPlatform">
-          <option value="all">Semua platform</option>
-          <option value="youtube">YouTube</option>
-          <option value="instagram">Instagram</option>
-          <option value="facebook">Facebook</option>
-        </select>
-        <select id="kontenFilterJenis">
-          <option value="all">Semua jenis</option>
-          <option value="short">Shorts/Reels</option>
-          <option value="long">Video Panjang</option>
-        </select>
-        <select id="kontenFilterEditor">
-          <option value="all">Semua editor</option>
-        </select>
-        <select id="kontenFilterStatus">
-          <option value="all">Semua status</option>
-          <option value="matched">Teridentifikasi</option>
-          <option value="unmatched">Perlu ditinjau</option>
-        </select>
+      <div class="toolbar">
         <button class="btn" id="exportKontenBtn"><i data-lucide="download" style="width:16px;height:16px;"></i> Unduh CSV</button>
       </div>
     </header>
+    <div class="filter-bar" style="margin-bottom: 24px; display: flex; flex-wrap: wrap; gap: 12px; background: var(--surface); padding: 16px; border-radius: 12px; border: 1px solid var(--line);">
+      <input type="text" id="searchKonten" placeholder="Cari judul..." style="flex:1; min-width: 200px;">
+      <select id="kontenFilterPlatform">
+        <option value="all">Semua platform</option>
+        <option value="youtube">YouTube</option>
+        <option value="instagram">Instagram</option>
+        <option value="facebook">Facebook</option>
+      </select>
+      <select id="kontenFilterJenis">
+        <option value="all">Semua jenis</option>
+        <option value="short">Shorts/Reels</option>
+        <option value="long">Video Panjang</option>
+      </select>
+      <select id="kontenFilterEditor">
+        <option value="all">Semua editor</option>
+      </select>
+      <select id="kontenFilterStatus">
+        <option value="all">Semua status</option>
+        <option value="matched">Teridentifikasi</option>
+        <option value="unmatched">Perlu ditinjau</option>
+      </select>
+    </div>
     <section class="panel">
       <div style="overflow-x: auto;">
         <table>

@@ -888,10 +888,12 @@ function openContentModal(id) {
   const comments = c.comments || c.komentar || 0;
   
   const formattedUpload = formatDate(c.tanggal_upload);
+  const jenisLabel = c.tipe_video === 'short' ? 'Shorts / Reels' : 'Video Panjang';
   
   document.getElementById("contentModalBody").innerHTML = `
     <div class="detail-row"><span class="detail-label">Judul</span><span>${c.judul}</span></div>
     <div class="detail-row"><span class="detail-label">Platform</span><span class="plat ${platformClass(c.platform)}">${platformLabel(c.platform)}</span></div>
+    <div class="detail-row"><span class="detail-label">Jenis Konten</span><span style="font-weight:600;">${jenisLabel}</span></div>
     <div class="detail-row"><span class="detail-label">Editor</span><span>${editor ? editor.nama : "Belum teridentifikasi"}</span></div>
     <div class="detail-row"><span class="detail-label">Waktu upload</span><span>${formattedUpload}</span></div>
     <div class="detail-row"><span class="detail-label">Views</span><span class="num">${views.toLocaleString('id-ID')}</span></div>
@@ -914,13 +916,24 @@ function openEditorModal(id) {
   const e = editorById(id);
   const items = content.filter(c => c.editor_id === id);
   const views = items.reduce((s, c) => s + (c.views || 0), 0);
+  const shortCount = items.filter(c => c.tipe_video === 'short').length;
+  const longCount = items.filter(c => c.tipe_video === 'long').length;
+  
   document.getElementById("editorModalName").textContent = e.nama;
   document.getElementById("editorModalBody").innerHTML = `
     <div class="detail-row"><span class="detail-label">Kode identifikasi</span><span class="code-tag">${e.kode_identifikasi || e.kode}</span></div>
-    <div class="detail-row"><span class="detail-label">Total konten</span><span class="num">${items.length}</span></div>
+    <div class="detail-row"><span class="detail-label">Total konten</span><span class="num">${items.length} <span style="font-size:12px;color:var(--muted);font-weight:normal;">(${longCount} Panjang, ${shortCount} Shorts)</span></span></div>
     <div class="detail-row"><span class="detail-label">Total views</span><span class="num">${fmt(views)}</span></div>
     <div style="margin-top:20px;font-size:12.5px;color:var(--muted);margin-bottom:12px;font-weight:600;">Konten terbaru</div>
-    ${items.slice(0, 5).map(c => `<div class="detail-row"><span>${c.judul}</span><span class="num">${fmt(c.views)}</span></div>`).join("") || '<div class="empty-note">Belum ada konten.</div>'}
+    ${items.slice(0, 5).map(c => `
+      <div class="detail-row" style="margin-bottom:8px; align-items:flex-start;">
+        <div style="flex:1; padding-right:12px;">
+          <div style="margin-bottom:6px; line-height:1.4;">${c.judul}</div>
+          <span style="font-size:10px; padding:2px 6px; background:var(--surface-hover); color:var(--ink); border:1px solid var(--line); border-radius:4px;">${c.tipe_video === 'short' ? 'Shorts' : 'Panjang'} • ${platformLabel(c.platform)}</span>
+        </div>
+        <span class="num">${fmt(c.views)}</span>
+      </div>
+    `).join("") || '<div class="empty-note">Belum ada konten.</div>'}
   `;
   openModal("editorModal");
 }
