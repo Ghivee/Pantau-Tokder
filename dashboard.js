@@ -473,7 +473,6 @@ function exportToCSV(dataRows, filename) {
 }
 
 // ============ CHART: Distribution Chart (Horizontal Stacked Bar) ============
-let distChartInstance = null;
 function renderDistChart() {
   const ctx = document.getElementById("distChart");
   if (!ctx) return;
