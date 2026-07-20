@@ -160,9 +160,11 @@ function hideSkeletons() {
 
 // ============ RENDER: DASHBOARD ============
 function populateEditorFilter() {
-  const sel = document.getElementById("filterEditor");
-  sel.innerHTML = '<option value="all">Semua editor</option>' +
-    editors.map(e => `<option value="${e.id}">${e.nama}</option>`).join("");
+  const options = '<option value="all">Semua editor</option>' + editors.map(e => `<option value="${e.id}">${e.nama}</option>`).join("");
+  const sel1 = document.getElementById("filterEditor");
+  if (sel1) sel1.innerHTML = options;
+  const sel2 = document.getElementById("kontenFilterEditor");
+  if (sel2) sel2.innerHTML = options;
 }
 
 function renderMetrics() {
@@ -343,23 +345,31 @@ function renderChart() {
   ctx.style.display = "";
   
   const isDark = document.body.getAttribute("data-theme") === "dark";
-  const barColor = isDark ? "#63E6BE" : "#20C997";
-  const barHover = isDark ? "#96F2D7" : "#12B886";
+  const lineColor = isDark ? "#63E6BE" : "#20C997";
   const gridColor = isDark ? "#2D2D2D" : "#E9ECEF";
   const textColor = isDark ? "#A0A0A0" : "#6C757D";
 
+  const gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 300);
+  gradient.addColorStop(0, isDark ? "rgba(99, 230, 190, 0.4)" : "rgba(32, 201, 151, 0.4)");
+  gradient.addColorStop(1, isDark ? "rgba(99, 230, 190, 0.0)" : "rgba(32, 201, 151, 0.0)");
+
   chartInstance = new Chart(ctx, {
-    type: "bar",
+    type: "line",
     data: { 
       labels, 
       datasets: [{ 
         label: "Views",
         data: chartData, 
-        backgroundColor: barColor,
-        hoverBackgroundColor: barHover,
-        borderRadius: 6,
-        borderSkipped: false,
-        maxBarThickness: 40,
+        borderColor: lineColor,
+        backgroundColor: gradient,
+        borderWidth: 3,
+        pointBackgroundColor: lineColor,
+        pointBorderColor: isDark ? "#1E1E1E" : "#fff",
+        pointBorderWidth: 2,
+        pointRadius: 0,
+        pointHoverRadius: 6,
+        fill: true,
+        tension: 0.4
       }] 
     },
     options: {
@@ -459,9 +469,21 @@ function renderEditorCards() {
 }
 
 // ============ RENDER: KONTEN PAGE (with Pagination) ============
-function renderKontenFull(query = "") {
-  const q = query.trim().toLowerCase();
-  const allRows = content.filter(c => c.judul.toLowerCase().includes(q));
+function renderKontenFull() {
+  const q = (document.getElementById("searchKonten")?.value || "").trim().toLowerCase();
+  const platform = document.getElementById("kontenFilterPlatform")?.value || "all";
+  const editor = document.getElementById("kontenFilterEditor")?.value || "all";
+  const status = document.getElementById("kontenFilterStatus")?.value || "all";
+
+  const allRows = content.filter(c => {
+    if (q && !c.judul.toLowerCase().includes(q)) return false;
+    if (platform !== "all" && c.platform !== platform) return false;
+    if (editor !== "all" && String(c.editor_id) !== editor) return false;
+    if (status !== "all" && status === "matched" && c.status_identifikasi !== "matched") return false;
+    if (status !== "all" && status === "unmatched" && c.status_identifikasi !== "unmatched") return false;
+    return true;
+  });
+  
   const totalPages = Math.max(Math.ceil(allRows.length / KONTEN_PER_PAGE), 1);
   
   // Clamp page
@@ -470,6 +492,9 @@ function renderKontenFull(query = "") {
   
   const start = (kontenPage - 1) * KONTEN_PER_PAGE;
   const pageRows = allRows.slice(start, start + KONTEN_PER_PAGE);
+  
+  const countInfoEl = document.getElementById("kontenCountInfo");
+  if (countInfoEl) countInfoEl.textContent = `Menampilkan ${allRows.length} konten`;
   
   document.getElementById("kontenFullTable").innerHTML = pageRows.map(contentRowHtml).join("") || `<tr><td colspan="7" class="empty-note">Tidak ada konten ditemukan.</td></tr>`;
   attachRowClicks("kontenFullTable");
@@ -504,23 +529,28 @@ function renderPagination(totalPages, totalItems) {
   // Attach events
   container.querySelector("#prevPage")?.addEventListener("click", () => {
     kontenPage--;
-    renderKontenFull(document.getElementById("searchKonten").value);
+    renderKontenFull();
   });
   container.querySelector("#nextPage")?.addEventListener("click", () => {
     kontenPage++;
-    renderKontenFull(document.getElementById("searchKonten").value);
+    renderKontenFull();
   });
   container.querySelectorAll("[data-page]").forEach(btn => {
     btn.addEventListener("click", () => {
       kontenPage = Number(btn.dataset.page);
-      renderKontenFull(document.getElementById("searchKonten").value);
+      renderKontenFull();
     });
   });
 }
 
-document.getElementById("searchKonten").addEventListener("input", e => {
-  kontenPage = 1; // Reset to page 1 on search
-  renderKontenFull(e.target.value);
+["searchKonten", "kontenFilterPlatform", "kontenFilterEditor", "kontenFilterStatus"].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) {
+    el.addEventListener(id === "searchKonten" ? "input" : "change", () => {
+      kontenPage = 1;
+      renderKontenFull();
+    });
+  }
 });
 
 // ============ RENDER: UNMATCHED PAGE ============
@@ -728,7 +758,7 @@ function renderAll() {
   try { populateEditorFilter(); } catch (e) {}
   try { renderDashboard(); } catch (e) {}
   try { renderEditorCards(); } catch (e) {}
-  try { renderKontenFull(document.getElementById("searchKonten").value); } catch (e) {}
+  try { renderKontenFull(); } catch (e) {}
   try { renderUnmatched(); } catch (e) {}
   try { renderCodeTable(); } catch (e) {}
   try { lucide.createIcons(); } catch (e) {}
