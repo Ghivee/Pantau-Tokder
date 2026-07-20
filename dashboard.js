@@ -3,13 +3,8 @@ let editors = [];
 let content = [];
 let nextEditorId = 5;
 
-// Initial dummy data will be overwritten by fetch if successful
-let dummyContent = [
-  { id: 1, editor_id: 1, platform: "youtube", judul: "Panduan pemupukan cabe rawit agar berbuah lebat", tanggal_upload: "2026-07-01 14:30 WIB", url: "https://youtube.com/watch?v=demo1", views: 24500, likes: 1820, comments: 142, status_identifikasi: "matched" },
-  { id: 2, editor_id: 2, platform: "instagram", judul: "Cara ampuh mengatasi hama patek pada cabe", tanggal_upload: "2026-07-03 09:15 WIB", url: "https://instagram.com/p/demo2", views: 18200, likes: 2140, comments: 88, status_identifikasi: "matched" },
-  { id: 3, editor_id: 1, platform: "instagram", judul: "Rahasia semai bibit cabe 100% tumbuh subur", tanggal_upload: "2026-07-05 16:45 WIB", url: "https://instagram.com/p/demo3", views: 15800, likes: 1290, comments: 54, status_identifikasi: "matched" },
-  { id: 6, editor_id: null, platform: "instagram", judul: "Panen raya cabe merah keriting musim kemarau", tanggal_upload: "2026-07-09 10:00 WIB", url: "https://instagram.com/p/demo6", views: 6400, likes: 340, comments: 12, status_identifikasi: "unmatched" }
-];
+// Removed dummy content
+let dummyContent = [];
 
 let filters = { editor: "all", platform: "all", range: "30" };
 let chartInstance = null;
@@ -209,8 +204,6 @@ function attachRowClicks(tbodyId) {
 }
 
 function renderChart() {
-  const base = { 7: [9800, 11200], 30: [28400, 35200, 41800, 39600], 90: [61000, 58200, 72400, 69800, 74100, 81200] }[filters.range];
-  const labels = base.map((_, i) => `Periode ${i + 1}`);
   const ctx = document.getElementById("trendChart");
   if (!ctx) return;
   if (typeof Chart === "undefined") {
@@ -220,6 +213,42 @@ function renderChart() {
   
   if (chartInstance) chartInstance.destroy();
   
+  const days = Number(filters.range) || 30;
+  
+  // Aggregate views by day using filtered content
+  const data = filteredContent();
+  const dateMap = {};
+  
+  // Initialize last X days with 0
+  const today = new Date();
+  for(let i = days - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().split('T')[0];
+    dateMap[dateStr] = 0;
+  }
+
+  // Populate actual data
+  data.forEach(item => {
+    if (!item.tanggal_upload) return;
+    try {
+      // Parse "YYYY-MM-DD" from "YYYY-MM-DD HH:mm WIB" or actual ISO string
+      let dStr = item.tanggal_upload;
+      if (dStr.includes(' WIB')) dStr = dStr.split(' ')[0];
+      else if (dStr.includes('T')) dStr = dStr.split('T')[0];
+      
+      if (dateMap[dStr] !== undefined) {
+        dateMap[dStr] += Number(item.views || 0);
+      }
+    } catch(e) {}
+  });
+
+  const labels = Object.keys(dateMap).map(d => {
+    const p = d.split('-');
+    return `${p[2]}/${p[1]}`;
+  });
+  const chartData = Object.values(dateMap);
+  
   const isDark = document.body.getAttribute("data-theme") === "dark";
   const lineColor = isDark ? "#63E6BE" : "#1F6B5C";
   const bgColor = isDark ? "rgba(99, 230, 190, 0.1)" : "rgba(31, 107, 92, 0.08)";
@@ -228,13 +257,13 @@ function renderChart() {
 
   chartInstance = new Chart(ctx, {
     type: "line",
-    data: { labels, datasets: [{ data: base, borderColor: lineColor, backgroundColor: bgColor, borderWidth: 2, pointRadius: 3, pointBackgroundColor: lineColor, fill: true, tension: 0.35 }] },
+    data: { labels, datasets: [{ data: chartData, borderColor: lineColor, backgroundColor: bgColor, borderWidth: 2, pointRadius: 3, pointBackgroundColor: lineColor, fill: true, tension: 0.35 }] },
     options: {
       responsive: true,
       plugins: { legend: { display: false } },
       scales: {
-        y: { ticks: { callback: v => fmt(v), color: textColor, font: { family: "JetBrains Mono", size: 11 } }, grid: { color: gridColor } },
-        x: { ticks: { color: textColor, font: { size: 11 } }, grid: { display: false } }
+        y: { ticks: { callback: v => fmt(v), color: textColor, font: { family: "JetBrains Mono", size: 11 } }, grid: { color: gridColor }, beginAtZero: true },
+        x: { ticks: { color: textColor, font: { size: 11 }, maxTicksLimit: 7 }, grid: { display: false } }
       }
     }
   });
@@ -400,11 +429,19 @@ function openContentModal(id) {
   const likes = c.likes || 0;
   const comments = c.comments || c.komentar || 0;
   
+  let formattedUpload = c.tanggal_upload || "-";
+  try {
+    const d = new Date(c.tanggal_upload);
+    if (!isNaN(d.getTime())) {
+      formattedUpload = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(/\./g, ':') + ' WIB';
+    }
+  } catch(e) {}
+  
   document.getElementById("contentModalBody").innerHTML = `
     <div class="detail-row"><span class="detail-label">Judul</span><span>${c.judul}</span></div>
     <div class="detail-row"><span class="detail-label">Platform</span><span class="plat ${platformClass(c.platform)}">${platformLabel(c.platform)}</span></div>
     <div class="detail-row"><span class="detail-label">Editor</span><span>${editor ? editor.nama : "Belum teridentifikasi"}</span></div>
-    <div class="detail-row"><span class="detail-label">Waktu upload</span><span>${c.tanggal_upload}</span></div>
+    <div class="detail-row"><span class="detail-label">Waktu upload</span><span>${formattedUpload}</span></div>
     <div class="detail-row"><span class="detail-label">Views</span><span class="num">${views.toLocaleString('id-ID')}</span></div>
     <div class="detail-row"><span class="detail-label">Likes</span><span class="num">${likes.toLocaleString('id-ID')}</span></div>
     <div class="detail-row"><span class="detail-label">Komentar</span><span class="num">${comments.toLocaleString('id-ID')}</span></div>
@@ -524,26 +561,15 @@ async function loadData() {
     content = Array.isArray(contentRes) ? contentRes : [];
     
     if (editors.length === 0) {
-      editors = [
-        { id: 1, nama: "Deni", kode_identifikasi: "ED-DN", status: "aktif" },
-        { id: 2, nama: "Finda", kode_identifikasi: "ED-FD", status: "aktif" }
-      ];
-      showToast("Tabel editor kosong, menggunakan data dummy.", false);
+      showToast("Tabel editor kosong di database.", false);
     }
     
     if (content.length === 0) {
-      content = dummyContent;
-      showToast("Tabel konten kosong, menggunakan data dummy.", false);
+      showToast("Tabel konten kosong di database.", false);
     }
   } catch (err) {
-    console.log("Mode offline aktif. Menggunakan data simulasi lokal.");
-    showToast("Mode Offline: Menggunakan data lokal.", true);
-    // Use dummy data if backend fails
-    editors = [
-      { id: 1, nama: "Deni", kode_identifikasi: "ED-DN", status: "aktif" },
-      { id: 2, nama: "Finda", kode_identifikasi: "ED-FD", status: "aktif" }
-    ];
-    content = dummyContent;
+    console.error("Gagal memuat data dari database:", err);
+    showToast("Gagal terhubung ke database. Harap cek koneksi Anda.", true);
   }
   
   renderAll();
