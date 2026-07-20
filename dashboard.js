@@ -1,10 +1,10 @@
-// ============ STATE (Terhubung ke Backend) ============
+// ============ STATE ============
 let editors = [];
 let content = [];
-let nextEditorId = 5;
-
-// Removed dummy content
-let dummyContent = [];
+let isLoading = true;
+let kontenPage = 1;
+const KONTEN_PER_PAGE = 10;
+const DASHBOARD_LIMIT = 5;
 
 let filters = { editor: "all", platform: "all", range: "30" };
 let chartInstance = null;
@@ -33,18 +33,21 @@ if (themeToggleBtn) {
     body.setAttribute("data-theme", newTheme);
     localStorage.setItem("theme", newTheme);
     applyThemeToBtn(newTheme);
+    // Redraw chart with new theme colors
+    if (document.getElementById("view-dashboard").classList.contains("active")) {
+      renderChart();
+    }
   });
 }
 
-// Init theme
 const savedTheme = localStorage.getItem("theme") || "light";
 body.setAttribute("data-theme", savedTheme);
 applyThemeToBtn(savedTheme);
 
-
 // ============ HELPERS ============
 function fmt(n) { 
   if (!n) return "0";
+  if (n >= 1000000) return (n / 1000000).toFixed(1).replace(/\.0$/, '') + "M";
   if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, '') + "k"; 
   return n.toString(); 
 }
@@ -83,6 +86,15 @@ function filteredContent() {
   });
 }
 
+function formatDate(dateStr) {
+  if (!dateStr) return "-";
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(/\./g, ':');
+  } catch(e) { return dateStr; }
+}
+
 // ============ NAV ============
 const asideEl = document.querySelector("aside");
 const overlayEl = document.getElementById("sidebarOverlay");
@@ -101,16 +113,50 @@ document.getElementById("mobileMenuBtn")?.addEventListener("click", () => {
 
 overlayEl?.addEventListener("click", closeMobileMenu);
 
+function switchView(viewName) {
+  document.querySelectorAll(".nav-item").forEach(i => i.classList.remove("active"));
+  document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+  const navItem = document.querySelector(`.nav-item[data-view="${viewName}"]`);
+  if (navItem) navItem.classList.add("active");
+  document.getElementById("view-" + viewName).classList.add("active");
+  if (viewName === "pengaturan") renderCodeTable();
+  closeMobileMenu();
+}
+
 document.querySelectorAll(".nav-item").forEach(item => {
-  item.addEventListener("click", () => {
-    document.querySelectorAll(".nav-item").forEach(i => i.classList.remove("active"));
-    item.classList.add("active");
-    document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
-    document.getElementById("view-" + item.dataset.view).classList.add("active");
-    if (item.dataset.view === "pengaturan") renderCodeTable();
-    closeMobileMenu();
-  });
+  item.addEventListener("click", () => switchView(item.dataset.view));
 });
+
+// ============ SKELETON LOADING ============
+function showSkeletons() {
+  // Metric cards skeleton
+  document.getElementById("metricCards").innerHTML = 
+    '<div class="metric-card"><div class="skeleton skel-card"></div></div>'.repeat(4);
+
+  // Chart skeleton
+  const chartPanel = document.getElementById("chartPanel");
+  const canvas = document.getElementById("trendChart");
+  if (canvas) canvas.style.display = "none";
+  const skelChart = document.createElement("div");
+  skelChart.className = "skeleton skel-chart";
+  skelChart.id = "skelChart";
+  chartPanel.appendChild(skelChart);
+
+  // Leaderboard skeleton
+  document.getElementById("editorLeaderboard").innerHTML = 
+    '<div class="skeleton skel-leaderboard"></div>'.repeat(3);
+
+  // Dashboard table skeleton
+  document.getElementById("contentTable").innerHTML = 
+    `<tr><td colspan="7"><div class="skeleton skel-row"></div><div class="skeleton skel-row"></div><div class="skeleton skel-row"></div></td></tr>`;
+}
+
+function hideSkeletons() {
+  const skelChart = document.getElementById("skelChart");
+  if (skelChart) skelChart.remove();
+  const canvas = document.getElementById("trendChart");
+  if (canvas) canvas.style.display = "";
+}
 
 // ============ RENDER: DASHBOARD ============
 function populateEditorFilter() {
@@ -129,22 +175,19 @@ function renderMetrics() {
     <div class="metric-card">
       <div class="metric-label">Total konten</div>
       <div class="metric-value num">${data.length}</div>
-      <div class="metric-delta up">Sesuai filter</div>
     </div>
     <div class="metric-card">
       <div class="metric-label">Total views</div>
       <div class="metric-value num">${fmt(totalViews)}</div>
-      <div class="metric-delta up">Sesuai filter</div>
     </div>
     <div class="metric-card">
       <div class="metric-label">Total likes</div>
       <div class="metric-value num">${fmt(totalLikes)}</div>
-      <div class="metric-delta up">Sesuai filter</div>
     </div>
     <div class="metric-card warn-card">
       <div class="metric-label">Belum teridentifikasi</div>
       <div class="metric-value num">${unmatched}</div>
-      <div class="metric-delta">Perlu ditinjau</div>
+      <div class="metric-sub">Perlu ditinjau</div>
     </div>
   `;
 }
@@ -180,22 +223,36 @@ function contentRowHtml(c) {
   const editor = editorById(c.editor_id);
   return `
     <tr class="clickable" data-content="${c.id}">
-      <td class="content-title">${c.judul}</td>
-      <td><span class="plat ${platformClass(c.platform)}">${platformLabel(c.platform)}</span></td>
-      <td>${editor ? editor.nama : "—"}</td>
-      <td class="num-cell">${fmt(c.views)}</td>
-      <td class="num-cell">${fmt(c.likes)}</td>
-      <td class="num-cell">${fmt(c.comments || c.komentar)}</td>
-      <td>${c.status_identifikasi === "matched" ? '<span class="status-pill status-ok">Teridentifikasi</span>' : '<span class="status-pill status-warn">Perlu ditinjau</span>'}</td>
+      <td data-label="Konten" class="content-title">${c.judul}</td>
+      <td data-label="Platform"><span class="plat ${platformClass(c.platform)}">${platformLabel(c.platform)}</span></td>
+      <td data-label="Editor">${editor ? editor.nama : "—"}</td>
+      <td data-label="Views" class="num-cell">${fmt(c.views)}</td>
+      <td data-label="Likes" class="num-cell">${fmt(c.likes)}</td>
+      <td data-label="Komentar" class="num-cell">${fmt(c.comments || c.komentar)}</td>
+      <td data-label="Status">${c.status_identifikasi === "matched" ? '<span class="status-pill status-ok">Teridentifikasi</span>' : '<span class="status-pill status-warn">Perlu ditinjau</span>'}</td>
     </tr>`;
 }
 
 function renderTable() {
   const data = filteredContent();
+  const limited = data.slice(0, DASHBOARD_LIMIT);
   document.getElementById("tableCount").textContent = `${data.length} item`;
-  document.getElementById("contentTable").innerHTML = data.map(contentRowHtml).join("") || `<tr><td colspan="7" class="empty-note">Tidak ada konten sesuai filter.</td></tr>`;
+  document.getElementById("contentTable").innerHTML = limited.map(contentRowHtml).join("") || `<tr><td colspan="7" class="empty-note">Tidak ada konten sesuai filter.</td></tr>`;
   attachRowClicks("contentTable");
+  
+  // Show/hide "Lihat semua" link
+  const viewAllLink = document.getElementById("viewAllLink");
+  if (data.length > DASHBOARD_LIMIT) {
+    viewAllLink.style.display = "flex";
+  } else {
+    viewAllLink.style.display = "none";
+  }
 }
+
+// "Lihat semua konten" link handler
+document.getElementById("goToKonten")?.addEventListener("click", () => {
+  switchView("konten");
+});
 
 function attachRowClicks(tbodyId) {
   document.querySelectorAll(`#${tbodyId} tr[data-content]`).forEach(row => {
@@ -203,6 +260,7 @@ function attachRowClicks(tbodyId) {
   });
 }
 
+// ============ CHART: Weekly Bar Chart ============
 function renderChart() {
   const ctx = document.getElementById("trendChart");
   if (!ctx) return;
@@ -214,56 +272,132 @@ function renderChart() {
   if (chartInstance) chartInstance.destroy();
   
   const days = Number(filters.range) || 30;
-  
-  // Aggregate views by day using filtered content
   const data = filteredContent();
-  const dateMap = {};
   
-  // Initialize last X days with 0
+  // Group data by week
   const today = new Date();
-  for(let i = days - 1; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(d.getDate() - i);
-    const dateStr = d.toISOString().split('T')[0];
-    dateMap[dateStr] = 0;
+  today.setHours(23, 59, 59, 999);
+  const startDate = new Date(today);
+  startDate.setDate(startDate.getDate() - days);
+  startDate.setHours(0, 0, 0, 0);
+  
+  // Calculate number of weeks
+  const totalMs = today.getTime() - startDate.getTime();
+  const totalWeeks = Math.max(Math.ceil(totalMs / (7 * 24 * 60 * 60 * 1000)), 1);
+  
+  // Initialize weeks
+  const weeks = [];
+  for (let i = 0; i < totalWeeks; i++) {
+    const weekStart = new Date(startDate);
+    weekStart.setDate(weekStart.getDate() + (i * 7));
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+    if (weekEnd > today) weekEnd.setTime(today.getTime());
+    
+    weeks.push({
+      start: weekStart,
+      end: weekEnd,
+      label: `${weekStart.getDate()}/${weekStart.getMonth() + 1}`,
+      views: 0,
+      count: 0
+    });
   }
-
-  // Populate actual data
+  
+  // Populate weeks with data
   data.forEach(item => {
     if (!item.tanggal_upload) return;
     try {
-      // Parse "YYYY-MM-DD" from "YYYY-MM-DD HH:mm WIB" or actual ISO string
-      let dStr = item.tanggal_upload;
-      if (dStr.includes(' WIB')) dStr = dStr.split(' ')[0];
-      else if (dStr.includes('T')) dStr = dStr.split('T')[0];
+      const d = new Date(item.tanggal_upload);
+      if (isNaN(d.getTime())) return;
       
-      if (dateMap[dStr] !== undefined) {
-        dateMap[dStr] += Number(item.views || 0);
+      for (const week of weeks) {
+        if (d >= week.start && d <= week.end) {
+          week.views += Number(item.views || 0);
+          week.count++;
+          break;
+        }
       }
     } catch(e) {}
   });
-
-  const labels = Object.keys(dateMap).map(d => {
-    const p = d.split('-');
-    return `${p[2]}/${p[1]}`;
-  });
-  const chartData = Object.values(dateMap);
+  
+  const labels = weeks.map(w => w.label);
+  const chartData = weeks.map(w => w.views);
+  const hasData = chartData.some(v => v > 0);
+  
+  if (!hasData) {
+    ctx.style.display = "none";
+    let emptyMsg = document.getElementById("chartEmpty");
+    if (!emptyMsg) {
+      emptyMsg = document.createElement("div");
+      emptyMsg.id = "chartEmpty";
+      emptyMsg.className = "empty-note";
+      emptyMsg.textContent = "Belum ada data di periode ini.";
+      ctx.parentElement.appendChild(emptyMsg);
+    }
+    return;
+  }
+  
+  // Remove empty message if exists
+  const emptyMsg = document.getElementById("chartEmpty");
+  if (emptyMsg) emptyMsg.remove();
+  ctx.style.display = "";
   
   const isDark = document.body.getAttribute("data-theme") === "dark";
-  const lineColor = isDark ? "#63E6BE" : "#1F6B5C";
-  const bgColor = isDark ? "rgba(99, 230, 190, 0.1)" : "rgba(31, 107, 92, 0.08)";
+  const barColor = isDark ? "#63E6BE" : "#20C997";
+  const barHover = isDark ? "#96F2D7" : "#12B886";
   const gridColor = isDark ? "#2D2D2D" : "#E9ECEF";
   const textColor = isDark ? "#A0A0A0" : "#6C757D";
 
   chartInstance = new Chart(ctx, {
-    type: "line",
-    data: { labels, datasets: [{ data: chartData, borderColor: lineColor, backgroundColor: bgColor, borderWidth: 2, pointRadius: 3, pointBackgroundColor: lineColor, fill: true, tension: 0.35 }] },
+    type: "bar",
+    data: { 
+      labels, 
+      datasets: [{ 
+        label: "Views",
+        data: chartData, 
+        backgroundColor: barColor,
+        hoverBackgroundColor: barHover,
+        borderRadius: 6,
+        borderSkipped: false,
+        maxBarThickness: 40,
+      }] 
+    },
     options: {
       responsive: true,
-      plugins: { legend: { display: false } },
+      maintainAspectRatio: true,
+      plugins: { 
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: isDark ? "#2D2D2D" : "#12181A",
+          titleFont: { family: "Inter", size: 12, weight: "600" },
+          bodyFont: { family: "JetBrains Mono", size: 12 },
+          padding: 12,
+          cornerRadius: 8,
+          callbacks: {
+            title: function(ctx) {
+              const i = ctx[0].dataIndex;
+              const w = weeks[i];
+              const startStr = w.start.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+              const endStr = w.end.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+              return `${startStr} – ${endStr}`;
+            },
+            label: function(ctx) {
+              const i = ctx.dataIndex;
+              return `${ctx.formattedValue} views (${weeks[i].count} konten)`;
+            }
+          }
+        }
+      },
       scales: {
-        y: { ticks: { callback: v => fmt(v), color: textColor, font: { family: "JetBrains Mono", size: 11 } }, grid: { color: gridColor }, beginAtZero: true },
-        x: { ticks: { color: textColor, font: { size: 11 }, maxTicksLimit: 7 }, grid: { display: false } }
+        y: { 
+          ticks: { callback: v => fmt(v), color: textColor, font: { family: "JetBrains Mono", size: 11 } }, 
+          grid: { color: gridColor }, 
+          beginAtZero: true 
+        },
+        x: { 
+          ticks: { color: textColor, font: { size: 11 } }, 
+          grid: { display: false } 
+        }
       }
     }
   });
@@ -310,7 +444,7 @@ function renderEditorCards() {
     const originalText = b.textContent;
     b.textContent = "Menghapus...";
     try {
-      await fetch(`http://localhost:3000/api/editors/${id}`, { method: 'DELETE' });
+      await fetch(`/api/editors/${id}`, { method: 'DELETE' });
       content.forEach(c => { if (c.editor_id === id) { c.editor_id = null; c.status_identifikasi = "unmatched"; } });
       editors = editors.filter(x => x.id !== id);
       showToast(`Editor ${e.nama} dihapus`);
@@ -324,24 +458,80 @@ function renderEditorCards() {
   }));
 }
 
-// ============ RENDER: KONTEN PAGE ============
+// ============ RENDER: KONTEN PAGE (with Pagination) ============
 function renderKontenFull(query = "") {
   const q = query.trim().toLowerCase();
-  const rows = content.filter(c => c.judul.toLowerCase().includes(q));
-  document.getElementById("kontenFullTable").innerHTML = rows.map(contentRowHtml).join("") || `<tr><td colspan="7" class="empty-note">Tidak ada konten ditemukan.</td></tr>`;
+  const allRows = content.filter(c => c.judul.toLowerCase().includes(q));
+  const totalPages = Math.max(Math.ceil(allRows.length / KONTEN_PER_PAGE), 1);
+  
+  // Clamp page
+  if (kontenPage > totalPages) kontenPage = totalPages;
+  if (kontenPage < 1) kontenPage = 1;
+  
+  const start = (kontenPage - 1) * KONTEN_PER_PAGE;
+  const pageRows = allRows.slice(start, start + KONTEN_PER_PAGE);
+  
+  document.getElementById("kontenFullTable").innerHTML = pageRows.map(contentRowHtml).join("") || `<tr><td colspan="7" class="empty-note">Tidak ada konten ditemukan.</td></tr>`;
   attachRowClicks("kontenFullTable");
+  
+  // Render pagination
+  renderPagination(totalPages, allRows.length);
 }
-document.getElementById("searchKonten").addEventListener("input", e => renderKontenFull(e.target.value));
+
+function renderPagination(totalPages, totalItems) {
+  const container = document.getElementById("kontenPagination");
+  if (totalPages <= 1) {
+    container.innerHTML = `<span class="page-info">${totalItems} konten</span>`;
+    return;
+  }
+  
+  let html = '';
+  html += `<button ${kontenPage <= 1 ? 'disabled' : ''} id="prevPage">← Sebelumnya</button>`;
+  
+  // Page numbers
+  for (let i = 1; i <= totalPages; i++) {
+    if (totalPages <= 5 || i === 1 || i === totalPages || Math.abs(i - kontenPage) <= 1) {
+      html += `<button class="${i === kontenPage ? 'active' : ''}" data-page="${i}">${i}</button>`;
+    } else if (Math.abs(i - kontenPage) === 2) {
+      html += `<span class="page-info">…</span>`;
+    }
+  }
+  
+  html += `<button ${kontenPage >= totalPages ? 'disabled' : ''} id="nextPage">Berikutnya →</button>`;
+  
+  container.innerHTML = html;
+  
+  // Attach events
+  container.querySelector("#prevPage")?.addEventListener("click", () => {
+    kontenPage--;
+    renderKontenFull(document.getElementById("searchKonten").value);
+  });
+  container.querySelector("#nextPage")?.addEventListener("click", () => {
+    kontenPage++;
+    renderKontenFull(document.getElementById("searchKonten").value);
+  });
+  container.querySelectorAll("[data-page]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      kontenPage = Number(btn.dataset.page);
+      renderKontenFull(document.getElementById("searchKonten").value);
+    });
+  });
+}
+
+document.getElementById("searchKonten").addEventListener("input", e => {
+  kontenPage = 1; // Reset to page 1 on search
+  renderKontenFull(e.target.value);
+});
 
 // ============ RENDER: UNMATCHED PAGE ============
 function renderUnmatched() {
   const rows = content.filter(c => c.status_identifikasi === "unmatched");
   document.getElementById("unmatchedTable").innerHTML = rows.map(c => `
     <tr>
-      <td class="content-title">${c.judul}</td>
-      <td><span class="plat ${platformClass(c.platform)}">${platformLabel(c.platform)}</span></td>
-      <td class="num-cell">${fmt(c.views)}</td>
-      <td><button class="btn btn-sm btn-primary" data-assign="${c.id}">Tandai editor</button></td>
+      <td data-label="Konten" class="content-title">${c.judul}</td>
+      <td data-label="Platform"><span class="plat ${platformClass(c.platform)}">${platformLabel(c.platform)}</span></td>
+      <td data-label="Views" class="num-cell">${fmt(c.views)}</td>
+      <td data-label="Aksi"><button class="btn btn-sm btn-primary" data-assign="${c.id}">Tandai editor</button></td>
     </tr>
   `).join("");
   document.getElementById("unmatchedEmpty").style.display = rows.length ? "none" : "block";
@@ -364,7 +554,7 @@ document.getElementById("confirmAssignBtn").addEventListener("click", async () =
     btn.textContent = "Menyimpan...";
     
     try {
-      await fetch(`http://localhost:3000/api/content/${assignTargetId}/assign`, {
+      await fetch(`/api/content/${assignTargetId}/assign`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ editor_id: editorId })
@@ -387,10 +577,10 @@ document.getElementById("confirmAssignBtn").addEventListener("click", async () =
 function renderCodeTable() {
   document.getElementById("codeTable").innerHTML = editors.map(e => `
     <tr>
-      <td>${e.nama}</td>
-      <td><span class="code-tag" contenteditable="true" data-code-for="${e.id}">${e.kode_identifikasi || e.kode}</span></td>
-      <td><span class="status-pill status-ok">Aktif</span></td>
-      <td><button class="btn btn-sm" data-save-code="${e.id}">Simpan</button></td>
+      <td data-label="Editor">${e.nama}</td>
+      <td data-label="Kode"><span class="code-tag" contenteditable="true" data-code-for="${e.id}">${e.kode_identifikasi || e.kode}</span></td>
+      <td data-label="Status"><span class="status-pill status-ok">Aktif</span></td>
+      <td data-label=""><button class="btn btn-sm" data-save-code="${e.id}">Simpan</button></td>
     </tr>
   `).join("");
   
@@ -429,13 +619,7 @@ function openContentModal(id) {
   const likes = c.likes || 0;
   const comments = c.comments || c.komentar || 0;
   
-  let formattedUpload = c.tanggal_upload || "-";
-  try {
-    const d = new Date(c.tanggal_upload);
-    if (!isNaN(d.getTime())) {
-      formattedUpload = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(/\./g, ':') + ' WIB';
-    }
-  } catch(e) {}
+  const formattedUpload = formatDate(c.tanggal_upload);
   
   document.getElementById("contentModalBody").innerHTML = `
     <div class="detail-row"><span class="detail-label">Judul</span><span>${c.judul}</span></div>
@@ -445,7 +629,7 @@ function openContentModal(id) {
     <div class="detail-row"><span class="detail-label">Views</span><span class="num">${views.toLocaleString('id-ID')}</span></div>
     <div class="detail-row"><span class="detail-label">Likes</span><span class="num">${likes.toLocaleString('id-ID')}</span></div>
     <div class="detail-row"><span class="detail-label">Komentar</span><span class="num">${comments.toLocaleString('id-ID')}</span></div>
-    <div class="detail-row"><span class="detail-label">Tautan</span><span><a href="${c.url}" target="_blank" rel="noopener">Buka postingan</a></span></div>
+    <div class="detail-row"><span class="detail-label">Tautan</span><span><a href="${c.url}" target="_blank" rel="noopener">Buka postingan ↗</a></span></div>
     ${!editor ? `<div class="modal-actions"><button class="btn btn-primary btn-sm" id="modalAssignBtn">Tandai editor</button></div>` : ""}
   `;
   const assignBtn = document.getElementById("modalAssignBtn");
@@ -490,7 +674,7 @@ document.getElementById("saveEditorBtn").addEventListener("click", async () => {
   btn.textContent = "Menyimpan...";
   
   try {
-    const res = await fetch('http://localhost:3000/api/editors', {
+    const res = await fetch('/api/editors', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ nama, kode })
@@ -552,6 +736,9 @@ function renderAll() {
 
 // ============ INIT ============
 async function loadData() {
+  isLoading = true;
+  showSkeletons();
+  
   try {
     const [editorsRes, contentRes] = await Promise.all([
       fetch('/api/editors').then(r => { if (!r.ok) throw new Error("API Error"); return r.json(); }),
@@ -572,6 +759,8 @@ async function loadData() {
     showToast("Gagal terhubung ke database. Harap cek koneksi Anda.", true);
   }
   
+  isLoading = false;
+  hideSkeletons();
   renderAll();
 }
 
