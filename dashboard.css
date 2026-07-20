@@ -171,6 +171,8 @@ tr.clickable:hover td { background: var(--paper); }
 .plat-ig { background: var(--amber-tint); color: var(--amber-deep); }
 .plat-fb { background: rgba(29, 67, 128, 0.1); color: #1D4380; }
 [data-theme="dark"] .plat-fb { background: rgba(100, 150, 255, 0.2); color: #9ABEFF; }
+.plat-tk { background: #E5E5E5; color: #000000; }
+[data-theme="dark"] .plat-tk { background: rgba(255,255,255,0.15); color: #FFFFFF; border: 1px solid rgba(37,244,238,0.4); }
 .status-pill { font-size: 12px; padding: 4px 10px; border-radius: 20px; font-weight: 600; display: inline-block; white-space: nowrap; }
 .status-ok { background: var(--teal-tint); color: var(--teal-deep); }
 .status-warn { background: var(--red-tint); color: var(--red-deep); }
