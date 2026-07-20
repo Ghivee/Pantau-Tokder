@@ -516,7 +516,7 @@ function renderDistChart() {
   ctx.style.display = "";
   
   // Adjust height dynamically based on number of editors
-  const dynamicHeight = Math.max(320, stats.length * 40 + 120);
+  const dynamicHeight = Math.max(360, stats.length * 40 + 160);
   ctx.parentElement.style.height = `${dynamicHeight}px`;
   
   const isDark = document.body.getAttribute("data-theme") === "dark";
@@ -570,6 +570,12 @@ function renderDistChart() {
       indexAxis: 'y', // Horizontal
       responsive: true,
       maintainAspectRatio: false,
+      layout: {
+        padding: {
+          bottom: 20,
+          right: 20
+        }
+      },
       scales: {
         x: {
           stacked: true,
