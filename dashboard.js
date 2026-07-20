@@ -418,6 +418,187 @@ function renderChart() {
 
 function renderDashboard() {
   renderMetrics(); renderLeaderboard(); renderTable(); renderChart();
+  renderDistChart(); renderKeywords();
+}
+
+// ============ EXPORT CSV ============
+function exportToCSV(dataRows, filename) {
+  if (dataRows.length === 0) {
+    showToast("Tidak ada data untuk diekspor", true);
+    return;
+  }
+  
+  const headers = ["Judul Konten", "Platform", "Nama Editor", "Views", "Likes", "Komentar", "Status", "Tanggal Upload", "URL"];
+  
+  const csvRows = [headers.join(",")];
+  
+  dataRows.forEach(c => {
+    const editor = editorById(c.editor_id);
+    const editorName = editor ? editor.nama : "";
+    
+    // Escape strings for CSV
+    const escapeCsv = (str) => {
+      if (str == null) return '""';
+      const s = String(str).replace(/"/g, '""');
+      return `"${s}"`;
+    };
+    
+    csvRows.push([
+      escapeCsv(c.judul),
+      escapeCsv(platformLabel(c.platform)),
+      escapeCsv(editorName),
+      c.views || 0,
+      c.likes || 0,
+      c.komentar || c.comments || 0,
+      escapeCsv(c.status_identifikasi === "matched" ? "Teridentifikasi" : "Belum teridentifikasi"),
+      escapeCsv(c.tanggal_upload ? new Date(c.tanggal_upload).toLocaleDateString('id-ID') : ''),
+      escapeCsv(c.url)
+    ].join(","));
+  });
+  
+  const csvBlob = new Blob([csvRows.join("\n")], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(csvBlob);
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", `${filename}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+// ============ CHART: Distribution Chart (Doughnut) ============
+let distChartInstance = null;
+function renderDistChart() {
+  const ctx = document.getElementById("distChart");
+  if (!ctx) return;
+  if (typeof Chart === "undefined") return;
+  
+  if (distChartInstance) distChartInstance.destroy();
+  
+  const data = filteredContent();
+  
+  // Aggregate count by editor
+  const stats = editors.map(e => {
+    const count = data.filter(c => c.editor_id === e.id).length;
+    return { name: e.nama, count };
+  }).filter(s => s.count > 0).sort((a, b) => b.count - a.count);
+  
+  const hasData = stats.length > 0;
+  
+  if (!hasData) {
+    ctx.style.display = "none";
+    let emptyMsg = document.getElementById("distEmpty");
+    if (!emptyMsg) {
+      emptyMsg = document.createElement("div");
+      emptyMsg.id = "distEmpty";
+      emptyMsg.className = "empty-note";
+      emptyMsg.textContent = "Belum ada data distribusi.";
+      ctx.parentElement.appendChild(emptyMsg);
+    }
+    return;
+  }
+  
+  const emptyMsg = document.getElementById("distEmpty");
+  if (emptyMsg) emptyMsg.remove();
+  ctx.style.display = "";
+  
+  const isDark = document.body.getAttribute("data-theme") === "dark";
+  const textColor = isDark ? "#A0A0A0" : "#6C757D";
+  
+  // Vibrant UI colors for Doughnut
+  const colors = ["#20C997", "#339AF0", "#FF922B", "#F06595", "#845EF7", "#FCC419", "#20C997"];
+  
+  distChartInstance = new Chart(ctx, {
+    type: "doughnut",
+    data: { 
+      labels: stats.map(s => s.name),
+      datasets: [{
+        data: stats.map(s => s.count),
+        backgroundColor: colors.slice(0, stats.length),
+        borderWidth: isDark ? 2 : 2,
+        borderColor: isDark ? "#12181A" : "#FFFFFF"
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '70%',
+      plugins: {
+        legend: {
+          position: 'right',
+          labels: { color: textColor, font: { family: "Inter", size: 12 }, padding: 16 }
+        },
+        tooltip: {
+          backgroundColor: isDark ? "#2D2D2D" : "#12181A",
+          titleFont: { family: "Inter", size: 12, weight: "600" },
+          bodyFont: { family: "JetBrains Mono", size: 12 },
+          padding: 12,
+          cornerRadius: 8,
+          callbacks: {
+            label: function(ctx) {
+              const value = ctx.raw;
+              const total = ctx.dataset.data.reduce((a,b) => a + b, 0);
+              const percentage = ((value / total) * 100).toFixed(1);
+              return ` ${value} konten (${percentage}%)`;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+// ============ NLP: Keyword Parsing ============
+function renderKeywords() {
+  const tableBody = document.getElementById("keywordTable");
+  if (!tableBody) return;
+  
+  const data = filteredContent();
+  if (data.length === 0) {
+    tableBody.innerHTML = `<tr><td colspan="3" class="empty-note">Belum ada data untuk dianalisis.</td></tr>`;
+    return;
+  }
+  
+  // Basic Indonesian Stop Words
+  const stopWords = new Set(["di", "ke", "dari", "yang", "dan", "atau", "ini", "itu", "dengan", "untuk", "pada", "dalam", "sebagai", "adalah", "tidak", "ya", "sih", "dong", "kan", "buat", "ada", "juga", "aku", "kamu", "dia", "kita", "kami", "mereka", "bisa", "akan", "sudah", "belum", "lagi", "terus", "apa", "kenapa", "bagaimana", "siapa", "kapan", "dimana", "kok", "saja", "aja", "biar", "karena", "seperti"]);
+  
+  const keywordMap = {};
+  
+  data.forEach(c => {
+    if (!c.judul) return;
+    // Clean and split title
+    const words = c.judul.toLowerCase()
+      .replace(/[^\w\s]/g, '') // remove punctuation
+      .split(/\s+/)
+      .filter(w => w.length > 2 && !stopWords.has(w) && !Number.isFinite(Number(w))); // length > 2, not stop word, not pure number
+      
+    // Use a Set to avoid counting the same word multiple times per title
+    const uniqueWords = new Set(words);
+    
+    uniqueWords.forEach(w => {
+      if (!keywordMap[w]) keywordMap[w] = { count: 0, views: 0 };
+      keywordMap[w].count++;
+      keywordMap[w].views += (c.views || 0);
+    });
+  });
+  
+  const topKeywords = Object.entries(keywordMap)
+    .map(([word, stats]) => ({ word, ...stats }))
+    .sort((a, b) => b.views - a.views)
+    .slice(0, 10);
+    
+  if (topKeywords.length === 0) {
+    tableBody.innerHTML = `<tr><td colspan="3" class="empty-note">Tidak ditemukan kata kunci spesifik.</td></tr>`;
+    return;
+  }
+  
+  tableBody.innerHTML = topKeywords.map(k => `
+    <tr>
+      <td style="font-weight: 600; text-transform: capitalize;">${k.word}</td>
+      <td class="num-cell">${k.count}</td>
+      <td class="num-cell" style="color: var(--teal);">${fmt(k.views)}</td>
+    </tr>
+  `).join("");
 }
 
 // ============ RENDER: EDITOR PAGE ============
@@ -737,6 +918,28 @@ document.getElementById("saveEditorBtn").addEventListener("click", async () => {
   });
 });
 
+// CSV Export Listeners
+document.getElementById("exportDashBtn")?.addEventListener("click", () => {
+  exportToCSV(filteredContent(), `Dashboard_Analitik_${new Date().toISOString().split('T')[0]}`);
+});
+document.getElementById("exportKontenBtn")?.addEventListener("click", () => {
+  const q = (document.getElementById("searchKonten")?.value || "").trim().toLowerCase();
+  const platform = document.getElementById("kontenFilterPlatform")?.value || "all";
+  const editor = document.getElementById("kontenFilterEditor")?.value || "all";
+  const status = document.getElementById("kontenFilterStatus")?.value || "all";
+
+  const allRows = content.filter(c => {
+    if (q && !c.judul.toLowerCase().includes(q)) return false;
+    if (platform !== "all" && c.platform !== platform) return false;
+    if (editor !== "all" && String(c.editor_id) !== editor) return false;
+    if (status !== "all" && status === "matched" && c.status_identifikasi !== "matched") return false;
+    if (status !== "all" && status === "unmatched" && c.status_identifikasi !== "unmatched") return false;
+    return true;
+  });
+  
+  exportToCSV(allRows, `Data_Konten_${new Date().toISOString().split('T')[0]}`);
+});
+
 document.getElementById("refreshBtn").addEventListener("click", async () => {
   const btn = document.getElementById("refreshBtn");
   btn.innerHTML = `<div class="spinner" style="width:16px;height:16px;border-width:2px;border-top-color:#fff;"></div> Menyinkronkan...`;
@@ -800,6 +1003,7 @@ const observer = new MutationObserver((mutations) => {
   mutations.forEach((mutation) => {
     if (mutation.attributeName === "data-theme" && document.getElementById("view-dashboard").classList.contains("active")) {
       renderChart();
+      renderDistChart();
     }
   });
 });

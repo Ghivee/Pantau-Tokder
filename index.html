@@ -71,6 +71,7 @@
           <option value="30" selected>30 hari terakhir</option>
           <option value="90">90 hari terakhir</option>
         </select>
+        <button class="btn" id="exportDashBtn"><i data-lucide="download" style="width:16px;height:16px;"></i> Unduh CSV</button>
         <button class="btn btn-primary" id="refreshBtn">
           <span class="btn-text">Sinkronkan sekarang</span>
         </button>
@@ -85,6 +86,26 @@
           <div class="panel-title">Tren views mingguan</div>
         </div>
         <canvas id="trendChart"></canvas>
+      </div>
+      <div class="panel" id="distPanel" style="position: relative;">
+        <div class="panel-head">
+          <div class="panel-title">Distribusi konten</div>
+        </div>
+        <canvas id="distChart"></canvas>
+      </div>
+    </section>
+
+    <section class="grid-2">
+      <div class="panel" id="keywordPanel" style="position: relative;">
+        <div class="panel-head">
+          <div class="panel-title">Tren kata kunci teratas</div>
+        </div>
+        <div style="overflow-x: auto;">
+          <table>
+            <thead><tr><th>Kata kunci</th><th style="text-align:right">Dipakai</th><th style="text-align:right">Total Views</th></tr></thead>
+            <tbody id="keywordTable"></tbody>
+          </table>
+        </div>
       </div>
       <div class="panel" id="leaderboardPanel" style="position: relative;">
         <div class="panel-head">
@@ -155,6 +176,7 @@
           <option value="matched">Teridentifikasi</option>
           <option value="unmatched">Belum teridentifikasi</option>
         </select>
+        <button class="btn" id="exportKontenBtn"><i data-lucide="download" style="width:16px;height:16px;"></i> Unduh CSV</button>
       </div>
     </header>
     <section class="panel">
