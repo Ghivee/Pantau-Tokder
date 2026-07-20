@@ -1,5 +1,6 @@
 const db = require('../config/db');
 const { fetchNewVideos, fetchVideoStats } = require('../integrations/youtube');
+const { fetchTikTokVideos } = require('../integrations/tiktok');
 const { fetchInstagramPosts, fetchInstagramStats } = require('../integrations/instagram');
 const { fetchFacebookPosts, fetchFacebookStats } = require('../integrations/facebook');
 
@@ -55,21 +56,62 @@ async function runFullScan() {
         const avgDurationSecs = vid.durationSecs * (Math.random() * 0.3 + 0.4);
         const retentionData = generateRetentionMock(vid.durationSecs);
         
-        await db.query(
+        const insertRes = await db.query(
           `INSERT INTO content 
-           (post_id, platform, url, judul, tanggal_upload, views, likes, comments, editor_id, status_identifikasi, tipe_video, avg_view_duration, retention_data) 
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+           (post_id, platform, url, judul, tanggal_upload, editor_id, status_identifikasi, tipe_video, avg_view_duration, retention_data) 
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`,
           [
             vid.post_id, vid.platform, vid.url, vid.title, vid.publishedAt, 
-            vid.views, vid.likes, vid.comments, matchedEditorId, statusIdentifikasi, 
-            vid.tipe_video, formatDuration(avgDurationSecs), JSON.stringify(retentionData)
+            matchedEditorId, statusIdentifikasi, vid.tipe_video, 
+            formatDuration(avgDurationSecs), JSON.stringify(retentionData)
           ]
+        );
+        const newContentId = insertRes.rows[0].id;
+        
+        await db.query(
+          `INSERT INTO metrics_snapshot (content_id, views, likes, comments) VALUES ($1, $2, $3, $4)`,
+          [newContentId, vid.views, vid.likes, vid.comments]
         );
       } else {
         // Update stats
         await db.query(
-          `UPDATE content SET views = $1, likes = $2, comments = $3 WHERE post_id = $4 AND platform = $5`,
-          [vid.views, vid.likes, vid.comments, vid.post_id, vid.platform]
+          `INSERT INTO metrics_snapshot (content_id, views, likes, comments) VALUES ($1, $2, $3, $4)`,
+          [existing.rows[0].id, vid.views, vid.likes, vid.comments]
+        );
+      }
+    }
+    
+    // 2. Fetch from TikTok (Mock)
+    const tkVideos = await fetchTikTokVideos();
+    for (const vid of tkVideos) {
+      const existing = await db.query('SELECT id FROM content WHERE post_id = $1 AND platform = $2', [vid.post_id, vid.platform]);
+      const matchedEditorId = matchEditorCode(vid.description, editors);
+      const statusIdentifikasi = matchedEditorId ? 'matched' : 'unmatched';
+      if (!matchedEditorId) unmatched++;
+      
+      if (existing.rows.length === 0) {
+        newPosts++;
+        const avgDurationSecs = vid.durationSecs * (Math.random() * 0.3 + 0.4);
+        const retentionData = generateRetentionMock(vid.durationSecs);
+        const insertRes = await db.query(
+          `INSERT INTO content 
+           (post_id, platform, url, judul, tanggal_upload, editor_id, status_identifikasi, tipe_video, avg_view_duration, retention_data) 
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`,
+          [
+            vid.post_id, vid.platform, vid.url, vid.title, vid.publishedAt, 
+            matchedEditorId, statusIdentifikasi, vid.tipe_video, 
+            formatDuration(avgDurationSecs), JSON.stringify(retentionData)
+          ]
+        );
+        const newContentId = insertRes.rows[0].id;
+        await db.query(
+          `INSERT INTO metrics_snapshot (content_id, views, likes, comments) VALUES ($1, $2, $3, $4)`,
+          [newContentId, vid.views, vid.likes, vid.comments]
+        );
+      } else {
+        await db.query(
+          `INSERT INTO metrics_snapshot (content_id, views, likes, comments) VALUES ($1, $2, $3, $4)`,
+          [existing.rows[0].id, vid.views, vid.likes, vid.comments]
         );
       }
     }

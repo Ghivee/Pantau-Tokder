@@ -53,8 +53,20 @@ function fmt(n) {
   if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, '') + "k"; 
   return n.toString(); 
 }
-function platformLabel(p) { return { youtube: "YouTube", instagram: "Instagram", facebook: "Facebook" }[p] || p; }
-function platformClass(p) { return { youtube: "plat-yt", instagram: "plat-ig", facebook: "plat-fb" }[p] || ""; }
+function platformLabel(p) {
+  if (p === 'youtube') return 'YouTube';
+  if (p === 'instagram') return 'Instagram';
+  if (p === 'facebook') return 'Facebook';
+  if (p === 'tiktok') return 'TikTok';
+  return p;
+}
+function platformClass(p) {
+  if (p === 'youtube') return 'plat-yt';
+  if (p === 'instagram') return 'plat-ig';
+  if (p === 'facebook') return 'plat-fb';
+  if (p === 'tiktok') return 'plat-tk';
+  return '';
+}
 function editorById(id) { return editors.find(e => e.id === id); }
 
 function showToast(msg, isError = false) {
@@ -494,6 +506,8 @@ function renderDistChart() {
       ig_short: ed.filter(c => String(c.platform).toLowerCase() === "instagram" && c.tipe_video === 'short').length,
       fb_long: ed.filter(c => String(c.platform).toLowerCase() === "facebook" && c.tipe_video === 'long').length,
       fb_short: ed.filter(c => String(c.platform).toLowerCase() === "facebook" && c.tipe_video === 'short').length,
+      tk_long: ed.filter(c => String(c.platform).toLowerCase() === "tiktok" && c.tipe_video === 'long').length,
+      tk_short: ed.filter(c => String(c.platform).toLowerCase() === "tiktok" && c.tipe_video === 'short').length,
     };
   }).filter(s => s.total > 0).sort((a, b) => b.total - a.total);
   
@@ -563,6 +577,18 @@ function renderDistChart() {
           label: "FB Reels",
           data: stats.map(s => s.fb_short),
           backgroundColor: "#339AF0", // Light blue
+          borderRadius: 4, barThickness: 'flex', maxBarThickness: 24
+        },
+        {
+          label: "TK Video",
+          data: stats.map(s => s.tk_long),
+          backgroundColor: "#25F4EE", // TikTok Cyan
+          borderRadius: 4, barThickness: 'flex', maxBarThickness: 24
+        },
+        {
+          label: "TK Shorts",
+          data: stats.map(s => s.tk_short),
+          backgroundColor: "#000000", // TikTok Black
           borderRadius: 4, barThickness: 'flex', maxBarThickness: 24
         }
       ]
