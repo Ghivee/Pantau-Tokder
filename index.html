@@ -144,7 +144,7 @@
       <div style="overflow-x: auto;">
         <table>
           <thead><tr>
-            <th>Konten</th><th>Platform</th><th>Editor</th>
+            <th>Konten</th><th>Platform</th><th>Jenis</th><th>Editor</th>
             <th style="text-align:right">Views</th><th style="text-align:right">Likes</th>
             <th style="text-align:right">Komentar</th><th>Status</th>
           </tr></thead>
@@ -180,13 +180,18 @@
         <h1>Semua konten</h1>
         <div class="sub">Seluruh konten yang terdeteksi sistem</div>
       </div>
-      <div class="toolbar konten-filters" style="margin-bottom: 0;">
-        <input type="text" id="searchKonten" placeholder="Cari judul konten...">
+      <div class="filter-bar">
+        <input type="text" id="searchKonten" placeholder="Cari judul..." style="flex:1;">
         <select id="kontenFilterPlatform">
           <option value="all">Semua platform</option>
           <option value="youtube">YouTube</option>
           <option value="instagram">Instagram</option>
           <option value="facebook">Facebook</option>
+        </select>
+        <select id="kontenFilterJenis">
+          <option value="all">Semua jenis</option>
+          <option value="short">Shorts/Reels</option>
+          <option value="long">Video Panjang</option>
         </select>
         <select id="kontenFilterEditor">
           <option value="all">Semua editor</option>
@@ -194,7 +199,7 @@
         <select id="kontenFilterStatus">
           <option value="all">Semua status</option>
           <option value="matched">Teridentifikasi</option>
-          <option value="unmatched">Belum teridentifikasi</option>
+          <option value="unmatched">Perlu ditinjau</option>
         </select>
         <button class="btn" id="exportKontenBtn"><i data-lucide="download" style="width:16px;height:16px;"></i> Unduh CSV</button>
       </div>
@@ -203,7 +208,7 @@
       <div style="overflow-x: auto;">
         <table>
           <thead><tr>
-            <th>Konten</th><th>Platform</th><th>Editor</th>
+            <th>Konten</th><th>Platform</th><th>Jenis</th><th>Editor</th>
             <th style="text-align:right">Views</th><th style="text-align:right">Likes</th>
             <th style="text-align:right">Komentar</th><th>Status</th>
           </tr></thead>
