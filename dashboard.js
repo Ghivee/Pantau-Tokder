@@ -496,9 +496,6 @@ function renderKontenFull() {
   const start = (kontenPage - 1) * KONTEN_PER_PAGE;
   const pageRows = allRows.slice(start, start + KONTEN_PER_PAGE);
   
-  const countInfoEl = document.getElementById("kontenCountInfo");
-  if (countInfoEl) countInfoEl.textContent = `Menampilkan ${allRows.length} konten`;
-  
   document.getElementById("kontenFullTable").innerHTML = pageRows.map(contentRowHtml).join("") || `<tr><td colspan="7" class="empty-note">Tidak ada konten ditemukan.</td></tr>`;
   attachRowClicks("kontenFullTable");
   
@@ -508,12 +505,13 @@ function renderKontenFull() {
 
 function renderPagination(totalPages, totalItems) {
   const container = document.getElementById("kontenPagination");
+  
   if (totalPages <= 1) {
-    container.innerHTML = `<span class="page-info">${totalItems} konten</span>`;
+    container.innerHTML = `<span class="page-info" style="margin-right:auto;">Menampilkan ${totalItems} konten</span>`;
     return;
   }
   
-  let html = '';
+  let html = `<span class="page-info" style="margin-right:auto;">Menampilkan ${totalItems} konten</span>`;
   html += `<button ${kontenPage <= 1 ? 'disabled' : ''} id="prevPage">← Sebelumnya</button>`;
   
   // Page numbers

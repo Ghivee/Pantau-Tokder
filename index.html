@@ -31,7 +31,7 @@
     <div class="nav-item" data-view="pengaturan"><i data-lucide="settings" style="width:18px;height:18px;margin-right:8px;opacity:0.7;"></i><span>Pengaturan</span></div>
   </nav>
   <div class="sidebar-foot" style="margin-top: auto;">
-    Pantau Konten &copy; 2026
+    Pantau Konten 2026
   </div>
 </aside>
 
@@ -139,28 +139,25 @@
         <h1>Semua konten</h1>
         <div class="sub">Seluruh konten yang terdeteksi sistem</div>
       </div>
-    </header>
-    <div class="konten-filters">
-      <input type="text" id="searchKonten" placeholder="Cari judul konten...">
-      <select id="kontenFilterPlatform">
-        <option value="all">Semua platform</option>
-        <option value="youtube">YouTube</option>
-        <option value="instagram">Instagram</option>
-        <option value="facebook">Facebook</option>
-      </select>
-      <select id="kontenFilterEditor">
-        <option value="all">Semua editor</option>
-      </select>
-      <select id="kontenFilterStatus">
-        <option value="all">Semua status</option>
-        <option value="matched">Teridentifikasi</option>
-        <option value="unmatched">Belum teridentifikasi</option>
-      </select>
-    </div>
-    <section class="panel">
-      <div class="panel-head">
-        <div class="panel-note" id="kontenCountInfo"></div>
+      <div class="toolbar konten-filters" style="margin-bottom: 0;">
+        <input type="text" id="searchKonten" placeholder="Cari judul konten...">
+        <select id="kontenFilterPlatform">
+          <option value="all">Semua platform</option>
+          <option value="youtube">YouTube</option>
+          <option value="instagram">Instagram</option>
+          <option value="facebook">Facebook</option>
+        </select>
+        <select id="kontenFilterEditor">
+          <option value="all">Semua editor</option>
+        </select>
+        <select id="kontenFilterStatus">
+          <option value="all">Semua status</option>
+          <option value="matched">Teridentifikasi</option>
+          <option value="unmatched">Belum teridentifikasi</option>
+        </select>
       </div>
+    </header>
+    <section class="panel">
       <div style="overflow-x: auto;">
         <table>
           <thead><tr>
