@@ -466,7 +466,7 @@ function exportToCSV(dataRows, filename) {
   document.body.removeChild(link);
 }
 
-// ============ CHART: Distribution Chart (Doughnut) ============
+// ============ CHART: Distribution Chart (Horizontal Stacked Bar) ============
 let distChartInstance = null;
 function renderDistChart() {
   const ctx = document.getElementById("distChart");
@@ -477,11 +477,17 @@ function renderDistChart() {
   
   const data = filteredContent();
   
-  // Aggregate count by editor
+  // Aggregate count by editor and platform
   const stats = editors.map(e => {
-    const count = data.filter(c => c.editor_id === e.id).length;
-    return { name: e.nama, count };
-  }).filter(s => s.count > 0).sort((a, b) => b.count - a.count);
+    const editorData = data.filter(c => c.editor_id === e.id);
+    return {
+      name: e.nama,
+      total: editorData.length,
+      youtube: editorData.filter(c => String(c.platform).toLowerCase() === "youtube").length,
+      instagram: editorData.filter(c => String(c.platform).toLowerCase() === "instagram").length,
+      facebook: editorData.filter(c => String(c.platform).toLowerCase() === "facebook").length,
+    };
+  }).filter(s => s.total > 0).sort((a, b) => b.total - a.total);
   
   const hasData = stats.length > 0;
   
@@ -502,31 +508,66 @@ function renderDistChart() {
   if (emptyMsg) emptyMsg.remove();
   ctx.style.display = "";
   
+  // Adjust height dynamically based on number of editors
+  const dynamicHeight = Math.max(240, stats.length * 40 + 60);
+  ctx.parentElement.style.height = `${dynamicHeight}px`;
+  
   const isDark = document.body.getAttribute("data-theme") === "dark";
   const textColor = isDark ? "#A0A0A0" : "#6C757D";
-  
-  // Vibrant UI colors for Doughnut
-  const colors = ["#20C997", "#339AF0", "#FF922B", "#F06595", "#845EF7", "#FCC419", "#20C997"];
+  const gridColor = isDark ? "#2D2D2D" : "#E9ECEF";
   
   distChartInstance = new Chart(ctx, {
-    type: "doughnut",
+    type: "bar",
     data: { 
       labels: stats.map(s => s.name),
-      datasets: [{
-        data: stats.map(s => s.count),
-        backgroundColor: colors.slice(0, stats.length),
-        borderWidth: isDark ? 2 : 2,
-        borderColor: isDark ? "#12181A" : "#FFFFFF"
-      }]
+      datasets: [
+        {
+          label: "YouTube",
+          data: stats.map(s => s.youtube),
+          backgroundColor: "#FF0000",
+          borderRadius: 4,
+          barThickness: 'flex',
+          maxBarThickness: 24
+        },
+        {
+          label: "Instagram",
+          data: stats.map(s => s.instagram),
+          backgroundColor: "#E1306C",
+          borderRadius: 4,
+          barThickness: 'flex',
+          maxBarThickness: 24
+        },
+        {
+          label: "Facebook",
+          data: stats.map(s => s.facebook),
+          backgroundColor: "#1877F2",
+          borderRadius: 4,
+          barThickness: 'flex',
+          maxBarThickness: 24
+        }
+      ]
     },
     options: {
+      indexAxis: 'y', // Horizontal
       responsive: true,
       maintainAspectRatio: false,
-      cutout: '70%',
+      scales: {
+        x: {
+          stacked: true,
+          ticks: { color: textColor, font: { family: "JetBrains Mono", size: 11 }, stepSize: 1 },
+          grid: { color: gridColor },
+          beginAtZero: true
+        },
+        y: {
+          stacked: true,
+          ticks: { color: textColor, font: { size: 12 } },
+          grid: { display: false }
+        }
+      },
       plugins: {
         legend: {
-          position: 'right',
-          labels: { color: textColor, font: { family: "Inter", size: 12 }, padding: 16 }
+          position: 'top',
+          labels: { color: textColor, font: { family: "Inter", size: 12 }, usePointStyle: true, boxWidth: 8, padding: 16 }
         },
         tooltip: {
           backgroundColor: isDark ? "#2D2D2D" : "#12181A",
@@ -534,14 +575,8 @@ function renderDistChart() {
           bodyFont: { family: "JetBrains Mono", size: 12 },
           padding: 12,
           cornerRadius: 8,
-          callbacks: {
-            label: function(ctx) {
-              const value = ctx.raw;
-              const total = ctx.dataset.data.reduce((a,b) => a + b, 0);
-              const percentage = ((value / total) * 100).toFixed(1);
-              return ` ${value} konten (${percentage}%)`;
-            }
-          }
+          mode: 'index',
+          intersect: false
         }
       }
     }
