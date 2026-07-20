@@ -58,26 +58,24 @@
         <h1>Ringkasan performa</h1>
         <div class="sub">Data metrik dari YouTube, Instagram, dan Facebook</div>
       </div>
+      <div class="toolbar">
+        <select id="filterEditor"><option value="all">Semua editor</option></select>
+        <select id="filterPlatform">
+          <option value="all">Semua platform</option>
+          <option value="youtube">YouTube</option>
+          <option value="instagram">Instagram</option>
+          <option value="facebook">Facebook</option>
+        </select>
+        <select id="filterRange">
+          <option value="7">7 hari terakhir</option>
+          <option value="30" selected>30 hari terakhir</option>
+          <option value="90">90 hari terakhir</option>
+        </select>
+        <button class="btn btn-primary" id="refreshBtn">
+          <span class="btn-text">Sinkronkan sekarang</span>
+        </button>
+      </div>
     </header>
-
-    <!-- Filter bar - centered -->
-    <div class="filter-bar">
-      <select id="filterEditor"><option value="all">Semua editor</option></select>
-      <select id="filterPlatform">
-        <option value="all">Semua platform</option>
-        <option value="youtube">YouTube</option>
-        <option value="instagram">Instagram</option>
-        <option value="facebook">Facebook</option>
-      </select>
-      <select id="filterRange">
-        <option value="7">7 hari terakhir</option>
-        <option value="30" selected>30 hari terakhir</option>
-        <option value="90">90 hari terakhir</option>
-      </select>
-      <button class="btn btn-primary" id="refreshBtn">
-        <span class="btn-text">Sinkronkan sekarang</span>
-      </button>
-    </div>
 
     <section class="metrics" id="metricCards"></section>
 
