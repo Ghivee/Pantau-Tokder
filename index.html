@@ -9,7 +9,7 @@
 <script src="https://unpkg.com/lucide@latest"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="dashboard.css">
+<link rel="stylesheet" href="dashboard.css?v=6">
 </head>
 <body data-theme="light">
 
@@ -88,7 +88,7 @@
       </div>
       <div class="panel" id="leaderboardPanel" style="position: relative;">
         <div class="panel-head">
-          <div class="panel-title">Papan performa editor</div>
+          <div class="panel-title">Performa editor</div>
           <div class="panel-note">Klik untuk detail</div>
         </div>
         <div id="editorLeaderboard"></div>
@@ -139,11 +139,28 @@
         <h1>Semua konten</h1>
         <div class="sub">Seluruh konten yang terdeteksi sistem</div>
       </div>
-      <div class="toolbar">
-        <input type="text" id="searchKonten" placeholder="Cari judul konten...">
-      </div>
     </header>
+    <div class="konten-filters">
+      <input type="text" id="searchKonten" placeholder="Cari judul konten...">
+      <select id="kontenFilterPlatform">
+        <option value="all">Semua platform</option>
+        <option value="youtube">YouTube</option>
+        <option value="instagram">Instagram</option>
+        <option value="facebook">Facebook</option>
+      </select>
+      <select id="kontenFilterEditor">
+        <option value="all">Semua editor</option>
+      </select>
+      <select id="kontenFilterStatus">
+        <option value="all">Semua status</option>
+        <option value="matched">Teridentifikasi</option>
+        <option value="unmatched">Belum teridentifikasi</option>
+      </select>
+    </div>
     <section class="panel">
+      <div class="panel-head">
+        <div class="panel-note" id="kontenCountInfo"></div>
+      </div>
       <div style="overflow-x: auto;">
         <table>
           <thead><tr>
@@ -275,6 +292,6 @@
 
 <div class="toast-container" id="toastContainer"></div>
 
-<script src="dashboard.js?v=5"></script>
+<script src="dashboard.js?v=6"></script>
 </body>
 </html>

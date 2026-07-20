@@ -211,7 +211,6 @@ function renderLeaderboard() {
       </div>
       <div class="editor-metric">
         <div class="editor-views num">${fmt(s.views)} views</div>
-        <div class="bar-track"><div class="bar-fill" style="width:${(s.views / maxViews * 100).toFixed(0)}%"></div></div>
       </div>
     </div>
   `).join("") || '<div class="empty-note">Belum ada data performa.</div>';
@@ -375,6 +374,10 @@ function renderChart() {
     options: {
       responsive: true,
       maintainAspectRatio: true,
+      interaction: {
+        mode: 'index',
+        intersect: false,
+      },
       plugins: { 
         legend: { display: false },
         tooltip: {
