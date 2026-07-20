@@ -8,6 +8,8 @@ const DASHBOARD_LIMIT = 5;
 
 let filters = { editor: "all", platform: "all", range: "30" };
 let chartInstance = null;
+let distChartInstance = null;
+let retentionChartInstance = null;
 let assignTargetId = null;
 
 // ============ THEME TOGGLE ============
@@ -896,6 +898,8 @@ function openContentModal(id) {
   const formattedUpload = formatDate(c.tanggal_upload);
   const jenisLabel = c.tipe_video === 'short' ? 'Shorts / Reels' : 'Video Panjang';
   
+  const avgDuration = c.avg_view_duration || "N/A";
+  
   document.getElementById("contentModalBody").innerHTML = `
     <div class="detail-row"><span class="detail-label">Judul</span><span>${c.judul}</span></div>
     <div class="detail-row"><span class="detail-label">Platform</span><span class="plat ${platformClass(c.platform)}">${platformLabel(c.platform)}</span></div>
@@ -906,7 +910,16 @@ function openContentModal(id) {
     <div class="detail-row"><span class="detail-label">Likes</span><span class="num">${likes.toLocaleString('id-ID')}</span></div>
     <div class="detail-row"><span class="detail-label">Komentar</span><span class="num">${comments.toLocaleString('id-ID')}</span></div>
     <div class="detail-row"><span class="detail-label">Tautan</span><span><a href="${c.url}" target="_blank" rel="noopener">Buka postingan ↗</a></span></div>
-    ${!editor ? `<div class="modal-actions"><button class="btn btn-primary btn-sm" id="modalAssignBtn">Tandai editor</button></div>` : ""}
+    
+    <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--line);">
+      <div style="font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--ink);">Retensi Penonton</div>
+      <div class="detail-row" style="border-bottom: none; padding-bottom: 0;"><span class="detail-label">Rata-rata durasi tonton</span><span class="num" style="font-size: 14px;">${avgDuration}</span></div>
+      <div style="height: 180px; width: 100%; position: relative; margin-top: 16px;">
+        <canvas id="retentionChart"></canvas>
+      </div>
+    </div>
+    
+    ${!editor ? `<div class="modal-actions" style="margin-top:16px;"><button class="btn btn-primary btn-sm" id="modalAssignBtn">Tandai editor</button></div>` : ""}
   `;
   const assignBtn = document.getElementById("modalAssignBtn");
   if (assignBtn) assignBtn.addEventListener("click", () => {
@@ -915,7 +928,79 @@ function openContentModal(id) {
     document.getElementById("assignEditorSelect").innerHTML = editors.map(e => `<option value="${e.id}">${e.nama}</option>`).join("");
     openModal("assignModal");
   });
+  
   openModal("contentModal");
+  
+  // Render Retention Chart if data exists
+  if (retentionChartInstance) {
+    retentionChartInstance.destroy();
+    retentionChartInstance = null;
+  }
+  
+  const retData = c.retention_data ? (typeof c.retention_data === 'string' ? JSON.parse(c.retention_data) : c.retention_data) : [];
+  
+  if (retData && retData.length > 0) {
+    const ctx = document.getElementById('retentionChart');
+    if (ctx) {
+      const isDark = document.body.getAttribute("data-theme") === "dark";
+      const gridColor = isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)";
+      const textColor = isDark ? "#A1A1AA" : "#71717A";
+      
+      const grad = ctx.getContext('2d').createLinearGradient(0, 0, 0, 180);
+      grad.addColorStop(0, "rgba(255, 0, 0, 0.4)"); // YouTube-like red
+      grad.addColorStop(1, "rgba(255, 0, 0, 0.0)");
+      
+      retentionChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: retData.map(d => d.percent_duration + "%"),
+          datasets: [{
+            label: "Persentase Penonton (%)",
+            data: retData.map(d => Math.max(0, d.retention)),
+            borderColor: "#FF0000",
+            backgroundColor: grad,
+            borderWidth: 2,
+            pointRadius: 0, // hide points for smooth curve look
+            pointHoverRadius: 4,
+            fill: true,
+            tension: 0.3 // smooth curves
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { color: textColor, maxTicksLimit: 5 } // Only show a few percentage markers
+            },
+            y: {
+              beginAtZero: true,
+              max: 100,
+              grid: { color: gridColor },
+              ticks: { color: textColor, stepSize: 25, callback: (val) => val + "%" }
+            }
+          },
+          plugins: {
+            legend: { display: false }, // Hide legend
+            tooltip: {
+              backgroundColor: isDark ? "#2D2D2D" : "#12181A",
+              titleFont: { family: "Inter", size: 12 },
+              bodyFont: { family: "JetBrains Mono", size: 12 },
+              callbacks: {
+                label: (ctx) => ctx.parsed.y.toFixed(1) + "% penonton"
+              }
+            }
+          }
+        }
+      });
+    }
+  } else {
+    // Show empty state if no data
+    const canvasContainer = document.getElementById('retentionChart').parentElement;
+    canvasContainer.innerHTML = '<div class="empty-note" style="height:100%; display:flex; align-items:center; justify-content:center;">Data retensi belum tersedia.</div>';
+  }
 }
 
 function openEditorModal(id) {
