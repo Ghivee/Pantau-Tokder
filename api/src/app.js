@@ -5,6 +5,7 @@ const editorsRouter = require('./routes/editors');
 const contentRouter = require('./routes/content');
 const scanRouter = require('./routes/scan');
 const metricsRouter = require('./routes/metrics');
+const goalsRouter = require('./routes/goals');
 
 const app = express();
 
@@ -15,6 +16,7 @@ app.use('/api/editors', editorsRouter);
 app.use('/api/content', contentRouter);
 app.use('/api/scan', scanRouter);
 app.use('/api/metrics', metricsRouter);
+app.use('/api/goals', goalsRouter);
 
 // Error handler
 app.use((err, req, res, next) => {

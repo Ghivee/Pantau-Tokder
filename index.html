@@ -77,6 +77,26 @@
         </button>
       </div>
     </header>
+    <section class="panel" id="goalPanel" style="margin-bottom: 24px;">
+      <div class="panel-head" style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <div class="panel-title">Target Omset Affiliate</div>
+          <div class="panel-note" id="goalBulan">Bulan ini</div>
+        </div>
+        <button class="btn btn-sm" id="editGoalBtn"><i data-lucide="edit-2" style="width:14px;height:14px;"></i> Edit Target</button>
+      </div>
+      <div class="goal-stats" style="display: flex; justify-content: space-between; margin-bottom: 8px; align-items: flex-end;">
+        <div style="font-size: 28px; font-weight: 700; color: var(--teal);" id="goalTercapai">Rp 0</div>
+        <div style="font-size: 14px; color: var(--muted); text-align: right;">
+          <div style="margin-bottom: 2px;">Target Omset</div>
+          <div style="font-weight: 600; color: var(--ink);" id="goalTarget">Rp 0</div>
+        </div>
+      </div>
+      <div class="bar-track" style="height: 14px; border-radius: 7px; background: var(--line-strong); overflow: hidden; position: relative;">
+        <div class="bar-fill" id="goalProgress" style="height: 100%; width: 0%; background: linear-gradient(90deg, #20C997, #339AF0); transition: width 1s ease-out; border-radius: 7px;"></div>
+      </div>
+      <div style="margin-top: 8px; font-size: 13.5px; color: var(--muted); text-align: right; font-weight: 500;" id="goalPercentage">0% tercapai</div>
+    </section>
 
     <section class="metrics" id="metricCards"></section>
 
@@ -286,6 +306,28 @@
     <div class="field"><label>Kode identifikasi (untuk caption)</label><input type="text" id="newEditorCode" placeholder="cth. ED-WL"></div>
     <div class="modal-actions">
       <button class="btn btn-primary" id="saveEditorBtn">Simpan editor</button>
+      <button class="btn" data-close>Batal</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: edit goal -->
+<div class="overlay" id="goalModal">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Edit Target Omset Affiliate</div>
+      <button class="modal-close" data-close><i data-lucide="x" style="width: 20px; height: 20px;"></i></button>
+    </div>
+    <div class="field">
+      <label>Target Omset Bulan Ini (Rp)</label>
+      <input type="number" id="goalInputTarget" placeholder="cth. 10000000">
+    </div>
+    <div class="field">
+      <label>Tercapai Saat Ini (Rp)</label>
+      <input type="number" id="goalInputTercapai" placeholder="cth. 5000000">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="saveGoalBtn">Simpan Target</button>
       <button class="btn" data-close>Batal</button>
     </div>
   </div>

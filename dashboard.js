@@ -222,9 +222,12 @@ function renderLeaderboard() {
 
 function contentRowHtml(c) {
   const editor = editorById(c.editor_id);
+  const tipeBadge = c.tipe_video === 'short' 
+    ? '<span style="font-size:10px; background:var(--surface-hover); color:var(--ink); padding:2px 6px; border-radius:4px; margin-left:8px; vertical-align:middle; border:1px solid var(--line);">Shorts/Reels</span>' 
+    : '';
   return `
     <tr class="clickable" data-content="${c.id}">
-      <td data-label="Konten" class="content-title">${c.judul}</td>
+      <td data-label="Konten" class="content-title">${c.judul} ${tipeBadge}</td>
       <td data-label="Platform"><span class="plat ${platformClass(c.platform)}">${platformLabel(c.platform)}</span></td>
       <td data-label="Editor">${editor ? editor.nama : "—"}</td>
       <td data-label="Views" class="num-cell">${fmt(c.views)}</td>
@@ -477,15 +480,18 @@ function renderDistChart() {
   
   const data = filteredContent();
   
-  // Aggregate count by editor and platform
+  // Aggregate count by editor and platform & video type
   const stats = editors.map(e => {
-    const editorData = data.filter(c => c.editor_id === e.id);
+    const ed = data.filter(c => c.editor_id === e.id);
     return {
       name: e.nama,
-      total: editorData.length,
-      youtube: editorData.filter(c => String(c.platform).toLowerCase() === "youtube").length,
-      instagram: editorData.filter(c => String(c.platform).toLowerCase() === "instagram").length,
-      facebook: editorData.filter(c => String(c.platform).toLowerCase() === "facebook").length,
+      total: ed.length,
+      yt_long: ed.filter(c => String(c.platform).toLowerCase() === "youtube" && c.tipe_video === 'long').length,
+      yt_short: ed.filter(c => String(c.platform).toLowerCase() === "youtube" && c.tipe_video === 'short').length,
+      ig_long: ed.filter(c => String(c.platform).toLowerCase() === "instagram" && c.tipe_video === 'long').length,
+      ig_short: ed.filter(c => String(c.platform).toLowerCase() === "instagram" && c.tipe_video === 'short').length,
+      fb_long: ed.filter(c => String(c.platform).toLowerCase() === "facebook" && c.tipe_video === 'long').length,
+      fb_short: ed.filter(c => String(c.platform).toLowerCase() === "facebook" && c.tipe_video === 'short').length,
     };
   }).filter(s => s.total > 0).sort((a, b) => b.total - a.total);
   
@@ -522,28 +528,40 @@ function renderDistChart() {
       labels: stats.map(s => s.name),
       datasets: [
         {
-          label: "YouTube",
-          data: stats.map(s => s.youtube),
-          backgroundColor: "#FF0000",
-          borderRadius: 4,
-          barThickness: 'flex',
-          maxBarThickness: 24
+          label: "YT Panjang",
+          data: stats.map(s => s.yt_long),
+          backgroundColor: "#C92A2A", // Dark red
+          borderRadius: 4, barThickness: 'flex', maxBarThickness: 24
         },
         {
-          label: "Instagram",
-          data: stats.map(s => s.instagram),
-          backgroundColor: "#E1306C",
-          borderRadius: 4,
-          barThickness: 'flex',
-          maxBarThickness: 24
+          label: "YT Shorts",
+          data: stats.map(s => s.yt_short),
+          backgroundColor: "#FF6B6B", // Light red
+          borderRadius: 4, barThickness: 'flex', maxBarThickness: 24
         },
         {
-          label: "Facebook",
-          data: stats.map(s => s.facebook),
-          backgroundColor: "#1877F2",
-          borderRadius: 4,
-          barThickness: 'flex',
-          maxBarThickness: 24
+          label: "IG Video",
+          data: stats.map(s => s.ig_long),
+          backgroundColor: "#A61E4D", // Dark pink
+          borderRadius: 4, barThickness: 'flex', maxBarThickness: 24
+        },
+        {
+          label: "IG Reels",
+          data: stats.map(s => s.ig_short),
+          backgroundColor: "#F06595", // Light pink
+          borderRadius: 4, barThickness: 'flex', maxBarThickness: 24
+        },
+        {
+          label: "FB Video",
+          data: stats.map(s => s.fb_long),
+          backgroundColor: "#1864AB", // Dark blue
+          borderRadius: 4, barThickness: 'flex', maxBarThickness: 24
+        },
+        {
+          label: "FB Reels",
+          data: stats.map(s => s.fb_short),
+          backgroundColor: "#339AF0", // Light blue
+          borderRadius: 4, barThickness: 'flex', maxBarThickness: 24
         }
       ]
     },
@@ -993,6 +1011,61 @@ document.getElementById("refreshBtn").addEventListener("click", async () => {
   }
 });
 
+// ============ GOALS ============
+let currentGoal = { target_omset: 0, tercapai: 0 };
+async function loadGoal() {
+  try {
+    const res = await fetch('/api/goals');
+    if (res.ok) {
+      currentGoal = await res.json();
+      renderGoal();
+    }
+  } catch (e) { console.error("Error loading goal", e); }
+}
+
+function renderGoal() {
+  document.getElementById("goalTarget").textContent = "Rp " + fmt(currentGoal.target_omset);
+  document.getElementById("goalTercapai").textContent = "Rp " + fmt(currentGoal.tercapai);
+  const percentage = currentGoal.target_omset > 0 ? (currentGoal.tercapai / currentGoal.target_omset) * 100 : 0;
+  const clamped = Math.min(Math.max(percentage, 0), 100);
+  document.getElementById("goalProgress").style.width = clamped + "%";
+  document.getElementById("goalPercentage").textContent = clamped.toFixed(1) + "% tercapai";
+}
+
+document.getElementById("editGoalBtn")?.addEventListener("click", () => {
+  document.getElementById("goalInputTarget").value = currentGoal.target_omset;
+  document.getElementById("goalInputTercapai").value = currentGoal.tercapai;
+  document.getElementById("goalModal").classList.add("show");
+});
+
+document.getElementById("saveGoalBtn")?.addEventListener("click", async () => {
+  const target = Number(document.getElementById("goalInputTarget").value) || 0;
+  const tercapai = Number(document.getElementById("goalInputTercapai").value) || 0;
+  
+  const btn = document.getElementById("saveGoalBtn");
+  btn.disabled = true;
+  btn.textContent = "Menyimpan...";
+  
+  try {
+    const res = await fetch('/api/goals', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bulan: currentGoal.bulan || new Date().toISOString().slice(0,7), target_omset: target, tercapai: tercapai })
+    });
+    if (res.ok) {
+      currentGoal = await res.json();
+      renderGoal();
+      document.getElementById("goalModal").classList.remove("show");
+      showToast("Target berhasil diperbarui");
+    }
+  } catch (e) {
+    showToast("Gagal menyimpan target", true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Simpan Target";
+  }
+});
+
 function renderAll() {
   try { populateEditorFilter(); } catch (e) {}
   try { renderDashboard(); } catch (e) {}
@@ -1009,6 +1082,7 @@ async function loadData() {
   showSkeletons();
   
   try {
+    loadGoal(); // Load goal async
     const [editorsRes, contentRes] = await Promise.all([
       fetch('/api/editors').then(r => { if (!r.ok) throw new Error("API Error"); return r.json(); }),
       fetch('/api/content').then(r => { if (!r.ok) throw new Error("API Error"); return r.json(); }),
