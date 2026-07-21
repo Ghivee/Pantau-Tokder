@@ -35,12 +35,10 @@ async function getAccessToken(refreshToken) {
  * Returns an array of { percent_duration, retention } points.
  * Returns null if not available.
  */
-async function fetchRetentionData(videoId, refreshToken) {
-  if (!refreshToken) return null;
+async function fetchRetentionData(videoId, accessToken) {
+  if (!accessToken) return null;
 
   try {
-    const accessToken = await getAccessToken(refreshToken);
-
     const response = await axios.get('https://youtubeanalytics.googleapis.com/v2/reports', {
       headers: { Authorization: `Bearer ${accessToken}` },
       params: {
@@ -68,4 +66,4 @@ async function fetchRetentionData(videoId, refreshToken) {
   }
 }
 
-module.exports = { getAuthUrl, exchangeCodeForTokens, fetchRetentionData };
+module.exports = { getAuthUrl, exchangeCodeForTokens, getAccessToken, fetchRetentionData };
