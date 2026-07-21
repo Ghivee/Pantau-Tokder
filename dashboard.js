@@ -1134,11 +1134,24 @@ document.getElementById("refreshBtn").addEventListener("click", async () => {
   
   try {
     const res = await fetch('/api/scan', { method: 'POST' });
-    if (!res.ok) throw new Error("Gagal sinkronisasi");
+    const data = await res.json();
+    
+    if (!res.ok) {
+      showToast(`Gagal sinkronisasi: ${data.error || 'Server error'}`, true);
+      return;
+    }
+    
+    // Reload data from DB
     await loadData();
-    showToast("Sinkronisasi selesai");
+    
+    if (data.errors && data.errors.length > 0) {
+      showToast(`Sinkronisasi selesai (${data.newPosts || 0} baru, ${data.updatedPosts || 0} diperbarui). Ada ${data.errors.length} error, cek console untuk detail.`, true);
+    } else {
+      showToast(`Sinkronisasi selesai! ${data.newPosts || 0} konten baru, ${data.updatedPosts || 0} diperbarui.`);
+    }
   } catch (err) {
-    showToast("Gagal terhubung ke backend", true);
+    console.error('Sync error:', err);
+    showToast("Gagal terhubung ke backend. Periksa apakah API Vercel berjalan.", true);
   } finally {
     btn.innerHTML = `<span class="btn-text">Sinkronkan sekarang</span>`;
     btn.disabled = false;
