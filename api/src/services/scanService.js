@@ -1,6 +1,5 @@
 const db = require('../config/db');
 const { fetchNewVideos } = require('../integrations/youtube');
-const { fetchTikTokVideos } = require('../integrations/tiktok');
 
 function matchEditorCode(captionText, editors) {
   if (!captionText) return null;
@@ -10,7 +9,6 @@ function matchEditorCode(captionText, editors) {
   return found ? found.id : null;
 }
 
-// Generate mock retention data for new videos
 function generateRetentionMock(durationSecs) {
   const data = [];
   let currentVal = 100.0;
@@ -23,7 +21,8 @@ function generateRetentionMock(durationSecs) {
   return data;
 }
 
-function formatDuration(secs) {
+function formatAvgDuration(secs) {
+  if (!secs) return '0:00';
   const m = Math.floor(secs / 60);
   const s = Math.floor(secs % 60);
   return `${m}:${s < 10 ? '0' : ''}${s}`;
@@ -39,18 +38,21 @@ async function processVideo(vid, editors) {
   const statusIdentifikasi = matchedEditorId ? 'matched' : 'unmatched';
 
   if (existing.rows.length === 0) {
-    // New video — insert
-    const avgDurationSecs = (vid.durationSecs || 60) * (Math.random() * 0.3 + 0.4);
-    const retentionData = generateRetentionMock(vid.durationSecs || 60);
+    // New video — generate mock retention, store real duration
+    const avgDurationSecs = vid.durationSecs * (Math.random() * 0.3 + 0.4);
+    const retentionData = generateRetentionMock(vid.durationSecs);
 
     const insertRes = await db.query(
       `INSERT INTO content 
-       (post_id, platform, url, judul, tanggal_upload, editor_id, status_identifikasi, tipe_video, avg_view_duration, retention_data) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`,
+       (post_id, platform, url, judul, tanggal_upload, editor_id, status_identifikasi, 
+        tipe_video, duration_secs, avg_view_duration, retention_data) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id`,
       [
         vid.post_id, vid.platform, vid.url, vid.title, vid.publishedAt,
         matchedEditorId, statusIdentifikasi, vid.tipe_video,
-        formatDuration(avgDurationSecs), JSON.stringify(retentionData)
+        vid.durationSecs,
+        formatAvgDuration(avgDurationSecs),
+        JSON.stringify(retentionData)
       ]
     );
     const newContentId = insertRes.rows[0].id;
@@ -60,7 +62,11 @@ async function processVideo(vid, editors) {
     );
     return { isNew: true, unmatched: !matchedEditorId };
   } else {
-    // Existing — update metrics snapshot
+    // Existing video — update stats + duration
+    await db.query(
+      `UPDATE content SET duration_secs = $1 WHERE id = $2`,
+      [vid.durationSecs, existing.rows[0].id]
+    );
     await db.query(
       `INSERT INTO metrics_snapshot (content_id, views, likes, comments) VALUES ($1, $2, $3, $4)`,
       [existing.rows[0].id, vid.views || 0, vid.likes || 0, vid.comments || 0]
@@ -70,7 +76,7 @@ async function processVideo(vid, editors) {
 }
 
 async function runFullScan() {
-  console.log('=== Starting full scan ===');
+  console.log('=== Starting full scan (YouTube only) ===');
 
   const editorsRes = await db.query('SELECT * FROM editors WHERE status = $1', ['aktif']);
   const editors = editorsRes.rows;
@@ -81,9 +87,9 @@ async function runFullScan() {
   let unmatched = 0;
   const errors = [];
 
-  // 1. YouTube
+  // YouTube only — no TikTok/IG/FB mock
   try {
-    console.log('Fetching YouTube videos...');
+    console.log('Fetching YouTube videos (last 30 days)...');
     const ytVideos = await fetchNewVideos();
     console.log(`Got ${ytVideos.length} YouTube videos.`);
 
@@ -94,8 +100,8 @@ async function runFullScan() {
         else updatedPosts++;
         if (result.unmatched) unmatched++;
       } catch (e) {
-        console.error(`Error processing YT video ${vid.post_id}:`, e.message);
-        errors.push(`YT:${vid.post_id} - ${e.message}`);
+        console.error(`Error processing video ${vid.post_id}:`, e.message);
+        errors.push(`${vid.post_id}: ${e.message}`);
       }
     }
   } catch (e) {
@@ -103,44 +109,17 @@ async function runFullScan() {
     errors.push(`YouTube fetch failed: ${e.message}`);
   }
 
-  // 2. TikTok (Mock)
-  try {
-    console.log('Fetching TikTok videos (mock)...');
-    const tkVideos = await fetchTikTokVideos();
-    console.log(`Got ${tkVideos.length} TikTok videos.`);
-
-    for (const vid of tkVideos) {
-      try {
-        const result = await processVideo(vid, editors);
-        if (result.isNew) newPosts++;
-        else updatedPosts++;
-        if (result.unmatched) unmatched++;
-      } catch (e) {
-        console.error(`Error processing TK video ${vid.post_id}:`, e.message);
-        errors.push(`TK:${vid.post_id} - ${e.message}`);
-      }
-    }
-  } catch (e) {
-    console.error('TikTok fetch failed:', e.message);
-    errors.push(`TikTok fetch failed: ${e.message}`);
-  }
-
-  // Log the scan result
+  // Log scan
   try {
     await db.query(
       'INSERT INTO scan_log (platform, jumlah_post_baru, jumlah_unmatched) VALUES ($1, $2, $3)',
-      ['ALL', newPosts, unmatched]
+      ['youtube', newPosts, unmatched]
     );
   } catch (e) {
-    console.error('Could not write scan_log:', e.message);
+    console.error('scan_log write error:', e.message);
   }
 
-  const summary = {
-    newPosts,
-    updatedPosts,
-    unmatched,
-    errors: errors.length > 0 ? errors : undefined
-  };
+  const summary = { newPosts, updatedPosts, unmatched, errors: errors.length > 0 ? errors : undefined };
   console.log('=== Scan complete ===', summary);
   return summary;
 }

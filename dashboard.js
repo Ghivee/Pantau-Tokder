@@ -923,12 +923,23 @@ function openContentModal(id) {
   const formattedUpload = formatDate(c.tanggal_upload);
   const jenisLabel = c.tipe_video === 'short' ? 'Shorts / Reels' : 'Video Panjang';
   
-  const avgDuration = c.avg_view_duration || "N/A";
+  // Format real duration from duration_secs
+  function fmtDur(secs) {
+    if (!secs || secs === 0) return '-';
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
+    const s = secs % 60;
+    if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    return `${m}:${String(s).padStart(2, '0')}`;
+  }
+  const realDuration = fmtDur(c.duration_secs);
+  const avgDuration = c.avg_view_duration || '-';
   
   document.getElementById("contentModalBody").innerHTML = `
     <div class="detail-row"><span class="detail-label">Judul</span><span>${c.judul}</span></div>
     <div class="detail-row"><span class="detail-label">Platform</span><span class="plat ${platformClass(c.platform)}">${platformLabel(c.platform)}</span></div>
     <div class="detail-row"><span class="detail-label">Jenis Konten</span><span style="font-weight:600;">${jenisLabel}</span></div>
+    <div class="detail-row"><span class="detail-label">Durasi Video</span><span class="num" style="font-size:15px; font-weight:700;">${realDuration}</span></div>
     <div class="detail-row"><span class="detail-label">Editor</span><span>${editor ? editor.nama : "Belum teridentifikasi"}</span></div>
     <div class="detail-row"><span class="detail-label">Waktu upload</span><span>${formattedUpload}</span></div>
     <div class="detail-row"><span class="detail-label">Views</span><span class="num">${views.toLocaleString('id-ID')}</span></div>
@@ -937,11 +948,15 @@ function openContentModal(id) {
     <div class="detail-row"><span class="detail-label">Tautan</span><span><a href="${c.url}" target="_blank" rel="noopener">Buka postingan ↗</a></span></div>
     
     <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--line);">
-      <div style="font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--ink);">Retensi Penonton</div>
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom: 12px;">
+        <div style="font-size: 14px; font-weight: 600; color: var(--ink);">Retensi Penonton</div>
+        <span style="font-size: 10px; padding: 2px 8px; background: var(--amber-tint); color: var(--amber-deep); border-radius: 10px; font-weight: 600;">Estimasi</span>
+      </div>
       <div class="detail-row" style="border-bottom: none; padding-bottom: 0;"><span class="detail-label">Rata-rata durasi tonton</span><span class="num" style="font-size: 14px;">${avgDuration}</span></div>
       <div style="height: 180px; width: 100%; position: relative; margin-top: 16px;">
         <canvas id="retentionChart"></canvas>
       </div>
+      <div style="font-size: 11px; color: var(--muted); margin-top: 8px; text-align:center;">Grafik ini merupakan estimasi. Data retensi asli memerlukan koneksi YouTube Analytics.</div>
     </div>
     
     ${!editor ? `<div class="modal-actions" style="margin-top:16px;"><button class="btn btn-primary btn-sm" id="modalAssignBtn">Tandai editor</button></div>` : ""}
