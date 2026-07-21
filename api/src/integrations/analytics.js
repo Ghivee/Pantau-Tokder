@@ -1,22 +1,20 @@
 const axios = require('axios');
 
-const REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || 'https://pantau-tokder-7ef7qah8f-ghivees-projects.vercel.app/api/auth/callback';
-
-function getAuthUrl() {
+function getAuthUrl(redirectUri) {
   const scopes = [
     'https://www.googleapis.com/auth/yt-analytics.readonly',
     'https://www.googleapis.com/auth/youtube.readonly'
   ].join(' ');
   
-  return `https://accounts.google.com/o/oauth2/v2/auth?client_id=${process.env.GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=${encodeURIComponent(scopes)}&access_type=offline&prompt=consent`;
+  return `https://accounts.google.com/o/oauth2/v2/auth?client_id=${process.env.GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scopes)}&access_type=offline&prompt=consent`;
 }
 
-async function exchangeCodeForTokens(code) {
+async function exchangeCodeForTokens(code, redirectUri) {
   const res = await axios.post('https://oauth2.googleapis.com/token', {
     code,
     client_id: process.env.GOOGLE_CLIENT_ID,
     client_secret: process.env.GOOGLE_CLIENT_SECRET,
-    redirect_uri: REDIRECT_URI,
+    redirect_uri: redirectUri,
     grant_type: 'authorization_code'
   });
   return res.data; // { access_token, refresh_token, expires_in, token_type }

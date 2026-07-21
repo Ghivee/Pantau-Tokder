@@ -10,7 +10,12 @@ router.get('/google', (req, res) => {
       error: 'GOOGLE_CLIENT_ID dan GOOGLE_CLIENT_SECRET belum diatur di Vercel Environment Variables.' 
     });
   }
-  const url = getAuthUrl();
+  
+  const protocol = req.headers['x-forwarded-proto'] || 'https';
+  const host = req.headers.host || 'pantautokder.vercel.app';
+  const redirectUri = `${protocol}://${host}/api/auth/callback`;
+  
+  const url = getAuthUrl(redirectUri);
   res.redirect(url);
 });
 
@@ -31,7 +36,11 @@ router.get('/callback', async (req, res) => {
   }
 
   try {
-    const tokens = await exchangeCodeForTokens(code);
+    const protocol = req.headers['x-forwarded-proto'] || 'https';
+    const host = req.headers.host || 'pantautokder.vercel.app';
+    const redirectUri = `${protocol}://${host}/api/auth/callback`;
+
+    const tokens = await exchangeCodeForTokens(code, redirectUri);
     
     // Store refresh_token in database settings table
     if (tokens.refresh_token) {
