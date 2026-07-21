@@ -1,36 +1,35 @@
-const { google } = require('googleapis');
+const axios = require('axios');
 
-function getOAuth2Client() {
-  return new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET,
-    process.env.GOOGLE_REDIRECT_URI || 'https://pantau-tokder-7ef7qah8f-ghivees-projects.vercel.app/api/auth/callback'
-  );
-}
+const REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || 'https://pantau-tokder-7ef7qah8f-ghivees-projects.vercel.app/api/auth/callback';
 
 function getAuthUrl() {
-  const oauth2Client = getOAuth2Client();
   const scopes = [
     'https://www.googleapis.com/auth/yt-analytics.readonly',
     'https://www.googleapis.com/auth/youtube.readonly'
-  ];
-  return oauth2Client.generateAuthUrl({
-    access_type: 'offline',
-    scope: scopes,
-    prompt: 'consent'  // Always ask for consent to get refresh_token
-  });
+  ].join(' ');
+  
+  return `https://accounts.google.com/o/oauth2/v2/auth?client_id=${process.env.GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=${encodeURIComponent(scopes)}&access_type=offline&prompt=consent`;
 }
 
 async function exchangeCodeForTokens(code) {
-  const oauth2Client = getOAuth2Client();
-  const { tokens } = await oauth2Client.getToken(code);
-  return tokens;
+  const res = await axios.post('https://oauth2.googleapis.com/token', {
+    code,
+    client_id: process.env.GOOGLE_CLIENT_ID,
+    client_secret: process.env.GOOGLE_CLIENT_SECRET,
+    redirect_uri: REDIRECT_URI,
+    grant_type: 'authorization_code'
+  });
+  return res.data; // { access_token, refresh_token, expires_in, token_type }
 }
 
-async function getAuthorizedClient(refreshToken) {
-  const oauth2Client = getOAuth2Client();
-  oauth2Client.setCredentials({ refresh_token: refreshToken });
-  return oauth2Client;
+async function getAccessToken(refreshToken) {
+  const res = await axios.post('https://oauth2.googleapis.com/token', {
+    client_id: process.env.GOOGLE_CLIENT_ID,
+    client_secret: process.env.GOOGLE_CLIENT_SECRET,
+    refresh_token: refreshToken,
+    grant_type: 'refresh_token'
+  });
+  return res.data.access_token;
 }
 
 /**
@@ -42,18 +41,19 @@ async function fetchRetentionData(videoId, refreshToken) {
   if (!refreshToken) return null;
 
   try {
-    const auth = await getAuthorizedClient(refreshToken);
-    const youtubeAnalytics = google.youtubeAnalytics({ version: 'v2', auth });
+    const accessToken = await getAccessToken(refreshToken);
 
-    // Audience retention report
-    const response = await youtubeAnalytics.reports.query({
-      ids: 'channel==MINE',
-      startDate: '2020-01-01',
-      endDate: new Date().toISOString().slice(0, 10),
-      metrics: 'audienceWatchRatio',
-      dimensions: 'elapsedVideoTimeRatio',
-      filters: `video==${videoId}`,
-      sort: 'elapsedVideoTimeRatio'
+    const response = await axios.get('https://youtubeanalytics.googleapis.com/v2/reports', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      params: {
+        ids: 'channel==MINE',
+        startDate: '2020-01-01',
+        endDate: new Date().toISOString().slice(0, 10),
+        metrics: 'audienceWatchRatio',
+        dimensions: 'elapsedVideoTimeRatio',
+        filters: `video==${videoId}`,
+        sort: 'elapsedVideoTimeRatio'
+      }
     });
 
     const rows = response.data.rows || [];
@@ -65,7 +65,7 @@ async function fetchRetentionData(videoId, refreshToken) {
       retention: Math.round(row[1] * 100 * 10) / 10  // keep 1 decimal
     }));
   } catch (err) {
-    console.error(`Analytics fetch failed for video ${videoId}:`, err.message);
+    console.error(`Analytics fetch failed for video ${videoId}:`, err.response?.data || err.message);
     return null;
   }
 }
