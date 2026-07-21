@@ -1,25 +1,28 @@
 const db = require('../config/db');
 const { fetchNewVideos } = require('../integrations/youtube');
-const { fetchRetentionData } = require('../integrations/analytics');
+const { fetchRetentionData, getAccessToken } = require('../integrations/analytics');
 
 function matchEditorCode(captionText, editors) {
   if (!captionText) return null;
-  const found = editors.find(e =>
-    captionText.toUpperCase().includes(e.kode_identifikasi.toUpperCase())
-  );
-  return found ? found.id : null;
+  const upperCaption = captionText.toUpperCase();
+  for (const ed of editors) {
+    const code = (ed.kode_identifikasi || ed.kode).toUpperCase();
+    if (upperCaption.includes(code)) return ed.id;
+  }
+  return null;
 }
 
 function generateRetentionMock(durationSecs) {
-  const data = [];
-  let currentVal = 100.0;
-  for (let i = 0; i <= 100; i++) {
-    data.push({ percent_duration: i, retention: currentVal });
-    if (i < 10) currentVal -= (Math.random() * 2 + 1);
-    else currentVal -= (Math.random() * 0.8);
-    if (currentVal < 0) currentVal = 0;
+  const points = [];
+  let currentRetention = 100;
+  // create ~10 data points
+  for (let pct = 0; pct <= 100; pct += 10) {
+    points.push({ percent_duration: pct, retention: currentRetention });
+    // Simulate drop-off: steeper at the beginning, flattening out
+    const drop = pct < 30 ? (Math.random() * 15 + 5) : (Math.random() * 5 + 1);
+    currentRetention = Math.max(10, currentRetention - drop);
   }
-  return data;
+  return points;
 }
 
 function formatAvgDuration(secs) {
@@ -29,7 +32,7 @@ function formatAvgDuration(secs) {
   return `${m}:${s < 10 ? '0' : ''}${s}`;
 }
 
-async function processVideo(vid, editors, refreshToken = null) {
+async function processVideo(vid, editors, accessToken = null) {
   const existing = await db.query(
     'SELECT id FROM content WHERE post_id = $1 AND platform = $2',
     [vid.post_id, vid.platform]
@@ -44,8 +47,8 @@ async function processVideo(vid, editors, refreshToken = null) {
     
     // Try real retention data first
     let retentionData = null;
-    if (refreshToken) {
-      retentionData = await fetchRetentionData(vid.post_id, refreshToken);
+    if (accessToken) {
+      retentionData = await fetchRetentionData(vid.post_id, accessToken);
       if (retentionData) console.log(`  ✅ Real retention for ${vid.post_id}: ${retentionData.length} points`);
     }
     // Fall back to mock if no real data
@@ -76,8 +79,8 @@ async function processVideo(vid, editors, refreshToken = null) {
     // Existing video — update metrics + duration + retention if we have OAuth
     const contentId = existing.rows[0].id;
     
-    if (refreshToken) {
-      const retentionData = await fetchRetentionData(vid.post_id, refreshToken);
+    if (accessToken) {
+      const retentionData = await fetchRetentionData(vid.post_id, accessToken);
       if (retentionData) {
         await db.query(
           `UPDATE content SET duration_secs = $1, retention_data = $2 WHERE id = $3`,
@@ -106,17 +109,19 @@ async function runFullScan() {
   console.log(`Found ${editors.length} active editors.`);
 
   // Check if YouTube Analytics OAuth token is available
-  let refreshToken = null;
+  let accessToken = null;
   try {
     const tokenRes = await db.query(`SELECT value FROM settings WHERE key = 'google_refresh_token'`);
-    if (tokenRes.rows.length > 0) {
-      refreshToken = tokenRes.rows[0].value;
-      console.log('YouTube Analytics OAuth token found — will fetch real retention data.');
+    if (tokenRes.rows.length > 0 && tokenRes.rows[0].value) {
+      const refreshToken = tokenRes.rows[0].value;
+      console.log('YouTube Analytics OAuth token found — generating access token...');
+      accessToken = await getAccessToken(refreshToken);
+      console.log('✅ Access token generated.');
     } else {
       console.log('No OAuth token found — retention data will be simulated.');
     }
   } catch(e) {
-    console.warn('Could not check OAuth token (settings table may not exist):', e.message);
+    console.warn('Could not generate OAuth access token:', e.message);
   }
 
   let newPosts = 0;
@@ -130,16 +135,22 @@ async function runFullScan() {
     const ytVideos = await fetchNewVideos();
     console.log(`Got ${ytVideos.length} YouTube videos.`);
 
-    for (const vid of ytVideos) {
-      try {
-        const result = await processVideo(vid, editors, refreshToken);
-        if (result.isNew) newPosts++;
-        else updatedPosts++;
-        if (result.unmatched) unmatched++;
-      } catch (e) {
-        console.error(`Error processing video ${vid.post_id}:`, e.message);
-        errors.push(`${vid.post_id}: ${e.message}`);
-      }
+    // Process videos in chunks of 10 concurrently to avoid Vercel 10s timeout
+    const chunkSize = 10;
+    for (let i = 0; i < ytVideos.length; i += chunkSize) {
+      const chunk = ytVideos.slice(i, i + chunkSize);
+      const promises = chunk.map(async (vid) => {
+        try {
+          const result = await processVideo(vid, editors, accessToken);
+          if (result.isNew) newPosts++;
+          else updatedPosts++;
+          if (result.unmatched) unmatched++;
+        } catch(e) {
+          console.error(`Error processing video ${vid.post_id}:`, e.message);
+          errors.push(`Gagal memproses video ${vid.title}: ${e.message}`);
+        }
+      });
+      await Promise.all(promises);
     }
   } catch (e) {
     console.error('YouTube fetch failed:', e.message);
