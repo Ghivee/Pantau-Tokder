@@ -258,7 +258,7 @@ function contentRowHtml(c) {
       <td data-label="Platform"><span class="plat ${platformClass(c.platform)}">${platformLabel(c.platform)}</span></td>
       <td data-label="Jenis">${tipeBadge}</td>
       <td data-label="Durasi">${fmtDur(c.duration_secs)}</td>
-      <td data-label="Waktu Upload">${formatDate(c.tanggal_upload).split(' ')[0]}</td>
+      <td data-label="Waktu Upload" style="white-space: nowrap;">${formatDate(c.tanggal_upload).replace(',', '')}</td>
       <td data-label="Editor">${editor ? editor.nama : "—"}</td>
       <td data-label="Views" class="num-cell">${fmt(c.views)}</td>
       <td data-label="Likes" class="num-cell">${fmt(c.likes)}</td>
