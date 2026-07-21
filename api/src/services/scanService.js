@@ -1,5 +1,6 @@
 const db = require('../config/db');
 const { fetchNewVideos } = require('../integrations/youtube');
+const { fetchRetentionData } = require('../integrations/analytics');
 
 function matchEditorCode(captionText, editors) {
   if (!captionText) return null;
@@ -28,7 +29,7 @@ function formatAvgDuration(secs) {
   return `${m}:${s < 10 ? '0' : ''}${s}`;
 }
 
-async function processVideo(vid, editors) {
+async function processVideo(vid, editors, refreshToken = null) {
   const existing = await db.query(
     'SELECT id FROM content WHERE post_id = $1 AND platform = $2',
     [vid.post_id, vid.platform]
@@ -38,9 +39,19 @@ async function processVideo(vid, editors) {
   const statusIdentifikasi = matchedEditorId ? 'matched' : 'unmatched';
 
   if (existing.rows.length === 0) {
-    // New video — generate mock retention, store real duration
+    // New video — get real retention or generate mock
     const avgDurationSecs = vid.durationSecs * (Math.random() * 0.3 + 0.4);
-    const retentionData = generateRetentionMock(vid.durationSecs);
+    
+    // Try real retention data first
+    let retentionData = null;
+    if (refreshToken) {
+      retentionData = await fetchRetentionData(vid.post_id, refreshToken);
+      if (retentionData) console.log(`  ✅ Real retention for ${vid.post_id}: ${retentionData.length} points`);
+    }
+    // Fall back to mock if no real data
+    if (!retentionData) {
+      retentionData = generateRetentionMock(vid.durationSecs);
+    }
 
     const insertRes = await db.query(
       `INSERT INTO content 
@@ -62,14 +73,26 @@ async function processVideo(vid, editors) {
     );
     return { isNew: true, unmatched: !matchedEditorId };
   } else {
-    // Existing video — update stats + duration
-    await db.query(
-      `UPDATE content SET duration_secs = $1 WHERE id = $2`,
-      [vid.durationSecs, existing.rows[0].id]
-    );
+    // Existing video — update metrics + duration + retention if we have OAuth
+    const contentId = existing.rows[0].id;
+    
+    if (refreshToken) {
+      const retentionData = await fetchRetentionData(vid.post_id, refreshToken);
+      if (retentionData) {
+        await db.query(
+          `UPDATE content SET duration_secs = $1, retention_data = $2 WHERE id = $3`,
+          [vid.durationSecs, JSON.stringify(retentionData), contentId]
+        );
+      } else {
+        await db.query(`UPDATE content SET duration_secs = $1 WHERE id = $2`, [vid.durationSecs, contentId]);
+      }
+    } else {
+      await db.query(`UPDATE content SET duration_secs = $1 WHERE id = $2`, [vid.durationSecs, contentId]);
+    }
+    
     await db.query(
       `INSERT INTO metrics_snapshot (content_id, views, likes, comments) VALUES ($1, $2, $3, $4)`,
-      [existing.rows[0].id, vid.views || 0, vid.likes || 0, vid.comments || 0]
+      [contentId, vid.views || 0, vid.likes || 0, vid.comments || 0]
     );
     return { isNew: false, unmatched: false };
   }
@@ -81,6 +104,20 @@ async function runFullScan() {
   const editorsRes = await db.query('SELECT * FROM editors WHERE status = $1', ['aktif']);
   const editors = editorsRes.rows;
   console.log(`Found ${editors.length} active editors.`);
+
+  // Check if YouTube Analytics OAuth token is available
+  let refreshToken = null;
+  try {
+    const tokenRes = await db.query(`SELECT value FROM settings WHERE key = 'google_refresh_token'`);
+    if (tokenRes.rows.length > 0) {
+      refreshToken = tokenRes.rows[0].value;
+      console.log('YouTube Analytics OAuth token found — will fetch real retention data.');
+    } else {
+      console.log('No OAuth token found — retention data will be simulated.');
+    }
+  } catch(e) {
+    console.warn('Could not check OAuth token (settings table may not exist):', e.message);
+  }
 
   let newPosts = 0;
   let updatedPosts = 0;
@@ -95,7 +132,7 @@ async function runFullScan() {
 
     for (const vid of ytVideos) {
       try {
-        const result = await processVideo(vid, editors);
+        const result = await processVideo(vid, editors, refreshToken);
         if (result.isNew) newPosts++;
         else updatedPosts++;
         if (result.unmatched) unmatched++;
