@@ -133,7 +133,10 @@ function switchView(viewName) {
   const navItem = document.querySelector(`.nav-item[data-view="${viewName}"]`);
   if (navItem) navItem.classList.add("active");
   document.getElementById("view-" + viewName).classList.add("active");
-  if (viewName === "pengaturan") renderCodeTable();
+  if (viewName === "pengaturan") {
+    renderCodeTable();
+    checkAnalyticsStatus();
+  }
   closeMobileMenu();
 }
 
@@ -911,6 +914,36 @@ function renderCodeTable() {
   }));
 }
 document.getElementById("saveSyncBtn").addEventListener("click", () => showToast("Pengaturan sinkronisasi disimpan"));
+
+// ============ ANALYTICS STATUS ============
+async function checkAnalyticsStatus() {
+  const statusText = document.getElementById("analyticsStatusText");
+  const statusBox = document.getElementById("analyticsStatusBox");
+  const connectBtn = document.getElementById("connectAnalyticsBtn");
+  if (!statusText) return;
+
+  try {
+    const res = await fetch('/api/auth/status');
+    const data = await res.json();
+    if (data.connected) {
+      statusText.textContent = "✅ YouTube Analytics terhubung — grafik retensi akan menggunakan data asli";
+      statusBox.style.background = "var(--teal-tint)";
+      statusBox.style.borderColor = "var(--teal-deep)";
+      statusText.style.color = "var(--teal-deep)";
+      statusText.style.fontWeight = "600";
+      if (connectBtn) connectBtn.textContent = "🔄 Hubungkan Ulang";
+    } else {
+      statusText.textContent = "❌ Belum terhubung — grafik retensi saat ini masih estimasi";
+      statusBox.style.background = "var(--red-tint)";
+      statusBox.style.borderColor = "var(--red-deep)";
+      statusText.style.color = "var(--red-deep)";
+    }
+  } catch(e) {
+    statusText.textContent = "⚠️ Tidak bisa memeriksa status koneksi Analytics";
+  }
+}
+
+
 
 // ============ MODALS ============
 function openContentModal(id) {

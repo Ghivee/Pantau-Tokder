@@ -6,6 +6,7 @@ const contentRouter = require('./routes/content');
 const scanRouter = require('./routes/scan');
 const metricsRouter = require('./routes/metrics');
 const goalsRouter = require('./routes/goals');
+const authRouter = require('./routes/auth');
 
 const app = express();
 
@@ -17,6 +18,7 @@ app.use('/api/content', contentRouter);
 app.use('/api/scan', scanRouter);
 app.use('/api/metrics', metricsRouter);
 app.use('/api/goals', goalsRouter);
+app.use('/api/auth', authRouter);
 
 // Error handler
 app.use((err, req, res, next) => {
