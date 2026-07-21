@@ -242,11 +242,23 @@ function contentRowHtml(c) {
   const tipeBadge = c.tipe_video === 'short' 
     ? '<span class="status-pill status-warn" style="font-size:11px;">Shorts</span>' 
     : '<span class="status-pill status-ok" style="font-size:11px;">Panjang</span>';
+    
+  function fmtDur(secs) {
+    if (!secs || secs === 0) return '-';
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
+    const s = secs % 60;
+    if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    return `${m}:${String(s).padStart(2, '0')}`;
+  }
+  
   return `
     <tr class="clickable" data-content="${c.id}">
       <td data-label="Konten" class="content-title">${c.judul}</td>
       <td data-label="Platform"><span class="plat ${platformClass(c.platform)}">${platformLabel(c.platform)}</span></td>
       <td data-label="Jenis">${tipeBadge}</td>
+      <td data-label="Durasi">${fmtDur(c.duration_secs)}</td>
+      <td data-label="Waktu Upload">${formatDate(c.tanggal_upload).split(' ')[0]}</td>
       <td data-label="Editor">${editor ? editor.nama : "—"}</td>
       <td data-label="Views" class="num-cell">${fmt(c.views)}</td>
       <td data-label="Likes" class="num-cell">${fmt(c.likes)}</td>
