@@ -938,14 +938,14 @@ async function checkAnalyticsStatus() {
     const res = await fetch('/api/auth/status');
     const data = await res.json();
     if (data.connected) {
-      statusText.textContent = "✅ YouTube Analytics terhubung — grafik retensi akan menggunakan data asli";
+      statusText.textContent = "✅ YouTube Analytics terhubung";
       statusBox.style.background = "var(--teal-tint)";
       statusBox.style.borderColor = "var(--teal-deep)";
       statusText.style.color = "var(--teal-deep)";
       statusText.style.fontWeight = "600";
       if (connectBtn) connectBtn.textContent = "🔄 Hubungkan Ulang";
     } else {
-      statusText.textContent = "❌ Belum terhubung — grafik retensi saat ini masih estimasi";
+      statusText.textContent = "❌ Belum terhubung";
       statusBox.style.background = "var(--red-tint)";
       statusBox.style.borderColor = "var(--red-deep)";
       statusText.style.color = "var(--red-deep)";
