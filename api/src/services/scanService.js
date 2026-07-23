@@ -34,7 +34,7 @@ function formatAvgDuration(secs) {
 
 async function processVideo(vid, editors, accessToken = null) {
   const existing = await db.query(
-    'SELECT id FROM content WHERE post_id = $1 AND platform = $2',
+    'SELECT id, editor_id, status_identifikasi FROM content WHERE post_id = $1 AND platform = $2',
     [vid.post_id, vid.platform]
   );
 
@@ -77,27 +77,43 @@ async function processVideo(vid, editors, accessToken = null) {
     return { isNew: true, unmatched: !matchedEditorId };
   } else {
     // Existing video — update metrics + duration + retention if we have OAuth
-    const contentId = existing.rows[0].id;
+    const contentRow = existing.rows[0];
+    const contentId = contentRow.id;
+    
+    // Update editor if previously unmatched and now we found a match
+    let finalEditorId = contentRow.editor_id;
+    let finalStatus = contentRow.status_identifikasi;
+    if (finalStatus === 'unmatched' && matchedEditorId) {
+      finalEditorId = matchedEditorId;
+      finalStatus = 'matched';
+    }
     
     if (accessToken) {
       const retentionData = await fetchRetentionData(vid.post_id, accessToken);
       if (retentionData) {
         await db.query(
-          `UPDATE content SET duration_secs = $1, retention_data = $2 WHERE id = $3`,
-          [vid.durationSecs, JSON.stringify(retentionData), contentId]
+          `UPDATE content SET duration_secs = $1, retention_data = $2, editor_id = $3, status_identifikasi = $4 WHERE id = $5`,
+          [vid.durationSecs, JSON.stringify(retentionData), finalEditorId, finalStatus, contentId]
         );
       } else {
-        await db.query(`UPDATE content SET duration_secs = $1 WHERE id = $2`, [vid.durationSecs, contentId]);
+        await db.query(
+          `UPDATE content SET duration_secs = $1, editor_id = $2, status_identifikasi = $3 WHERE id = $4`, 
+          [vid.durationSecs, finalEditorId, finalStatus, contentId]
+        );
       }
     } else {
-      await db.query(`UPDATE content SET duration_secs = $1 WHERE id = $2`, [vid.durationSecs, contentId]);
+      await db.query(
+        `UPDATE content SET duration_secs = $1, editor_id = $2, status_identifikasi = $3 WHERE id = $4`, 
+        [vid.durationSecs, finalEditorId, finalStatus, contentId]
+      );
     }
     
     await db.query(
       `INSERT INTO metrics_snapshot (content_id, views, likes, comments) VALUES ($1, $2, $3, $4)`,
       [contentId, vid.views || 0, vid.likes || 0, vid.comments || 0]
     );
-    return { isNew: false, unmatched: false };
+    // If it was unmatched but now matched, we can return false for unmatched
+    return { isNew: false, unmatched: finalStatus === 'unmatched' };
   }
 }
 

@@ -995,13 +995,11 @@ function openContentModal(id) {
     <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--line);">
       <div style="display:flex; align-items:center; gap:8px; margin-bottom: 12px;">
         <div style="font-size: 14px; font-weight: 600; color: var(--ink);">Retensi Penonton</div>
-        <span style="font-size: 10px; padding: 2px 8px; background: var(--amber-tint); color: var(--amber-deep); border-radius: 10px; font-weight: 600;">Estimasi</span>
       </div>
       <div class="detail-row" style="border-bottom: none; padding-bottom: 0;"><span class="detail-label">Rata-rata durasi tonton</span><span class="num" style="font-size: 14px;">${avgDuration}</span></div>
       <div style="height: 180px; width: 100%; position: relative; margin-top: 16px;">
         <canvas id="retentionChart"></canvas>
       </div>
-      <div style="font-size: 11px; color: var(--muted); margin-top: 8px; text-align:center;">Grafik ini merupakan estimasi. Data retensi asli memerlukan koneksi YouTube Analytics.</div>
     </div>
     
     ${!editor ? `<div class="modal-actions" style="margin-top:16px;"><button class="btn btn-primary btn-sm" id="modalAssignBtn">Tandai editor</button></div>` : ""}
