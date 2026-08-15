@@ -97,9 +97,17 @@ document.querySelectorAll(".overlay").forEach(o => {
 });
 
 function filteredContent() {
+  const days = Number(filters.range) || 30;
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+
   return content.filter(c => {
     if (filters.editor !== "all" && String(c.editor_id) !== filters.editor) return false;
     if (filters.platform !== "all" && c.platform !== filters.platform) return false;
+    if (c.tanggal_upload) {
+      const uploadDate = new Date(c.tanggal_upload);
+      if (!isNaN(uploadDate.getTime()) && uploadDate < cutoff) return false;
+    }
     return true;
   });
 }
@@ -192,7 +200,18 @@ function renderMetrics() {
   const data = filteredContent();
   const totalViews = data.reduce((s, c) => s + (c.views || 0), 0);
   const totalLikes = data.reduce((s, c) => s + (c.likes || 0), 0);
-  const unmatched = data.filter(c => c.status_identifikasi === "unmatched").length;
+  const unmatched = content.filter(c => c.status_identifikasi === "unmatched").length;
+  
+  // Update sidebar badge
+  const badge = document.getElementById("unmatchedBadge");
+  if (badge) {
+    if (unmatched > 0) {
+      badge.textContent = unmatched;
+      badge.style.display = "inline-block";
+    } else {
+      badge.style.display = "none";
+    }
+  }
   
   document.getElementById("metricCards").innerHTML = `
     <div class="metric-card">
@@ -207,10 +226,10 @@ function renderMetrics() {
       <div class="metric-label">Total likes</div>
       <div class="metric-value num">${fmt(totalLikes)}</div>
     </div>
-    <div class="metric-card warn-card">
+    <div class="metric-card warn-card" style="cursor:pointer;" onclick="switchView('unmatched')">
       <div class="metric-label">Belum teridentifikasi</div>
       <div class="metric-value num">${unmatched}</div>
-      <div class="metric-sub">Perlu ditinjau</div>
+      <div class="metric-sub">Klik untuk tinjau →</div>
     </div>
   `;
 }
@@ -877,6 +896,7 @@ function renderUnmatched() {
     <tr>
       <td data-label="Konten" class="content-title">${c.judul}</td>
       <td data-label="Platform"><span class="plat ${platformClass(c.platform)}">${platformLabel(c.platform)}</span></td>
+      <td data-label="Waktu Upload" style="white-space:nowrap;font-size:12px;">${formatDate(c.tanggal_upload).replace(',','')}</td>
       <td data-label="Views" class="num-cell">${fmt(c.views)}</td>
       <td data-label="Aksi"><button class="btn btn-sm btn-primary" data-assign="${c.id}">Tandai editor</button></td>
     </tr>
@@ -1027,6 +1047,7 @@ function openContentModal(id) {
     <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--line);">
       <div style="display:flex; align-items:center; gap:8px; margin-bottom: 12px;">
         <div style="font-size: 14px; font-weight: 600; color: var(--ink);">Retensi Penonton</div>
+        ${c.platform === 'youtube' ? `<span id="retentionDataBadge" style="font-size:10.5px; padding:2px 8px; border-radius:20px; font-weight:600; background:var(--surface); color:var(--muted); border:1px solid var(--line);">Memuat...</span>` : ''}
       </div>
       <div class="detail-row" style="border-bottom: none; padding-bottom: 0;"><span class="detail-label">Rata-rata durasi tonton</span><span class="num" style="font-size: 14px;">${avgDuration}</span></div>
       <div style="height: 180px; width: 100%; position: relative; margin-top: 16px;">
@@ -1110,6 +1131,27 @@ function openContentModal(id) {
           }
         }
       });
+
+      // Update retention badge: check if OAuth connected
+      const badge = document.getElementById("retentionDataBadge");
+      if (badge) {
+        fetch('/api/auth/status').then(r => r.json()).then(data => {
+          if (data.connected) {
+            badge.textContent = "Data Asli";
+            badge.style.background = "var(--teal-tint, #e6fcf5)";
+            badge.style.color = "var(--teal-deep, #0ca678)";
+            badge.style.borderColor = "var(--teal, #20c997)";
+          } else {
+            badge.textContent = "Estimasi";
+            badge.style.background = "rgba(255,193,7,0.1)";
+            badge.style.color = "#d68910";
+            badge.style.borderColor = "#f0c040";
+          }
+        }).catch(() => {
+          badge.textContent = "Estimasi";
+          badge.style.color = "#d68910";
+        });
+      }
     }
   } else {
     // Show empty state if no data
@@ -1233,6 +1275,15 @@ document.getElementById("refreshBtn").addEventListener("click", async () => {
       return;
     }
     
+    // Update last sync display
+    const now = new Date();
+    const syncDisplay = document.getElementById("lastSyncDisplay");
+    if (syncDisplay) {
+      syncDisplay.innerHTML = `<i data-lucide="clock" style="width:12px;height:12px;"></i> Sinkron: ${now.toLocaleDateString('id-ID', {day:'numeric',month:'short'})} ${now.toLocaleTimeString('id-ID', {hour:'2-digit',minute:'2-digit'})}`;
+      lucide.createIcons({ root: syncDisplay });
+    }
+    localStorage.setItem('lastSync', now.toISOString());
+
     // Reload data from DB
     await loadData();
     
@@ -1356,5 +1407,18 @@ const observer = new MutationObserver((mutations) => {
   });
 });
 observer.observe(document.body, { attributes: true });
+
+// Restore last sync time from localStorage
+(function restoreLastSync() {
+  const lastSync = localStorage.getItem('lastSync');
+  if (lastSync) {
+    const d = new Date(lastSync);
+    const syncDisplay = document.getElementById("lastSyncDisplay");
+    if (syncDisplay && !isNaN(d.getTime())) {
+      syncDisplay.innerHTML = `<i data-lucide="clock" style="width:12px;height:12px;"></i> Sinkron: ${d.toLocaleDateString('id-ID', {day:'numeric',month:'short'})} ${d.toLocaleTimeString('id-ID', {hour:'2-digit',minute:'2-digit'})}`;
+      lucide.createIcons({ root: syncDisplay });
+    }
+  }
+})();
 
 loadData();
