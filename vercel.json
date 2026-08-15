@@ -22,7 +22,23 @@
       "use": "@vercel/static"
     },
     {
-      "src": "assets/**",
+      "src": "assets/TikTok_dark.svg",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "assets/TikTok_light.svg",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "assets/facebook-icon.svg",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "assets/instagram-icon.svg",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "assets/youtube.svg",
       "use": "@vercel/static"
     }
   ],
