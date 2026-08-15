@@ -885,6 +885,19 @@ function renderKontenFull() {
     return true;
   });
   
+  const sort = document.getElementById("kontenSort")?.value || "newest";
+  allRows.sort((a, b) => {
+    switch (sort) {
+      case "newest": return new Date(b.tanggal_upload || 0) - new Date(a.tanggal_upload || 0);
+      case "oldest": return new Date(a.tanggal_upload || 0) - new Date(b.tanggal_upload || 0);
+      case "views_desc": return (b.views || 0) - (a.views || 0);
+      case "views_asc": return (a.views || 0) - (b.views || 0);
+      case "likes_desc": return (b.likes || 0) - (a.likes || 0);
+      case "comments_desc": return (b.comments || b.komentar || 0) - (a.comments || a.komentar || 0);
+      default: return 0;
+    }
+  });
+  
   const totalPages = Math.max(Math.ceil(allRows.length / KONTEN_PER_PAGE), 1);
   
   // Clamp page
@@ -942,7 +955,7 @@ function renderPagination(totalPages, totalItems) {
   });
 }
 
-["searchKonten", "kontenFilterPlatform", "kontenFilterEditor", "kontenFilterStatus"].forEach(id => {
+["searchKonten", "kontenFilterPlatform", "kontenFilterEditor", "kontenFilterStatus", "kontenSort", "kontenFilterJenis"].forEach(id => {
   const el = document.getElementById(id);
   if (el) {
     el.addEventListener(id === "searchKonten" ? "input" : "change", () => {
