@@ -1249,7 +1249,7 @@ function openContentModal(id) {
     <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--line);">
       <div style="display:flex; align-items:center; gap:8px; margin-bottom: 12px;">
         <div style="font-size: 14px; font-weight: 600; color: var(--ink);">Retensi Penonton</div>
-        ${c.platform === 'youtube' ? `<span id="retentionDataBadge" style="font-size:10.5px; padding:2px 8px; border-radius:20px; font-weight:600; background:var(--surface); color:var(--muted); border:1px solid var(--line);">Memuat...</span>` : ''}
+        ${c.platform === 'youtube' ? `<span id="retentionDataBadge" style="font-size:11px; font-weight:500; color:var(--muted);"></span>` : ''}
       </div>
       <div class="detail-row" style="border-bottom: none; padding-bottom: 0;"><span class="detail-label">Rata-rata durasi tonton</span><span class="num" style="font-size: 14px;">${avgDuration}</span></div>
       <div style="height: 180px; width: 100%; position: relative; margin-top: 16px;">
@@ -1323,11 +1323,18 @@ function openContentModal(id) {
           plugins: {
             legend: { display: false }, // Hide legend
             tooltip: {
-              backgroundColor: isDark ? "#2D2D2D" : "#12181A",
-              titleFont: { family: "Inter", size: 12 },
-              bodyFont: { family: "JetBrains Mono", size: 12 },
+              backgroundColor: isDark ? "rgba(30, 30, 30, 0.95)" : "rgba(255, 255, 255, 0.95)",
+              titleColor: isDark ? "#ffffff" : "#111111",
+              bodyColor: isDark ? "#cccccc" : "#444444",
+              borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)",
+              borderWidth: 1,
+              padding: 12,
+              cornerRadius: 8,
+              displayColors: false,
+              titleFont: { family: "Inter", size: 13, weight: "600" },
+              bodyFont: { family: "Inter", size: 13 },
               callbacks: {
-                label: (ctx) => ctx.parsed.y.toFixed(1) + "% penonton"
+                label: (ctx) => `Penonton: ${ctx.parsed.y.toFixed(1)}%`
               }
             }
           }
@@ -1339,19 +1346,12 @@ function openContentModal(id) {
       if (badge) {
         fetch('/api/auth/status').then(r => r.json()).then(data => {
           if (data.connected) {
-            badge.textContent = "Data Asli";
-            badge.style.background = "var(--teal-tint, #e6fcf5)";
-            badge.style.color = "var(--teal-deep, #0ca678)";
-            badge.style.borderColor = "var(--teal, #20c997)";
+            badge.innerHTML = `<span style="opacity: 0.6;">•</span> Data asli`;
           } else {
-            badge.textContent = "Estimasi";
-            badge.style.background = "rgba(255,193,7,0.1)";
-            badge.style.color = "#d68910";
-            badge.style.borderColor = "#f0c040";
+            badge.innerHTML = `<span style="opacity: 0.6;">•</span> Estimasi`;
           }
         }).catch(() => {
-          badge.textContent = "Estimasi";
-          badge.style.color = "#d68910";
+          badge.innerHTML = `<span style="opacity: 0.6;">•</span> Estimasi`;
         });
       }
     }
@@ -1629,6 +1629,14 @@ async function loadData() {
     ]);
     editors = Array.isArray(editorsRes) ? editorsRes : [];
     content = Array.isArray(contentRes) ? contentRes : [];
+    
+    // Auto-fix orphaned content (if an editor was deleted previously)
+    content.forEach(c => {
+      if (c.status_identifikasi === "matched" && !editorById(c.editor_id)) {
+        c.status_identifikasi = "unmatched";
+        c.editor_id = null;
+      }
+    });
     
     if (editors.length === 0) {
       showToast("Tabel editor kosong di database.", false);

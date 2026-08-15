@@ -22,6 +22,12 @@ async function updateEditor(id, nama, kode) {
 }
 
 async function deleteEditor(id) {
+  // First, set all content by this editor to unmatched
+  await db.query(
+    "UPDATE content SET editor_id = NULL, status_identifikasi = 'unmatched' WHERE editor_id = $1",
+    [id]
+  );
+  // Then delete the editor
   await db.query('DELETE FROM editors WHERE id = $1', [id]);
 }
 
