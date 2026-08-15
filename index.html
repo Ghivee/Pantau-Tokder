@@ -270,16 +270,13 @@
 
     <section class="panel">
       <div class="panel-head"><div class="panel-title">Jadwal sinkronisasi otomatis</div></div>
-      <div class="field" style="max-width:260px;">
-        <label>Frekuensi scan</label>
-        <select id="syncFreq">
-          <option>Tiap 3 jam</option>
-          <option selected>Tiap 6 jam</option>
-          <option>Tiap 12 jam</option>
-          <option>1x sehari</option>
+      <div class="field" style="max-width:300px;">
+        <label>Frekuensi scan (Cron Job)</label>
+        <select id="syncFreq" disabled style="opacity:0.8; cursor:not-allowed;">
+          <option selected>1 kali sehari (Otomatis)</option>
         </select>
+        <div style="font-size:12px; color:var(--muted); margin-top:6px; line-height:1.4;">Berdasarkan batasan Vercel Hobby Plan, sinkronisasi otomatis hanya berjalan maksimal 1x sehari pada tengah malam.</div>
       </div>
-      <button class="btn btn-primary btn-sm" id="saveSyncBtn">Simpan pengaturan</button>
     </section>
 
     <!-- YouTube Analytics OAuth -->

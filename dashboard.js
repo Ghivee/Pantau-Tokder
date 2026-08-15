@@ -54,13 +54,13 @@ function fmt(n) {
   return n.toString(); 
 }
 function platformLabel(p) {
-  if (p === 'youtube') return '<img src="/assets/youtube.svg" style="width:14px;height:14px;display:block;"> YouTube';
-  if (p === 'instagram') return '<img src="/assets/instagram-icon.svg" style="width:14px;height:14px;display:block;"> Instagram';
-  if (p === 'facebook') return '<img src="/assets/facebook-icon.svg" style="width:14px;height:14px;display:block;"> Facebook';
+  if (p === 'youtube') return '<img src="/assets/youtube.svg" style="width:14px;height:14px;vertical-align:middle;"> YouTube';
+  if (p === 'instagram') return '<img src="/assets/instagram-icon.svg" style="width:14px;height:14px;vertical-align:middle;"> Instagram';
+  if (p === 'facebook') return '<img src="/assets/facebook-icon.svg" style="width:14px;height:14px;vertical-align:middle;"> Facebook';
   if (p === 'tiktok') {
     const isDark = document.body.getAttribute("data-theme") === "dark";
     const src = isDark ? "/assets/TikTok_dark.svg" : "/assets/TikTok_light.svg";
-    return `<img src="${src}" class="tk-icon" style="width:14px;height:14px;display:block;"> TikTok`;
+    return `<img src="${src}" class="tk-icon" style="width:14px;height:14px;vertical-align:middle;"> TikTok`;
   }
   return p;
 }
@@ -925,16 +925,16 @@ function renderCodeTable() {
   document.getElementById("codeTable").innerHTML = editors.map(e => `
     <tr>
       <td data-label="Editor">${e.nama}</td>
-      <td data-label="Kode"><span class="code-tag" contenteditable="true" data-code-for="${e.id}">${e.kode_identifikasi || e.kode}</span></td>
+      <td data-label="Kode"><input type="text" data-code-for="${e.id}" value="${e.kode_identifikasi || e.kode}" style="width:120px; font-family:monospace; padding:8px 12px; border-radius:6px;" placeholder="Kode Editor"></td>
       <td data-label="Status"><span class="status-pill status-ok">Aktif</span></td>
-      <td data-label=""><button class="btn btn-sm" data-save-code="${e.id}">Simpan</button></td>
+      <td data-label=""><button class="btn btn-sm btn-primary" data-save-code="${e.id}">Simpan</button></td>
     </tr>
   `).join("");
   
   document.querySelectorAll("[data-save-code]").forEach(b => b.addEventListener("click", async () => {
     const id = Number(b.dataset.saveCode);
-    const span = document.querySelector(`[data-code-for="${id}"]`);
-    const newCode = span.textContent.trim();
+    const input = document.querySelector(`[data-code-for="${id}"]`);
+    const newCode = input.value.trim();
     const ed = editorById(id);
     
     b.disabled = true;
@@ -956,7 +956,6 @@ function renderCodeTable() {
     }
   }));
 }
-document.getElementById("saveSyncBtn").addEventListener("click", () => showToast("Pengaturan sinkronisasi disimpan"));
 
 // ============ ANALYTICS STATUS ============
 async function checkAnalyticsStatus() {
@@ -1134,7 +1133,9 @@ function openEditorModal(id) {
       <div class="detail-row" style="margin-bottom:8px; align-items:flex-start;">
         <div style="flex:1; padding-right:12px;">
           <div style="margin-bottom:6px; line-height:1.4;">${c.judul}</div>
-          <span style="font-size:10px; padding:2px 6px; background:var(--surface-hover); color:var(--ink); border:1px solid var(--line); border-radius:4px;">${c.tipe_video === 'short' ? 'Shorts' : 'Panjang'} • ${platformLabel(c.platform)}</span>
+          <span style="display:inline-flex; align-items:center; gap:4px; font-size:10.5px; padding:3px 8px; background:var(--surface-hover); color:var(--ink); border:1px solid var(--line); border-radius:6px; font-weight:500;">
+            ${c.tipe_video === 'short' ? 'Shorts' : 'Panjang'} <span style="color:var(--muted); margin:0 2px;">•</span> ${platformLabel(c.platform)}
+          </span>
         </div>
         <span class="num">${fmt(c.views)}</span>
       </div>
