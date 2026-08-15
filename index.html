@@ -105,7 +105,12 @@
     <section class="grid-2">
       <div class="panel" id="chartPanel" style="position: relative;">
         <div class="panel-head">
-          <div class="panel-title">Tren views mingguan</div>
+          <div class="panel-title">Tren mingguan</div>
+          <div style="display:flex; gap:4px;">
+            <button class="btn btn-sm metric-toggle active" id="metricViews" data-metric="views">Views</button>
+            <button class="btn btn-sm metric-toggle" id="metricLikes" data-metric="likes">Likes</button>
+            <button class="btn btn-sm metric-toggle" id="metricComments" data-metric="comments">Komentar</button>
+          </div>
         </div>
         <canvas id="trendChart"></canvas>
       </div>
@@ -118,6 +123,14 @@
           <canvas id="distChart"></canvas>
         </div>
       </div>
+    </section>
+
+    <section class="panel" id="topContentPanel" style="position: relative;">
+      <div class="panel-head">
+        <div class="panel-title">Konten terpopuler per platform</div>
+        <div class="panel-note">Top 3 views</div>
+      </div>
+      <div id="topContentGrid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap:16px;"></div>
     </section>
 
     <section class="grid-2">
@@ -235,6 +248,10 @@
         <div class="sub">Konten yang kode editornya tidak ditemukan di caption/deskripsi</div>
       </div>
       <div class="toolbar">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <select id="assignAllEditorSelect" style="min-width:140px;"></select>
+          <button class="btn btn-primary btn-sm" id="assignAllBtn">Tandai semua ke editor ini</button>
+        </div>
       </div>
     </header>
     <section class="panel">
