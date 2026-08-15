@@ -637,8 +637,7 @@ function renderDistChart() {
       },
       plugins: {
         legend: {
-          position: 'top',
-          labels: { color: textColor, font: { family: "Inter", size: 12 }, usePointStyle: true, boxWidth: 8, padding: 16 }
+          display: false
         },
         tooltip: {
           backgroundColor: isDark ? "#2D2D2D" : "#12181A",
@@ -652,6 +651,35 @@ function renderDistChart() {
       }
     }
   });
+
+  const isDark = document.body.getAttribute("data-theme") === "dark";
+  const tkSrc = isDark ? "/assets/TikTok_dark.svg" : "/assets/TikTok_light.svg";
+  const tkColor = isDark ? "#FFFFFF" : "#000000";
+
+  document.getElementById("distCustomLegend").innerHTML = `
+    <div style="display: flex; flex-wrap: wrap; gap: 12px; font-size: 11.5px; margin-bottom: 16px; justify-content: center; color: var(--muted);">
+      <div style="display:flex; align-items:center; gap:6px;">
+        <img src="/assets/youtube.svg" style="width:14px;height:14px;">
+        <span><span style="color:#C92A2A; font-size:14px;">■</span> Panjang</span>
+        <span><span style="color:#FF6B6B; font-size:14px;">■</span> Shorts</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <img src="/assets/instagram-icon.svg" style="width:14px;height:14px;">
+        <span><span style="color:#A61E4D; font-size:14px;">■</span> Video</span>
+        <span><span style="color:#F06595; font-size:14px;">■</span> Reels</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <img src="/assets/facebook-icon.svg" style="width:14px;height:14px;">
+        <span><span style="color:#1864AB; font-size:14px;">■</span> Video</span>
+        <span><span style="color:#339AF0; font-size:14px;">■</span> Reels</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <img src="${tkSrc}" class="tk-icon" style="width:14px;height:14px;">
+        <span><span style="color:#25F4EE; font-size:14px;">■</span> Video</span>
+        <span><span style="color:${tkColor}; font-size:14px;">■</span> Shorts</span>
+      </div>
+    </div>
+  `;
 }
 
 // ============ NLP: Keyword Parsing ============
