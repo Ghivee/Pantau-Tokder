@@ -925,7 +925,9 @@ function renderCodeTable() {
   document.getElementById("codeTable").innerHTML = editors.map(e => `
     <tr>
       <td data-label="Editor">${e.nama}</td>
-      <td data-label="Kode"><input type="text" data-code-for="${e.id}" value="${e.kode_identifikasi || e.kode}" style="width:120px; font-family:monospace; padding:8px 12px; border-radius:6px;" placeholder="Kode Editor"></td>
+      <td data-label="Kode">
+        <input type="text" class="input" data-code-for="${e.id}" value="${e.kode_identifikasi || e.kode}" style="width:140px; font-family:'JetBrains Mono', monospace; font-weight:600; font-size:13px; padding:10px 12px;" placeholder="Kode Editor">
+      </td>
       <td data-label="Status"><span class="status-pill status-ok">Aktif</span></td>
       <td data-label=""><button class="btn btn-sm btn-primary" data-save-code="${e.id}">Simpan</button></td>
     </tr>
