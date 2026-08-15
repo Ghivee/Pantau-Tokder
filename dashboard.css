@@ -113,6 +113,26 @@ h1 { font-family: 'Space Grotesk', sans-serif; font-size: 26px; font-weight: 700
 select, input, .btn, textarea { font-family: inherit; font-size: 13px; border: 1px solid var(--line-strong); background: var(--panel); border-radius: 8px; padding: 10px 14px; color: var(--ink); outline: none; transition: all 0.2s ease; }
 select:focus, input:focus { border-color: var(--teal); box-shadow: 0 0 0 3px var(--teal-tint); }
 select, .btn { cursor: pointer; }
+
+.filter-bar {
+  margin-bottom: 24px;
+  display: grid;
+  grid-template-columns: minmax(200px, 2fr) repeat(5, minmax(130px, 1fr));
+  gap: 12px;
+  background: var(--surface);
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  align-items: center;
+}
+@media (max-width: 1280px) {
+  .filter-bar { grid-template-columns: repeat(3, 1fr); }
+  .filter-bar input { grid-column: 1 / -1; } /* Search takes full width on tablet */
+}
+@media (max-width: 768px) {
+  .filter-bar { grid-template-columns: 1fr; }
+}
+
 .btn { font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
 .btn:hover:not(:disabled) { border-color: var(--muted); transform: translateY(-1px); }
 .btn:active:not(:disabled) { transform: translateY(1px); }
