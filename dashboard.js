@@ -13,6 +13,22 @@ let distChartInstance = null;
 let retentionChartInstance = null;
 let assignTargetId = null;
 
+let isAdminMode = false;
+let adminToken = localStorage.getItem("adminToken") || null;
+if (adminToken) { isAdminMode = true; }
+if (adminToken) { isAdminMode = true; }
+
+// Intercept fetch to add admin token
+const originalFetch = window.fetch;
+window.fetch = function() {
+  let [resource, config] = arguments;
+  if (config && ['POST', 'PUT', 'DELETE'].includes(config.method?.toUpperCase())) {
+    config.headers = config.headers || {};
+    if (adminToken) config.headers['x-admin-password'] = adminToken;
+  }
+  return originalFetch(resource, config);
+};
+
 // ============ THEME TOGGLE ============
 const body = document.body;
 const themeToggleBtn = document.getElementById("sidebarThemeToggle");
@@ -155,6 +171,75 @@ function switchView(viewName) {
 
 document.querySelectorAll(".nav-item").forEach(item => {
   item.addEventListener("click", () => switchView(item.dataset.view));
+});
+
+// ============ ADMIN MODE ============
+function updateAdminUI() {
+  document.querySelectorAll('.admin-only').forEach(el => {
+    el.style.display = isAdminMode ? '' : 'none';
+  });
+  
+  const loginBtn = document.getElementById('adminLoginBtn');
+  if (loginBtn) {
+    if (isAdminMode) {
+      loginBtn.innerHTML = '<i data-lucide="unlock" style="width:12px;height:12px;color:var(--teal);"></i> <span style="color:var(--teal);">Admin Aktif</span>';
+    } else {
+      loginBtn.innerHTML = '<i data-lucide="lock" style="width:12px;height:12px;"></i> Admin';
+    }
+    lucide.createIcons({ root: loginBtn });
+  }
+}
+
+document.getElementById("adminLoginBtn")?.addEventListener("click", () => {
+  if (isAdminMode) {
+    if (confirm("Keluar dari Mode Admin?")) {
+      isAdminMode = false;
+      adminToken = null;
+      localStorage.removeItem("adminToken");
+      updateAdminUI();
+      if (document.getElementById("view-pengaturan").classList.contains("active")) {
+        switchView("dashboard");
+      }
+      showToast("Terkunci: Kembali ke mode publik");
+    }
+  } else {
+    document.getElementById("adminPasswordInput").value = "";
+    openModal("adminLoginModal");
+  }
+});
+
+document.getElementById("confirmAdminLoginBtn")?.addEventListener("click", async () => {
+  const pwd = document.getElementById("adminPasswordInput").value;
+  if (!pwd) return showToast("Masukkan password", true);
+  
+  const btn = document.getElementById("confirmAdminLoginBtn");
+  btn.disabled = true;
+  btn.textContent = "Memeriksa...";
+  
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pwd })
+    });
+    
+    if (res.ok) {
+      isAdminMode = true;
+      adminToken = pwd;
+      localStorage.setItem("adminToken", pwd);
+      closeModal("adminLoginModal");
+      updateAdminUI();
+      showToast("Berhasil masuk Mode Admin");
+    } else {
+      const err = await res.json();
+      showToast(err.error || "Password salah", true);
+    }
+  } catch(e) {
+    showToast("Gagal menghubungi server", true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Masuk Mode Admin";
+  }
 });
 
 // ============ SKELETON LOADING ============
@@ -838,7 +923,7 @@ function renderEditorCards() {
         </div>
         <div class="row-actions">
           <button class="btn btn-sm" data-view-editor="${e.id}">Lihat detail</button>
-          <button class="btn btn-sm btn-danger" data-remove-editor="${e.id}">Hapus</button>
+          <button class="btn btn-sm btn-danger admin-only" data-remove-editor="${e.id}">Hapus</button>
         </div>
       </div>`;
   }).join("") || '<div class="empty-note">Belum ada data editor.</div>';
@@ -981,7 +1066,7 @@ function renderUnmatched() {
       <td data-label="Platform"><span class="plat ${platformClass(c.platform)}">${platformLabel(c.platform)}</span></td>
       <td data-label="Waktu Upload" style="white-space:nowrap;font-size:12px;">${formatDate(c.tanggal_upload).replace(',','')}</td>
       <td data-label="Views" class="num-cell">${fmt(c.views)}</td>
-      <td data-label="Aksi"><button class="btn btn-sm btn-primary" data-assign="${c.id}">Tandai editor</button></td>
+      <td data-label="Aksi"><button class="btn btn-sm btn-primary admin-only" data-assign="${c.id}">Tandai editor</button></td>
     </tr>
   `).join("");
   document.getElementById("unmatchedEmpty").style.display = rows.length ? "none" : "block";
@@ -1066,7 +1151,7 @@ function renderCodeTable() {
         <input type="text" class="input" data-code-for="${e.id}" value="${e.kode_identifikasi || e.kode}" style="width:140px; font-family:'JetBrains Mono', monospace; font-weight:600; font-size:13px; padding:10px 12px;" placeholder="Kode Editor">
       </td>
       <td data-label="Status"><span class="status-pill status-ok">Aktif</span></td>
-      <td data-label=""><button class="btn btn-sm btn-primary" data-save-code="${e.id}">Simpan</button></td>
+      <td data-label=""><button class="btn btn-sm btn-primary admin-only" data-save-code="${e.id}">Simpan</button></td>
     </tr>
   `).join("");
   
@@ -1172,7 +1257,7 @@ function openContentModal(id) {
       </div>
     </div>
     
-    ${!editor ? `<div class="modal-actions" style="margin-top:16px;"><button class="btn btn-primary btn-sm" id="modalAssignBtn">Tandai editor</button></div>` : ""}
+    ${!editor ? `<div class="modal-actions admin-only" style="margin-top:16px;"><button class="btn btn-primary btn-sm" id="modalAssignBtn">Tandai editor</button></div>` : ""}
   `;
   const assignBtn = document.getElementById("modalAssignBtn");
   if (assignBtn) assignBtn.addEventListener("click", () => {
@@ -1560,6 +1645,7 @@ async function loadData() {
   isLoading = false;
   hideSkeletons();
   renderAll();
+  updateAdminUI();
 }
 
 // Observe theme change for chart update
