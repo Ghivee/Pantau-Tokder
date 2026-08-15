@@ -20,12 +20,22 @@
     {
       "src": "tokderlogo.png",
       "use": "@vercel/static"
+    },
+    {
+      "src": "assets/(.*)",
+      "use": "@vercel/static"
     }
   ],
   "rewrites": [
     {
       "source": "/api/(.*)",
       "destination": "/api/index.js"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/scan/cron",
+      "schedule": "0 */6 * * *"
     }
   ]
 }

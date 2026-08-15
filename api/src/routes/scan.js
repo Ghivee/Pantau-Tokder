@@ -25,4 +25,16 @@ router.post('/', async (req, res) => {
   }
 });
 
+// GET: Cron endpoint (Vercel Cron hits this)
+router.get('/cron', async (req, res) => {
+  try {
+    console.log('Cron triggered scan started');
+    const result = await scanService.runFullScan();
+    res.json({ message: 'Cron scan completed', ...result });
+  } catch (err) {
+    console.error('Cron scan route error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
