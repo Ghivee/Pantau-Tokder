@@ -12,6 +12,7 @@ let chartInstance = null;
 let distChartInstance = null;
 let retentionChartInstance = null;
 let assignTargetId = null;
+let selectedUnmatched = new Set();
 
 let isAdminMode = false;
 let adminToken = localStorage.getItem("adminToken") || null;
@@ -1062,14 +1063,51 @@ function renderUnmatched() {
   
   document.getElementById("unmatchedTable").innerHTML = rows.map(c => `
     <tr>
+      <td style="text-align: center;"><input type="checkbox" class="unmatched-cb admin-only" value="${c.id}" ${selectedUnmatched.has(c.id) ? 'checked' : ''} style="cursor: pointer; ${!isAdminMode ? 'display:none;' : ''}"></td>
       <td data-label="Konten" class="content-title">${c.judul}</td>
       <td data-label="Platform"><span class="plat ${platformClass(c.platform)}">${platformLabel(c.platform)}</span></td>
       <td data-label="Waktu Upload" style="white-space:nowrap;font-size:12px;">${formatDate(c.tanggal_upload).replace(',','')}</td>
       <td data-label="Views" class="num-cell">${fmt(c.views)}</td>
-      <td data-label="Aksi"><button class="btn btn-sm btn-primary admin-only" data-assign="${c.id}">Tandai editor</button></td>
+      <td data-label="Aksi"><button class="btn btn-sm btn-primary admin-only" data-assign="${c.id}" style="${!isAdminMode ? 'display:none;' : ''}">Tandai editor</button></td>
     </tr>
   `).join("");
   document.getElementById("unmatchedEmpty").style.display = rows.length ? "none" : "block";
+
+  // Checkbox logic
+  const selectAllCb = document.getElementById("selectAllUnmatched");
+  const rowCbs = document.querySelectorAll(".unmatched-cb");
+  const assignBtn = document.getElementById("assignAllBtn");
+
+  function updateAssignBtnState() {
+    if (assignBtn) {
+      assignBtn.textContent = `Tandai ${selectedUnmatched.size} terpilih`;
+      assignBtn.disabled = selectedUnmatched.size === 0;
+    }
+    if (selectAllCb) {
+      selectAllCb.checked = rows.length > 0 && selectedUnmatched.size === rows.length;
+    }
+  }
+
+  if (selectAllCb) {
+    selectAllCb.addEventListener("change", (e) => {
+      const isChecked = e.target.checked;
+      selectedUnmatched.clear();
+      if (isChecked) rows.forEach(r => selectedUnmatched.add(r.id));
+      rowCbs.forEach(cb => cb.checked = isChecked);
+      updateAssignBtnState();
+    });
+  }
+
+  rowCbs.forEach(cb => {
+    cb.addEventListener("change", (e) => {
+      const id = Number(e.target.value);
+      if (e.target.checked) selectedUnmatched.add(id);
+      else selectedUnmatched.delete(id);
+      updateAssignBtnState();
+    });
+  });
+
+  updateAssignBtnState();
   
   document.querySelectorAll("[data-assign]").forEach(b => b.addEventListener("click", () => {
     assignTargetId = Number(b.dataset.assign);
@@ -1078,22 +1116,23 @@ function renderUnmatched() {
   }));
 }
 
-// ============ ASSIGN ALL UNMATCHED ============
+// ============ ASSIGN BULK UNMATCHED ============
 document.getElementById("assignAllBtn")?.addEventListener("click", async () => {
   const editorId = Number(document.getElementById("assignAllEditorSelect").value);
   if (!editorId) { showToast("Pilih editor terlebih dahulu", true); return; }
   const editor = editorById(editorId);
-  const unmatchedRows = content.filter(c => c.status_identifikasi === "unmatched");
-  if (unmatchedRows.length === 0) { showToast("Tidak ada konten yang perlu ditandai"); return; }
+  const itemsToAssign = content.filter(c => selectedUnmatched.has(c.id));
   
-  if (!confirm(`Tandai ${unmatchedRows.length} konten ke editor ${editor.nama}?`)) return;
+  if (itemsToAssign.length === 0) { showToast("Pilih minimal satu konten"); return; }
+  
+  if (!confirm(`Tandai ${itemsToAssign.length} konten terpilih ke editor ${editor.nama}?`)) return;
   
   const btn = document.getElementById("assignAllBtn");
   btn.disabled = true;
   btn.textContent = "Menandai...";
   
   let success = 0;
-  for (const item of unmatchedRows) {
+  for (const item of itemsToAssign) {
     try {
       await fetch(`/api/content/${item.id}/assign`, {
         method: 'POST',
@@ -1107,8 +1146,7 @@ document.getElementById("assignAllBtn")?.addEventListener("click", async () => {
   }
   
   showToast(`${success} konten berhasil ditandai ke ${editor.nama}`);
-  btn.disabled = false;
-  btn.textContent = "Tandai semua ke editor ini";
+  selectedUnmatched.clear();
   renderAll();
 });
 
@@ -1614,6 +1652,7 @@ function renderAll() {
   try { renderUnmatched(); } catch (e) {}
   try { renderCodeTable(); } catch (e) {}
   try { lucide.createIcons(); } catch (e) {}
+  try { updateAdminUI(); } catch (e) {}
 }
 
 // ============ INIT ============
