@@ -112,12 +112,29 @@ h1 { font-family: 'Space Grotesk', sans-serif; font-size: 26px; font-weight: 700
 .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 select, input, .btn, textarea { font-family: inherit; font-size: 13px; border: 1px solid var(--line-strong); background: var(--panel); border-radius: 8px; padding: 10px 14px; color: var(--ink); outline: none; transition: all 0.2s ease; }
 select:focus, input:focus { border-color: var(--teal); box-shadow: 0 0 0 3px var(--teal-tint); }
-select, .btn { cursor: pointer; }
+
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="%23888888" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>');
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  cursor: pointer;
+}
+body[data-theme="dark"] select {
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="%23bbbbbb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>');
+}
+.btn { cursor: pointer; }
 
 .filter-bar {
   margin-bottom: 24px;
   display: grid;
-  grid-template-columns: minmax(200px, 2fr) repeat(5, minmax(130px, 1fr));
+  grid-template-columns: minmax(180px, 2fr) repeat(5, minmax(140px, 1fr));
   gap: 12px;
   background: var(--surface);
   padding: 16px;
