@@ -13,6 +13,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+const adminAuth = require('./middlewares/adminAuth');
+app.use(adminAuth);
+
 app.use('/api/editors', editorsRouter);
 app.use('/api/content', contentRouter);
 app.use('/api/scan', scanRouter);

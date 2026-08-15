@@ -28,10 +28,13 @@
     <div class="nav-item" data-view="editor"><i data-lucide="users" style="width:18px;height:18px;margin-right:8px;opacity:0.7;"></i><span>Editor</span></div>
     <div class="nav-item" data-view="konten"><i data-lucide="play-square" style="width:18px;height:18px;margin-right:8px;opacity:0.7;"></i><span>Konten</span></div>
     <div class="nav-item" data-view="unmatched"><i data-lucide="file-question" style="width:18px;height:18px;margin-right:8px;opacity:0.7;"></i><span>Belum teridentifikasi</span><span id="unmatchedBadge" style="display:none; margin-left:auto; background:#FA5252; color:#fff; border-radius:10px; font-size:10px; font-weight:700; padding:1px 7px; min-width:18px; text-align:center;"></span></div>
-    <div class="nav-item" data-view="pengaturan"><i data-lucide="settings" style="width:18px;height:18px;margin-right:8px;opacity:0.7;"></i><span>Pengaturan</span></div>
+    <div class="nav-item admin-only" data-view="pengaturan" style="display:none;"><i data-lucide="settings" style="width:18px;height:18px;margin-right:8px;opacity:0.7;"></i><span>Pengaturan</span></div>
   </nav>
-  <div class="sidebar-foot" style="margin-top: auto;">
-    Pantau Konten 2026
+  <div class="sidebar-foot" style="margin-top: auto; display:flex; justify-content:space-between; align-items:center;">
+    <span>Pantau Konten 2026</span>
+    <button id="adminLoginBtn" style="background:transparent; border:none; color:var(--sidebar-text); cursor:pointer; opacity:0.7; font-size:12px; display:flex; align-items:center; gap:4px;">
+      <i data-lucide="lock" style="width:12px;height:12px;"></i> Admin
+    </button>
   </div>
 </aside>
 
@@ -182,7 +185,7 @@
         <h1>Editor</h1>
         <div class="sub">Kelola daftar editor dan lihat performa masing-masing</div>
       </div>
-      <div class="toolbar">
+      <div class="toolbar admin-only">
         <button class="btn btn-primary" id="addEditorBtn">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg> Tambah editor
         </button>
@@ -255,7 +258,7 @@
         <h1>Belum teridentifikasi</h1>
         <div class="sub">Konten yang kode editornya tidak ditemukan di caption/deskripsi</div>
       </div>
-      <div class="toolbar">
+      <div class="toolbar admin-only">
         <div style="display:flex; align-items:center; gap:8px;">
           <select id="assignAllEditorSelect" style="min-width:140px;"></select>
           <button class="btn btn-primary btn-sm" id="assignAllBtn">Tandai semua ke editor ini</button>
@@ -398,7 +401,24 @@
   </div>
 </div>
 
-<div class="toast-container" id="toastContainer"></div>
+<!-- Modal: Admin Login -->
+<div class="overlay" id="adminLoginModal">
+  <div class="modal" style="max-width: 400px;">
+    <div class="modal-head">
+      <div class="modal-title">Akses Admin</div>
+      <button class="modal-close" data-close><i data-lucide="x" style="width: 20px; height: 20px;"></i></button>
+    </div>
+    <p style="margin-bottom: 16px; font-size: 13.5px; color: var(--muted); line-height: 1.5;">Masukkan password admin untuk membuka fitur Hapus, Tandai Editor, dan Pengaturan.</p>
+    <div class="field">
+      <input type="password" id="adminPasswordInput" placeholder="Password Admin">
+    </div>
+    <div class="modal-actions" style="justify-content: flex-end;">
+      <button class="btn btn-primary" id="confirmAdminLoginBtn" style="width: 100%;">Masuk Mode Admin</button>
+    </div>
+  </div>
+</div>
+
+  <div class="toast-container" id="toastContainer"></div>
 
 <script src="dashboard.js?v=6"></script>
 </body>

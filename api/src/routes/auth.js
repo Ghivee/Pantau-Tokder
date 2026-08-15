@@ -91,4 +91,25 @@ router.get('/status', async (req, res) => {
   }
 });
 
+// POST /api/auth/login — Admin password verification
+router.post('/login', async (req, res) => {
+  const { password } = req.body;
+  if (!password) {
+    return res.status(400).json({ error: 'Password is required' });
+  }
+
+  try {
+    const result = await db.query(`SELECT value FROM settings WHERE key = 'admin_password'`);
+    const correctPassword = result.rows.length > 0 && result.rows[0].value ? result.rows[0].value : 'admin123';
+    
+    if (password === correctPassword) {
+      res.json({ success: true, message: 'Login berhasil' });
+    } else {
+      res.status(401).json({ error: 'Password salah' });
+    }
+  } catch (err) {
+    res.status(500).json({ error: 'Gagal memverifikasi password' });
+  }
+});
+
 module.exports = router;
