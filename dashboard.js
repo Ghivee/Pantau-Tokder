@@ -54,10 +54,14 @@ function fmt(n) {
   return n.toString(); 
 }
 function platformLabel(p) {
-  if (p === 'youtube') return 'YouTube';
-  if (p === 'instagram') return 'Instagram';
-  if (p === 'facebook') return 'Facebook';
-  if (p === 'tiktok') return 'TikTok';
+  if (p === 'youtube') return '<img src="/assets/youtube.svg" style="width:14px;height:14px;display:block;"> YouTube';
+  if (p === 'instagram') return '<img src="/assets/instagram-icon.svg" style="width:14px;height:14px;display:block;"> Instagram';
+  if (p === 'facebook') return '<img src="/assets/facebook-icon.svg" style="width:14px;height:14px;display:block;"> Facebook';
+  if (p === 'tiktok') {
+    const isDark = document.body.getAttribute("data-theme") === "dark";
+    const src = isDark ? "/assets/TikTok_dark.svg" : "/assets/TikTok_light.svg";
+    return `<img src="${src}" class="tk-icon" style="width:14px;height:14px;display:block;"> TikTok`;
+  }
   return p;
 }
 function platformClass(p) {
