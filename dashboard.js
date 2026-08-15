@@ -5,6 +5,7 @@ let isLoading = true;
 let kontenPage = 1;
 const KONTEN_PER_PAGE = 10;
 const DASHBOARD_LIMIT = 5;
+let trendMetric = 'views'; // views | likes | comments
 
 let filters = { editor: "all", platform: "all", range: "30" };
 let chartInstance = null;
@@ -318,6 +319,16 @@ function attachRowClicks(tbodyId) {
 }
 
 // ============ CHART: Weekly Bar Chart ============
+// Metric toggle buttons
+document.querySelectorAll(".metric-toggle").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".metric-toggle").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    trendMetric = btn.dataset.metric;
+    renderChart();
+  });
+});
+
 function renderChart() {
   const ctx = document.getElementById("trendChart");
   if (!ctx) return;
@@ -330,6 +341,12 @@ function renderChart() {
   
   const days = Number(filters.range) || 30;
   const data = filteredContent();
+  const metric = trendMetric || 'views';
+  const metricKey = metric === 'comments' ? 'comments' : metric; // views or likes
+  const metricLabel = metric === 'views' ? 'Views' : metric === 'likes' ? 'Likes' : 'Komentar';
+  const lineColor = metric === 'views' ? (document.body.getAttribute('data-theme')==='dark' ? '#63E6BE' : '#20C997')
+    : metric === 'likes' ? '#FF6B6B'
+    : '#339AF0';
   
   // Group data by week
   const today = new Date();
@@ -355,7 +372,7 @@ function renderChart() {
       start: weekStart,
       end: weekEnd,
       label: `${weekStart.getDate()}/${weekStart.getMonth() + 1}`,
-      views: 0,
+      views: 0, likes: 0, comments: 0,
       count: 0
     });
   }
@@ -370,6 +387,8 @@ function renderChart() {
       for (const week of weeks) {
         if (d >= week.start && d <= week.end) {
           week.views += Number(item.views || 0);
+          week.likes += Number(item.likes || 0);
+          week.comments += Number(item.comments || item.komentar || 0);
           week.count++;
           break;
         }
@@ -378,7 +397,7 @@ function renderChart() {
   });
   
   const labels = weeks.map(w => w.label);
-  const chartData = weeks.map(w => w.views);
+  const chartData = weeks.map(w => w[metricKey]);
   const hasData = chartData.some(v => v > 0);
   
   if (!hasData) {
@@ -400,25 +419,32 @@ function renderChart() {
   ctx.style.display = "";
   
   const isDark = document.body.getAttribute("data-theme") === "dark";
-  const lineColor = isDark ? "#63E6BE" : "#20C997";
   const gridColor = isDark ? "#2D2D2D" : "#E9ECEF";
   const textColor = isDark ? "#A0A0A0" : "#6C757D";
+  // lineColor is already computed above based on metric
+  const finalLineColor = lineColor;
 
   const gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 300);
-  gradient.addColorStop(0, isDark ? "rgba(99, 230, 190, 0.4)" : "rgba(32, 201, 151, 0.4)");
-  gradient.addColorStop(1, isDark ? "rgba(99, 230, 190, 0.0)" : "rgba(32, 201, 151, 0.0)");
+  const gradAlpha = metric === 'views' ? (isDark ? 'rgba(99,230,190,0.4)' : 'rgba(32,201,151,0.4)')
+    : metric === 'likes' ? 'rgba(255,107,107,0.4)'
+    : 'rgba(51,154,240,0.4)';
+  const gradAlpha0 = metric === 'views' ? (isDark ? 'rgba(99,230,190,0)' : 'rgba(32,201,151,0)')
+    : metric === 'likes' ? 'rgba(255,107,107,0)'
+    : 'rgba(51,154,240,0)';
+  gradient.addColorStop(0, gradAlpha);
+  gradient.addColorStop(1, gradAlpha0);
 
   chartInstance = new Chart(ctx, {
     type: "line",
     data: { 
       labels, 
       datasets: [{ 
-        label: "Views",
+        label: metricLabel,
         data: chartData, 
-        borderColor: lineColor,
+        borderColor: finalLineColor,
         backgroundColor: gradient,
         borderWidth: 3,
-        pointBackgroundColor: lineColor,
+        pointBackgroundColor: finalLineColor,
         pointBorderColor: isDark ? "#1E1E1E" : "#fff",
         pointBorderWidth: 2,
         pointRadius: 0,
@@ -452,7 +478,7 @@ function renderChart() {
             },
             label: function(ctx) {
               const i = ctx.dataIndex;
-              return `${ctx.formattedValue} views (${weeks[i].count} konten)`;
+              return `${ctx.formattedValue} ${metricLabel.toLowerCase()} (${weeks[i].count} konten)`;
             }
           }
         }
@@ -472,9 +498,46 @@ function renderChart() {
   });
 }
 
+// ============ RENDER: TOP CONTENT PER PLATFORM ============
+function renderTopContent() {
+  const grid = document.getElementById("topContentGrid");
+  if (!grid) return;
+  const data = filteredContent();
+  const platforms = ['youtube', 'instagram', 'facebook', 'tiktok'];
+  const platformNames = { youtube: 'YouTube', instagram: 'Instagram', facebook: 'Facebook', tiktok: 'TikTok' };
+  
+  let html = '';
+  platforms.forEach(plat => {
+    const items = data.filter(c => c.platform === plat)
+      .sort((a, b) => (b.views || 0) - (a.views || 0))
+      .slice(0, 3);
+    if (items.length === 0) return;
+    
+    html += `<div style="background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:16px;">
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px; font-weight:600; font-size:13px; color:var(--ink);">
+        ${platformLabel(plat)}
+      </div>
+      ${items.map((c, i) => `
+        <div style="display:flex; align-items:flex-start; gap:10px; padding:8px 0; ${i < items.length - 1 ? 'border-bottom:1px solid var(--line);' : ''}">
+          <div style="width:20px; height:20px; border-radius:50%; background:var(--line-strong); display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; color:var(--muted); flex-shrink:0;">${i+1}</div>
+          <div style="flex:1; min-width:0;">
+            <div style="font-size:12.5px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--ink); cursor:pointer;" data-content="${c.id}">${c.judul}</div>
+            <div style="font-size:11.5px; color:var(--teal); font-weight:600; margin-top:2px;">${fmt(c.views || 0)} views</div>
+          </div>
+        </div>
+      `).join('')}
+    </div>`;
+  });
+  
+  grid.innerHTML = html || '<div class="empty-note" style="grid-column:1/-1;">Belum ada data konten.</div>';
+  grid.querySelectorAll('[data-content]').forEach(el => {
+    el.addEventListener('click', () => openContentModal(Number(el.dataset.content)));
+  });
+}
+
 function renderDashboard() {
   renderMetrics(); renderLeaderboard(); renderTable(); renderChart();
-  renderDistChart(); renderKeywords();
+  renderDistChart(); renderKeywords(); renderTopContent();
 }
 
 // ============ EXPORT CSV ============
@@ -892,6 +955,13 @@ function renderPagination(totalPages, totalItems) {
 // ============ RENDER: UNMATCHED PAGE ============
 function renderUnmatched() {
   const rows = content.filter(c => c.status_identifikasi === "unmatched");
+  
+  // Populate assign-all select
+  const assignAllSel = document.getElementById("assignAllEditorSelect");
+  if (assignAllSel) {
+    assignAllSel.innerHTML = editors.map(e => `<option value="${e.id}">${e.nama}</option>`).join("");
+  }
+  
   document.getElementById("unmatchedTable").innerHTML = rows.map(c => `
     <tr>
       <td data-label="Konten" class="content-title">${c.judul}</td>
@@ -909,6 +979,40 @@ function renderUnmatched() {
     openModal("assignModal");
   }));
 }
+
+// ============ ASSIGN ALL UNMATCHED ============
+document.getElementById("assignAllBtn")?.addEventListener("click", async () => {
+  const editorId = Number(document.getElementById("assignAllEditorSelect").value);
+  if (!editorId) { showToast("Pilih editor terlebih dahulu", true); return; }
+  const editor = editorById(editorId);
+  const unmatchedRows = content.filter(c => c.status_identifikasi === "unmatched");
+  if (unmatchedRows.length === 0) { showToast("Tidak ada konten yang perlu ditandai"); return; }
+  
+  if (!confirm(`Tandai ${unmatchedRows.length} konten ke editor ${editor.nama}?`)) return;
+  
+  const btn = document.getElementById("assignAllBtn");
+  btn.disabled = true;
+  btn.textContent = "Menandai...";
+  
+  let success = 0;
+  for (const item of unmatchedRows) {
+    try {
+      await fetch(`/api/content/${item.id}/assign`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ editor_id: editorId })
+      });
+      item.editor_id = editorId;
+      item.status_identifikasi = "matched";
+      success++;
+    } catch(e) {}
+  }
+  
+  showToast(`${success} konten berhasil ditandai ke ${editor.nama}`);
+  btn.disabled = false;
+  btn.textContent = "Tandai semua ke editor ini";
+  renderAll();
+});
 
 document.getElementById("confirmAssignBtn").addEventListener("click", async () => {
   const editorId = Number(document.getElementById("assignEditorSelect").value);
@@ -1164,14 +1268,53 @@ function openEditorModal(id) {
   const e = editorById(id);
   const items = content.filter(c => c.editor_id === id);
   const views = items.reduce((s, c) => s + (c.views || 0), 0);
+  const likes = items.reduce((s, c) => s + (c.likes || 0), 0);
   const shortCount = items.filter(c => c.tipe_video === 'short').length;
   const longCount = items.filter(c => c.tipe_video === 'long').length;
+
+  // Month-over-month comparison
+  const now = new Date();
+  const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+  
+  const thisMonthItems = items.filter(c => c.tanggal_upload && new Date(c.tanggal_upload) >= thisMonthStart);
+  const lastMonthItems = items.filter(c => {
+    if (!c.tanggal_upload) return false;
+    const d = new Date(c.tanggal_upload);
+    return d >= lastMonthStart && d <= lastMonthEnd;
+  });
+  const thisMonthViews = thisMonthItems.reduce((s, c) => s + (c.views || 0), 0);
+  const lastMonthViews = lastMonthItems.reduce((s, c) => s + (c.views || 0), 0);
+  const viewsDiff = lastMonthViews > 0 ? ((thisMonthViews - lastMonthViews) / lastMonthViews * 100) : null;
+  const viewsDiffHtml = viewsDiff !== null
+    ? `<span style="font-size:11px; font-weight:600; color:${viewsDiff >= 0 ? 'var(--teal)' : '#FA5252'};">${viewsDiff >= 0 ? '▲' : '▼'} ${Math.abs(viewsDiff).toFixed(1)}% vs bulan lalu</span>`
+    : '';
   
   document.getElementById("editorModalName").textContent = e.nama;
   document.getElementById("editorModalBody").innerHTML = `
     <div class="detail-row"><span class="detail-label">Kode identifikasi</span><span class="code-tag">${e.kode_identifikasi || e.kode}</span></div>
     <div class="detail-row"><span class="detail-label">Total konten</span><span class="num">${items.length} <span style="font-size:12px;color:var(--muted);font-weight:normal;">(${longCount} Panjang, ${shortCount} Shorts)</span></span></div>
     <div class="detail-row"><span class="detail-label">Total views</span><span class="num">${fmt(views)}</span></div>
+    <div class="detail-row"><span class="detail-label">Total likes</span><span class="num">${fmt(likes)}</span></div>
+
+    <div style="margin-top:16px; padding:14px; border-radius:10px; background:var(--surface); border:1px solid var(--line);">
+      <div style="font-size:12px; color:var(--muted); font-weight:600; margin-bottom:10px; text-transform:uppercase; letter-spacing:0.5px;">Perbandingan Bulan Ini vs Lalu</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div>
+          <div style="font-size:11px; color:var(--muted); margin-bottom:3px;">Bulan ini</div>
+          <div style="font-size:16px; font-weight:700; color:var(--ink);">${fmt(thisMonthViews)} <span style="font-size:11px;font-weight:400;color:var(--muted);">views</span></div>
+          <div style="font-size:12px; color:var(--muted);">${thisMonthItems.length} konten</div>
+        </div>
+        <div>
+          <div style="font-size:11px; color:var(--muted); margin-bottom:3px;">Bulan lalu</div>
+          <div style="font-size:16px; font-weight:700; color:var(--ink);">${fmt(lastMonthViews)} <span style="font-size:11px;font-weight:400;color:var(--muted);">views</span></div>
+          <div style="font-size:12px; color:var(--muted);">${lastMonthItems.length} konten</div>
+        </div>
+      </div>
+      ${viewsDiffHtml ? `<div style="margin-top:10px; padding-top:10px; border-top:1px solid var(--line);">${viewsDiffHtml}</div>` : ''}
+    </div>
+
     <div style="margin-top:20px;font-size:12.5px;color:var(--muted);margin-bottom:12px;font-weight:600;">Konten terbaru</div>
     ${items.slice(0, 5).map(c => `
       <div class="detail-row" style="margin-bottom:8px; align-items:flex-start;">
@@ -1184,8 +1327,17 @@ function openEditorModal(id) {
         <span class="num">${fmt(c.views)}</span>
       </div>
     `).join("") || '<div class="empty-note">Belum ada konten.</div>'}
+    <div class="modal-actions" style="margin-top:16px; padding-top:12px; border-top:1px solid var(--line);">
+      <button class="btn btn-sm" id="exportEditorBtn" data-editor-id="${id}"><i data-lucide="download" style="width:14px;height:14px;"></i> Unduh CSV editor ini</button>
+    </div>
   `;
   openModal("editorModal");
+
+  // Export per editor button
+  document.getElementById("exportEditorBtn")?.addEventListener("click", () => {
+    exportToCSV(items, `Konten_${e.nama}_${new Date().toISOString().split('T')[0]}`);
+  });
+  lucide.createIcons({ root: document.getElementById("editorModalBody") });
 }
 
 // ============ ADD EDITOR ============
