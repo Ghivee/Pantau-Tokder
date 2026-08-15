@@ -261,14 +261,17 @@
       <div class="toolbar admin-only">
         <div style="display:flex; align-items:center; gap:8px;">
           <select id="assignAllEditorSelect" style="min-width:140px;"></select>
-          <button class="btn btn-primary btn-sm" id="assignAllBtn">Tandai semua ke editor ini</button>
+          <button class="btn btn-primary btn-sm" id="assignAllBtn" disabled>Tandai 0 terpilih</button>
         </div>
       </div>
     </header>
     <section class="panel">
       <div style="overflow-x: auto;">
         <table>
-          <thead><tr><th>Konten</th><th>Platform</th><th>Waktu Upload</th><th style="text-align:right">Views</th><th>Aksi</th></tr></thead>
+          <thead><tr>
+            <th class="admin-only" style="width: 40px;"><input type="checkbox" id="selectAllUnmatched" style="cursor: pointer;"></th>
+            <th>Konten</th><th>Platform</th><th>Waktu Upload</th><th style="text-align:right">Views</th><th>Aksi</th>
+          </tr></thead>
           <tbody id="unmatchedTable"></tbody>
         </table>
       </div>
