@@ -652,7 +652,6 @@ function renderDistChart() {
     }
   });
 
-  const isDark = document.body.getAttribute("data-theme") === "dark";
   const tkSrc = isDark ? "/assets/TikTok_dark.svg" : "/assets/TikTok_light.svg";
   const tkColor = isDark ? "#FFFFFF" : "#000000";
 
