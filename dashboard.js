@@ -862,27 +862,29 @@ function renderDistChart() {
   const tkSrc = isDark ? "/assets/TikTok_dark.svg" : "/assets/TikTok_light.svg";
   const tkColor = isDark ? "#FFFFFF" : "#000000";
 
+  const dot = (color) => `<div style="width:8px;height:8px;border-radius:50%;background:${color};display:inline-block;margin-right:4px;vertical-align:middle;"></div>`;
+  
   document.getElementById("distCustomLegend").innerHTML = `
-    <div style="display: flex; flex-wrap: wrap; gap: 12px; font-size: 11.5px; margin-bottom: 16px; justify-content: center; color: var(--muted);">
-      <div style="display:flex; align-items:center; gap:6px;">
-        <img src="/assets/youtube.svg" style="width:14px;height:14px;">
-        <span><span style="color:#C92A2A; font-size:14px;">■</span> Panjang</span>
-        <span><span style="color:#FF6B6B; font-size:14px;">■</span> Shorts</span>
+    <div style="display: flex; flex-wrap: wrap; gap: 14px; font-size: 11.5px; margin-bottom: 16px; justify-content: center; color: var(--muted);">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <img src="/assets/youtube.svg" style="width:14px;height:14px;margin-right:-2px;">
+        <span style="display:flex;align-items:center;">${dot('#C92A2A')} Panjang</span>
+        <span style="display:flex;align-items:center;">${dot('#FF6B6B')} Shorts</span>
       </div>
-      <div style="display:flex; align-items:center; gap:6px;">
-        <img src="/assets/instagram-icon.svg" style="width:14px;height:14px;">
-        <span><span style="color:#A61E4D; font-size:14px;">■</span> Video</span>
-        <span><span style="color:#F06595; font-size:14px;">■</span> Reels</span>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <img src="/assets/instagram-icon.svg" style="width:14px;height:14px;margin-right:-2px;">
+        <span style="display:flex;align-items:center;">${dot('#A61E4D')} Video</span>
+        <span style="display:flex;align-items:center;">${dot('#F06595')} Reels</span>
       </div>
-      <div style="display:flex; align-items:center; gap:6px;">
-        <img src="/assets/facebook-icon.svg" style="width:14px;height:14px;">
-        <span><span style="color:#1864AB; font-size:14px;">■</span> Video</span>
-        <span><span style="color:#339AF0; font-size:14px;">■</span> Reels</span>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <img src="/assets/facebook-icon.svg" style="width:14px;height:14px;margin-right:-2px;">
+        <span style="display:flex;align-items:center;">${dot('#1864AB')} Video</span>
+        <span style="display:flex;align-items:center;">${dot('#339AF0')} Reels</span>
       </div>
-      <div style="display:flex; align-items:center; gap:6px;">
-        <img src="${tkSrc}" class="tk-icon" style="width:14px;height:14px;">
-        <span><span style="color:#25F4EE; font-size:14px;">■</span> Video</span>
-        <span><span style="color:${tkColor}; font-size:14px;">■</span> Shorts</span>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <img src="${tkSrc}" class="tk-icon" style="width:14px;height:14px;margin-right:-2px;">
+        <span style="display:flex;align-items:center;">${dot('#25F4EE')} Video</span>
+        <span style="display:flex;align-items:center;">${dot(tkColor)} Shorts</span>
       </div>
     </div>
   `;
