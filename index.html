@@ -29,12 +29,18 @@
     <div class="nav-item" data-view="konten"><i data-lucide="play-square" style="width:18px;height:18px;margin-right:8px;opacity:0.7;"></i><span>Konten</span></div>
     <div class="nav-item" data-view="unmatched"><i data-lucide="file-question" style="width:18px;height:18px;margin-right:8px;opacity:0.7;"></i><span>Belum teridentifikasi</span><span id="unmatchedBadge" style="display:none; margin-left:auto; background:#FA5252; color:#fff; border-radius:10px; font-size:10px; font-weight:700; padding:1px 7px; min-width:18px; text-align:center;"></span></div>
     <div class="nav-item admin-only" data-view="pengaturan" style="display:none;"><i data-lucide="settings" style="width:18px;height:18px;margin-right:8px;opacity:0.7;"></i><span>Pengaturan</span></div>
+    
+    <div style="margin-top: 16px; margin-bottom: 8px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); padding: 0 16px;">Sistem</div>
+    <div class="nav-item" id="adminMenuBtn" style="cursor: pointer; justify-content: space-between;">
+      <div style="display: flex; align-items: center;">
+        <i data-lucide="lock" id="adminMenuIcon" style="width:18px;height:18px;margin-right:8px;opacity:0.7;"></i>
+        <span id="adminMenuText">Mode Admin</span>
+      </div>
+      <div id="adminMenuStatusDot" style="width: 8px; height: 8px; border-radius: 50%; background: var(--line-strong);"></div>
+    </div>
   </nav>
   <div class="sidebar-foot" style="margin-top: auto; display:flex; justify-content:space-between; align-items:center;">
-    <span>Pantau Konten 2026</span>
-    <button id="adminLoginBtn" style="background:transparent; border:none; color:var(--sidebar-text); cursor:pointer; opacity:0.7; font-size:12px; display:flex; align-items:center; gap:4px;">
-      <i data-lucide="lock" style="width:12px;height:12px;"></i> Admin
-    </button>
+    <span style="font-size: 13px; color: var(--muted);">Pantau Konten 2026</span>
   </div>
 </aside>
 
@@ -417,6 +423,25 @@
     </div>
     <div class="modal-actions" style="justify-content: flex-end;">
       <button class="btn btn-primary" id="confirmAdminLoginBtn" style="width: 100%;">Masuk Mode Admin</button>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<!-- Modal: Custom Confirm -->
+<div class="overlay" id="customConfirmModal">
+  <div class="modal" style="max-width: 400px;">
+    <div class="modal-head">
+      <div class="modal-title" id="customConfirmTitle">Konfirmasi</div>
+      <button class="modal-close" data-close><i data-lucide="x" style="width: 20px; height: 20px;"></i></button>
+    </div>
+    <div class="modal-body" style="padding-top: 10px;">
+      <p id="customConfirmMessage" style="color: var(--muted); line-height: 1.5; margin-bottom: 24px; font-size: 14.5px;">Apakah Anda yakin?</p>
+      <div class="modal-actions" style="display: flex; gap: 12px; justify-content: flex-end;">
+        <button class="btn btn-outline" id="customConfirmCancelBtn">Batal</button>
+        <button class="btn btn-primary" id="customConfirmOkBtn">Konfirmasi</button>
+      </div>
     </div>
   </div>
 </div>
