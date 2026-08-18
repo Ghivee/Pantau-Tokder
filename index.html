@@ -271,6 +271,27 @@
         </div>
       </div>
     </header>
+    <div class="filter-bar" style="grid-template-columns: minmax(180px, 2fr) repeat(3, minmax(140px, 1fr));">
+      <input type="text" id="searchUnmatched" placeholder="Cari judul...">
+      <select id="unmatchedFilterPlatform">
+        <option value="all">Semua platform</option>
+        <option value="youtube">YouTube</option>
+        <option value="instagram">Instagram</option>
+        <option value="facebook">Facebook</option>
+        <option value="tiktok">TikTok</option>
+      </select>
+      <select id="unmatchedFilterJenis">
+        <option value="all">Semua jenis</option>
+        <option value="short">Shorts/Reels</option>
+        <option value="long">Video Panjang</option>
+      </select>
+      <select id="unmatchedSort">
+        <option value="newest">Upload Terbaru</option>
+        <option value="oldest">Upload Terlama</option>
+        <option value="views_desc">Views Terbanyak</option>
+        <option value="views_asc">Views Terdikit</option>
+      </select>
+    </div>
     <section class="panel">
       <div style="overflow-x: auto;">
         <table>

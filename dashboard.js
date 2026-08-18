@@ -1099,9 +1099,38 @@ function renderPagination(totalPages, totalItems) {
   }
 });
 
+["searchUnmatched", "unmatchedFilterPlatform", "unmatchedFilterJenis", "unmatchedSort"].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) {
+    el.addEventListener(id === "searchUnmatched" ? "input" : "change", () => {
+      renderUnmatched();
+    });
+  }
+});
+
 // ============ RENDER: UNMATCHED PAGE ============
 function renderUnmatched() {
-  const rows = content.filter(c => c.status_identifikasi === "unmatched");
+  const q = (document.getElementById("searchUnmatched")?.value || "").trim().toLowerCase();
+  const platform = document.getElementById("unmatchedFilterPlatform")?.value || "all";
+  const jenis = document.getElementById("unmatchedFilterJenis")?.value || "all";
+  const sort = document.getElementById("unmatchedSort")?.value || "newest";
+
+  let rows = content.filter(c => {
+    if (c.status_identifikasi !== "unmatched") return false;
+    if (q && !c.judul.toLowerCase().includes(q)) return false;
+    if (platform !== "all" && c.platform !== platform) return false;
+    if (jenis !== "all" && String(c.tipe_video) !== jenis) return false;
+    return true;
+  });
+
+  // Sort
+  rows.sort((a, b) => {
+    if (sort === "newest") return new Date(b.tanggal_upload || 0) - new Date(a.tanggal_upload || 0);
+    if (sort === "oldest") return new Date(a.tanggal_upload || 0) - new Date(b.tanggal_upload || 0);
+    if (sort === "views_desc") return (b.views || 0) - (a.views || 0);
+    if (sort === "views_asc") return (a.views || 0) - (b.views || 0);
+    return 0;
+  });
   
   // Populate assign-all select
   const assignAllSel = document.getElementById("assignAllEditorSelect");
