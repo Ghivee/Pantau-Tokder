@@ -631,9 +631,6 @@ function renderTopContent() {
   if (!grid) return;
   const data = filteredContent();
   const platforms = ['youtube', 'instagram', 'facebook', 'tiktok'];
-  
-  const rankColors = ['#F59F00', '#ADB5BD', '#CD7F32'];
-  const rankLabel = ['🥇', '🥈', '🥉'];
 
   let html = '';
   platforms.forEach(plat => {
@@ -641,8 +638,6 @@ function renderTopContent() {
       .sort((a, b) => (b.views || 0) - (a.views || 0))
       .slice(0, 3);
     if (items.length === 0) return;
-
-    const maxViews = items[0]?.views || 1;
 
     html += `<div class="top-content-card">
       <div class="top-content-card-header">
@@ -652,20 +647,15 @@ function renderTopContent() {
         <span style="font-size:11px; color:var(--muted); font-weight:500;">Top ${items.length}</span>
       </div>
       <div class="top-content-list">
-        ${items.map((c, i) => {
-          const pct = Math.round(((c.views || 0) / maxViews) * 100);
-          return `
+        ${items.map((c, i) => `
           <div class="top-content-item" data-content="${c.id}">
-            <div class="top-content-rank" style="color:${rankColors[i] || 'var(--muted)'};">${rankLabel[i] || (i+1)}</div>
+            <div class="top-content-rank-num">${i + 1}</div>
             <div class="top-content-info">
               <div class="top-content-title">${c.judul}</div>
-              <div class="top-content-bar-wrap">
-                <div class="top-content-bar" style="width:${pct}%; background: ${i === 0 ? 'var(--teal)' : 'var(--line-strong)'};"></div>
-              </div>
               <div class="top-content-views">${fmt(c.views || 0)} views</div>
             </div>
-          </div>`;
-        }).join('')}
+          </div>`
+        ).join('')}
       </div>
     </div>`;
   });
@@ -675,6 +665,7 @@ function renderTopContent() {
     el.addEventListener('click', () => openContentModal(Number(el.dataset.content)));
   });
 }
+
 
 function renderDashboard() {
   renderMetrics(); renderLeaderboard(); renderTable(); renderChart();
@@ -1384,7 +1375,7 @@ function openContentModal(id) {
         ${c.platform === 'youtube' ? `<span id="retentionDataBadge" style="font-size:11px; font-weight:500; color:var(--muted);"></span>` : ''}
       </div>
       <div class="detail-row" style="border-bottom: none; padding-bottom: 0;"><span class="detail-label">Rata-rata durasi tonton</span><span class="num" style="font-size: 14px;">${avgDuration}</span></div>
-      <div style="height: 180px; width: 100%; position: relative; margin-top: 16px;">
+      <div style="height: 220px; width: 100%; position: relative; margin-top: 16px;">
         <canvas id="retentionChart"></canvas>
       </div>
     </div>
