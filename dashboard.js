@@ -174,26 +174,65 @@ document.querySelectorAll(".nav-item").forEach(item => {
   item.addEventListener("click", () => switchView(item.dataset.view));
 });
 
+// ============ CUSTOM CONFIRM MODAL ============
+let customConfirmResolve = null;
+
+function customConfirm(title, message, okText = "Konfirmasi", okClass = "btn-primary") {
+  return new Promise((resolve) => {
+    document.getElementById("customConfirmTitle").textContent = title;
+    document.getElementById("customConfirmMessage").textContent = message;
+    
+    const okBtn = document.getElementById("customConfirmOkBtn");
+    okBtn.textContent = okText;
+    okBtn.className = `btn ${okClass}`;
+    
+    customConfirmResolve = resolve;
+    openModal("customConfirmModal");
+  });
+}
+
+document.getElementById("customConfirmCancelBtn")?.addEventListener("click", () => {
+  closeModal("customConfirmModal");
+  if (customConfirmResolve) customConfirmResolve(false);
+  customConfirmResolve = null;
+});
+
+document.getElementById("customConfirmOkBtn")?.addEventListener("click", () => {
+  closeModal("customConfirmModal");
+  if (customConfirmResolve) customConfirmResolve(true);
+  customConfirmResolve = null;
+});
+
 // ============ ADMIN MODE ============
 function updateAdminUI() {
   document.querySelectorAll('.admin-only').forEach(el => {
     el.style.display = isAdminMode ? '' : 'none';
   });
   
-  const loginBtn = document.getElementById('adminLoginBtn');
-  if (loginBtn) {
+  const menuText = document.getElementById('adminMenuText');
+  const menuIcon = document.getElementById('adminMenuIcon');
+  const menuStatusDot = document.getElementById('adminMenuStatusDot');
+  
+  if (menuText && menuIcon) {
     if (isAdminMode) {
-      loginBtn.innerHTML = '<i data-lucide="unlock" style="width:12px;height:12px;color:var(--teal);"></i> <span style="color:var(--teal);">Admin Aktif</span>';
+      menuText.textContent = "Admin Aktif";
+      menuText.style.color = "var(--teal)";
+      menuIcon.outerHTML = '<i data-lucide="unlock" id="adminMenuIcon" style="width:18px;height:18px;margin-right:8px;color:var(--teal);"></i>';
+      menuStatusDot.style.background = "var(--teal)";
     } else {
-      loginBtn.innerHTML = '<i data-lucide="lock" style="width:12px;height:12px;"></i> Admin';
+      menuText.textContent = "Mode Admin";
+      menuText.style.color = "";
+      menuIcon.outerHTML = '<i data-lucide="lock" id="adminMenuIcon" style="width:18px;height:18px;margin-right:8px;opacity:0.7;"></i>';
+      menuStatusDot.style.background = "var(--line-strong)";
     }
-    lucide.createIcons({ root: loginBtn });
+    lucide.createIcons({ root: document.getElementById('adminMenuBtn') });
   }
 }
 
-document.getElementById("adminLoginBtn")?.addEventListener("click", () => {
+document.getElementById("adminMenuBtn")?.addEventListener("click", async () => {
   if (isAdminMode) {
-    if (confirm("Keluar dari Mode Admin?")) {
+    const isSure = await customConfirm("Keluar Mode Admin", "Anda yakin ingin keluar dari Mode Admin?", "Keluar", "btn-outline");
+    if (isSure) {
       isAdminMode = false;
       adminToken = null;
       localStorage.removeItem("adminToken");
@@ -924,33 +963,40 @@ function renderEditorCards() {
         </div>
         <div class="row-actions">
           <button class="btn btn-sm" data-view-editor="${e.id}">Lihat detail</button>
-          <button class="btn btn-sm btn-danger admin-only" data-remove-editor="${e.id}">Hapus</button>
+          <button class="btn btn-sm btn-danger admin-only delete-editor-btn" data-id="${e.id}" style="${!isAdminMode ? 'display:none;' : ''}">Hapus</button>
         </div>
       </div>`;
   }).join("") || '<div class="empty-note">Belum ada data editor.</div>';
   
   document.querySelectorAll("[data-view-editor]").forEach(b => b.addEventListener("click", () => openEditorModal(Number(b.dataset.viewEditor))));
-  document.querySelectorAll("[data-remove-editor]").forEach(b => b.addEventListener("click", async () => {
-    const id = Number(b.dataset.removeEditor);
-    const e = editorById(id);
-    if (!confirm(`Hapus editor ${e.nama}? Konten miliknya akan berpindah ke status belum teridentifikasi.`)) return;
-    
-    b.disabled = true;
-    const originalText = b.textContent;
-    b.textContent = "Menghapus...";
-    try {
-      await fetch(`/api/editors/${id}`, { method: 'DELETE' });
-      content.forEach(c => { if (c.editor_id === id) { c.editor_id = null; c.status_identifikasi = "unmatched"; } });
-      editors = editors.filter(x => x.id !== id);
-      showToast(`Editor ${e.nama} dihapus`);
-      renderAll();
-    } catch (err) {
-      showToast("Gagal menghapus editor", true);
-    } finally {
-      b.disabled = false;
-      b.textContent = originalText;
-    }
-  }));
+  
+  if (isAdminMode) {
+    document.querySelectorAll(".delete-editor-btn").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const id = Number(btn.dataset.id);
+        const e = editorById(id);
+        if (!e) return;
+        const isSure = await customConfirm("Hapus Editor", `Hapus editor ${e.nama}? Konten miliknya akan berpindah ke status belum teridentifikasi.`, "Hapus");
+        if (!isSure) return;
+  
+        btn.disabled = true;
+        const originalText = btn.textContent;
+        btn.textContent = "Menghapus...";
+        try {
+          await fetch(`/api/editors/${id}`, { method: 'DELETE' });
+          content.forEach(c => { if (c.editor_id === id) { c.editor_id = null; c.status_identifikasi = "unmatched"; } });
+          editors = editors.filter(x => x.id !== id);
+          showToast(`Editor ${e.nama} dihapus`);
+          renderAll();
+        } catch (err) {
+          showToast("Gagal menghapus editor", true);
+        } finally {
+          btn.disabled = false;
+          btn.textContent = originalText;
+        }
+      });
+    });
+  }
 }
 
 // ============ RENDER: KONTEN PAGE (with Pagination) ============
@@ -1125,7 +1171,8 @@ document.getElementById("assignAllBtn")?.addEventListener("click", async () => {
   
   if (itemsToAssign.length === 0) { showToast("Pilih minimal satu konten"); return; }
   
-  if (!confirm(`Tandai ${itemsToAssign.length} konten terpilih ke editor ${editor.nama}?`)) return;
+  const isSure = await customConfirm("Tandai Editor", `Tandai ${itemsToAssign.length} konten terpilih ke editor ${editor.nama}?`);
+  if (!isSure) return;
   
   const btn = document.getElementById("assignAllBtn");
   btn.disabled = true;
