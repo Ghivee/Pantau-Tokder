@@ -264,19 +264,19 @@ tr.clickable:hover td { background: var(--paper); }
 }
 .top-content-item:hover { opacity: 0.75; }
 .top-content-rank-num {
-  width: 24px;
-  height: 24px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   background: var(--surface);
   border: 1.5px solid var(--line-strong);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--muted);
   flex-shrink: 0;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Space Grotesk', sans-serif;
 }
 .top-content-item:first-child .top-content-rank-num {
   background: var(--teal-tint);
@@ -352,7 +352,7 @@ input[type="checkbox"]:checked::after {
 /* Modal */
 .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 20px; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
 .overlay.active { opacity: 1; pointer-events: auto; }
-.modal { background: var(--panel); border-radius: 16px; padding: 28px; max-width: 500px; width: 100%; max-height: 85vh; overflow: auto; box-shadow: 0 20px 40px rgba(0,0,0,0.2); transform: scale(0.95); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); border: 1px solid var(--line); }
+.modal { background: var(--panel); border-radius: 16px; padding: 28px; max-width: 500px; width: 100%; max-height: 85vh; overflow-y: auto; overflow-x: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.2); transform: scale(0.95); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); border: 1px solid var(--line); }
 .overlay.active .modal { transform: scale(1); }
 .modal-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; }
 .modal-title { font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700; }
@@ -361,7 +361,8 @@ input[type="checkbox"]:checked::after {
 .detail-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 12px 0; border-bottom: 1px solid var(--line); font-size: 14px; gap: 16px; }
 .detail-row:last-child { border-bottom: none; }
 .detail-label { color: var(--muted); font-weight: 500; flex-shrink: 0; min-width: 110px; font-size: 13px; }
-.detail-row span:last-child { text-align: left; word-break: break-word; flex: 1; }
+.detail-row span:last-child { text-align: left; word-break: break-word; }
+.detail-row .plat { display: inline-flex; flex-shrink: 0; }
 .modal-actions { display: flex; gap: 10px; margin-top: 24px; }
 
 /* Toast */
