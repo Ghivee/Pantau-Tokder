@@ -1375,7 +1375,7 @@ function openContentModal(id) {
         ${c.platform === 'youtube' ? `<span id="retentionDataBadge" style="font-size:11px; font-weight:500; color:var(--muted);"></span>` : ''}
       </div>
       <div class="detail-row" style="border-bottom: none; padding-bottom: 0;"><span class="detail-label">Rata-rata durasi tonton</span><span class="num" style="font-size: 14px;">${avgDuration}</span></div>
-      <div style="height: 220px; width: 100%; position: relative; margin-top: 16px;">
+      <div style="height: 220px; width: 100%; position: relative; margin-top: 16px; box-sizing: border-box; padding-right: 2px;">
         <canvas id="retentionChart"></canvas>
       </div>
     </div>
