@@ -92,4 +92,51 @@ async function fetchNewVideos() {
   }
 }
 
-module.exports = { fetchNewVideos, parseISODuration, formatDuration };
+async function fetchVideosByIds(videoIdsArray) {
+  const apiKey = process.env.YOUTUBE_API_KEY;
+  if (!apiKey || !videoIdsArray || videoIdsArray.length === 0) return [];
+  
+  try {
+    let processedVideos = [];
+    // Process in chunks of 50
+    for (let i = 0; i < videoIdsArray.length; i += 50) {
+      const chunkIds = videoIdsArray.slice(i, i + 50).join(',');
+      const videoRes = await axios.get('https://www.googleapis.com/youtube/v3/videos', {
+        params: {
+          key: apiKey,
+          id: chunkIds,
+          part: 'snippet,statistics,contentDetails'
+        }
+      });
+      
+      const chunkProcessed = (videoRes.data.items || []).map(vid => {
+        const durationSecs = parseISODuration(vid.contentDetails.duration);
+        const isShort = durationSecs > 0 && durationSecs < 120;
+
+        return {
+          post_id: vid.id,
+          platform: 'youtube',
+          url: isShort
+            ? `https://www.youtube.com/shorts/${vid.id}`
+            : `https://www.youtube.com/watch?v=${vid.id}`,
+          title: vid.snippet.title,
+          description: vid.snippet.description,
+          publishedAt: vid.snippet.publishedAt,
+          views: parseInt(vid.statistics.viewCount || 0),
+          likes: parseInt(vid.statistics.likeCount || 0),
+          comments: parseInt(vid.statistics.commentCount || 0),
+          durationSecs: durationSecs,
+          durationFormatted: formatDuration(durationSecs),
+          tipe_video: isShort ? 'short' : 'long'
+        };
+      });
+      processedVideos = processedVideos.concat(chunkProcessed);
+    }
+    return processedVideos;
+  } catch (error) {
+    console.error('Error fetching YouTube videos by IDs:', error.response?.data || error.message);
+    return [];
+  }
+}
+
+module.exports = { fetchNewVideos, fetchVideosByIds, parseISODuration, formatDuration };

@@ -171,7 +171,9 @@ function switchView(viewName) {
 }
 
 document.querySelectorAll(".nav-item").forEach(item => {
-  item.addEventListener("click", () => switchView(item.dataset.view));
+  item.addEventListener("click", () => {
+    if (item.dataset.view) switchView(item.dataset.view);
+  });
 });
 
 // ============ CUSTOM CONFIRM MODAL ============
