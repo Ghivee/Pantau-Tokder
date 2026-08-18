@@ -1,5 +1,5 @@
 const db = require('../config/db');
-const { fetchNewVideos } = require('../integrations/youtube');
+const { fetchNewVideos, fetchVideosByIds } = require('../integrations/youtube');
 const { fetchRetentionData, getAccessToken } = require('../integrations/analytics');
 
 function matchEditorCode(captionText, editors) {
@@ -171,6 +171,38 @@ async function runFullScan() {
   } catch (e) {
     console.error('YouTube fetch failed:', e.message);
     errors.push(`YouTube fetch failed: ${e.message}`);
+  }
+
+  // RE-EVALUATE UNMATCHED VIDEOS
+  try {
+    console.log('Re-evaluating existing unmatched YouTube videos...');
+    const unmatchedRes = await db.query("SELECT post_id FROM content WHERE status_identifikasi = 'unmatched' AND platform = 'youtube'");
+    const unmatchedIds = unmatchedRes.rows.map(r => r.post_id);
+    
+    if (unmatchedIds.length > 0) {
+      console.log(`Found ${unmatchedIds.length} unmatched videos in DB. Fetching full details to re-match...`);
+      const unmatchedVideosDetails = await fetchVideosByIds(unmatchedIds);
+      
+      const chunkSize = 10;
+      for (let i = 0; i < unmatchedVideosDetails.length; i += chunkSize) {
+        const chunk = unmatchedVideosDetails.slice(i, i + chunkSize);
+        const promises = chunk.map(async (vid) => {
+          try {
+            const result = await processVideo(vid, editors, accessToken);
+            if (result.isNew) newPosts++;
+            else updatedPosts++;
+            // We don't increment unmatched counter here to avoid double counting 
+            // since they were already counted or are just being re-evaluated
+          } catch(e) {
+            console.error(`Error processing unmatched video ${vid.post_id}:`, e.message);
+          }
+        });
+        await Promise.all(promises);
+      }
+      console.log('Re-evaluation of unmatched videos complete.');
+    }
+  } catch (e) {
+    console.error('Error re-evaluating unmatched videos:', e.message);
   }
 
   // Log scan
