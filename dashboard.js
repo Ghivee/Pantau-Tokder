@@ -631,31 +631,45 @@ function renderTopContent() {
   if (!grid) return;
   const data = filteredContent();
   const platforms = ['youtube', 'instagram', 'facebook', 'tiktok'];
-  const platformNames = { youtube: 'YouTube', instagram: 'Instagram', facebook: 'Facebook', tiktok: 'TikTok' };
   
+  const rankColors = ['#F59F00', '#ADB5BD', '#CD7F32'];
+  const rankLabel = ['🥇', '🥈', '🥉'];
+
   let html = '';
   platforms.forEach(plat => {
     const items = data.filter(c => c.platform === plat)
       .sort((a, b) => (b.views || 0) - (a.views || 0))
       .slice(0, 3);
     if (items.length === 0) return;
-    
-    html += `<div style="background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:16px;">
-      <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px; font-weight:600; font-size:13px; color:var(--ink);">
-        ${platformLabel(plat)}
-      </div>
-      ${items.map((c, i) => `
-        <div style="display:flex; align-items:flex-start; gap:10px; padding:8px 0; ${i < items.length - 1 ? 'border-bottom:1px solid var(--line);' : ''}">
-          <div style="width:20px; height:20px; border-radius:50%; background:var(--line-strong); display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; color:var(--muted); flex-shrink:0;">${i+1}</div>
-          <div style="flex:1; min-width:0;">
-            <div style="font-size:12.5px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--ink); cursor:pointer;" data-content="${c.id}">${c.judul}</div>
-            <div style="font-size:11.5px; color:var(--teal); font-weight:600; margin-top:2px;">${fmt(c.views || 0)} views</div>
-          </div>
+
+    const maxViews = items[0]?.views || 1;
+
+    html += `<div class="top-content-card">
+      <div class="top-content-card-header">
+        <div style="display:flex; align-items:center; gap:8px; font-weight:700; font-size:13.5px; color:var(--ink);">
+          ${platformLabel(plat)}
         </div>
-      `).join('')}
+        <span style="font-size:11px; color:var(--muted); font-weight:500;">Top ${items.length}</span>
+      </div>
+      <div class="top-content-list">
+        ${items.map((c, i) => {
+          const pct = Math.round(((c.views || 0) / maxViews) * 100);
+          return `
+          <div class="top-content-item" data-content="${c.id}">
+            <div class="top-content-rank" style="color:${rankColors[i] || 'var(--muted)'};">${rankLabel[i] || (i+1)}</div>
+            <div class="top-content-info">
+              <div class="top-content-title">${c.judul}</div>
+              <div class="top-content-bar-wrap">
+                <div class="top-content-bar" style="width:${pct}%; background: ${i === 0 ? 'var(--teal)' : 'var(--line-strong)'};"></div>
+              </div>
+              <div class="top-content-views">${fmt(c.views || 0)} views</div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
     </div>`;
   });
-  
+
   grid.innerHTML = html || '<div class="empty-note" style="grid-column:1/-1;">Belum ada data konten.</div>';
   grid.querySelectorAll('[data-content]').forEach(el => {
     el.addEventListener('click', () => openContentModal(Number(el.dataset.content)));
