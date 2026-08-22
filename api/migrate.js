@@ -8,6 +8,20 @@ async function migrate() {
   } catch(e) {
     console.log("tipe_video maybe exists:", e.message);
   }
+
+  try {
+    await db.query(`ALTER TABLE content ADD COLUMN revenue NUMERIC DEFAULT 0`);
+    console.log("Added revenue to content");
+  } catch(e) {
+    console.log("revenue (content) maybe exists:", e.message);
+  }
+
+  try {
+    await db.query(`ALTER TABLE metrics_snapshot ADD COLUMN revenue NUMERIC DEFAULT 0`);
+    console.log("Added revenue to metrics_snapshot");
+  } catch(e) {
+    console.log("revenue (snapshot) maybe exists:", e.message);
+  }
   
   try {
     await db.query(`CREATE TABLE IF NOT EXISTS affiliate_goals (

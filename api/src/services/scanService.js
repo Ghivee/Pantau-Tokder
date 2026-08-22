@@ -1,6 +1,6 @@
 const db = require('../config/db');
 const { fetchNewVideos, fetchVideosByIds } = require('../integrations/youtube');
-const { fetchRetentionData, getAccessToken } = require('../integrations/analytics');
+const { fetchRetentionData, fetchRevenueData, getAccessToken } = require('../integrations/analytics');
 
 function matchEditorCode(captionText, editors) {
   if (!captionText) return null;
@@ -45,11 +45,18 @@ async function processVideo(vid, editors, accessToken = null) {
     // New video — get real retention or generate mock
     const avgDurationSecs = vid.durationSecs * (Math.random() * 0.3 + 0.4);
     
-    // Try real retention data first
+    // Try real retention data and revenue first
     let retentionData = null;
+    let revenueData = 0;
     if (accessToken) {
       retentionData = await fetchRetentionData(vid.post_id, accessToken);
       if (retentionData) console.log(`  ✅ Real retention for ${vid.post_id}: ${retentionData.length} points`);
+      
+      const rev = await fetchRevenueData(vid.post_id, accessToken);
+      if (rev !== null) {
+        revenueData = rev;
+        console.log(`  💰 Revenue for ${vid.post_id}: ${revenueData}`);
+      }
     }
     // Fall back to mock if no real data
     if (!retentionData) {
@@ -59,20 +66,21 @@ async function processVideo(vid, editors, accessToken = null) {
     const insertRes = await db.query(
       `INSERT INTO content 
        (post_id, platform, url, judul, tanggal_upload, editor_id, status_identifikasi, 
-        tipe_video, duration_secs, avg_view_duration, retention_data) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id`,
+        tipe_video, duration_secs, avg_view_duration, retention_data, revenue) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id`,
       [
         vid.post_id, vid.platform, vid.url, vid.title, vid.publishedAt,
         matchedEditorId, statusIdentifikasi, vid.tipe_video,
         vid.durationSecs,
         formatAvgDuration(avgDurationSecs),
-        JSON.stringify(retentionData)
+        JSON.stringify(retentionData),
+        revenueData
       ]
     );
     const newContentId = insertRes.rows[0].id;
     await db.query(
-      `INSERT INTO metrics_snapshot (content_id, views, likes, comments) VALUES ($1, $2, $3, $4)`,
-      [newContentId, vid.views || 0, vid.likes || 0, vid.comments || 0]
+      `INSERT INTO metrics_snapshot (content_id, views, likes, comments, revenue) VALUES ($1, $2, $3, $4, $5)`,
+      [newContentId, vid.views || 0, vid.likes || 0, vid.comments || 0, revenueData]
     );
     return { isNew: true, unmatched: !matchedEditorId };
   } else {
@@ -88,17 +96,21 @@ async function processVideo(vid, editors, accessToken = null) {
       finalStatus = 'matched';
     }
     
+    let currentRevenue = contentRow.revenue || 0;
     if (accessToken) {
       const retentionData = await fetchRetentionData(vid.post_id, accessToken);
+      const rev = await fetchRevenueData(vid.post_id, accessToken);
+      if (rev !== null) currentRevenue = rev;
+
       if (retentionData) {
         await db.query(
-          `UPDATE content SET duration_secs = $1, retention_data = $2, editor_id = $3, status_identifikasi = $4 WHERE id = $5`,
-          [vid.durationSecs, JSON.stringify(retentionData), finalEditorId, finalStatus, contentId]
+          `UPDATE content SET duration_secs = $1, retention_data = $2, editor_id = $3, status_identifikasi = $4, revenue = $5 WHERE id = $6`,
+          [vid.durationSecs, JSON.stringify(retentionData), finalEditorId, finalStatus, currentRevenue, contentId]
         );
       } else {
         await db.query(
-          `UPDATE content SET duration_secs = $1, editor_id = $2, status_identifikasi = $3 WHERE id = $4`, 
-          [vid.durationSecs, finalEditorId, finalStatus, contentId]
+          `UPDATE content SET duration_secs = $1, editor_id = $2, status_identifikasi = $3, revenue = $4 WHERE id = $5`, 
+          [vid.durationSecs, finalEditorId, finalStatus, currentRevenue, contentId]
         );
       }
     } else {
@@ -109,8 +121,8 @@ async function processVideo(vid, editors, accessToken = null) {
     }
     
     await db.query(
-      `INSERT INTO metrics_snapshot (content_id, views, likes, comments) VALUES ($1, $2, $3, $4)`,
-      [contentId, vid.views || 0, vid.likes || 0, vid.comments || 0]
+      `INSERT INTO metrics_snapshot (content_id, views, likes, comments, revenue) VALUES ($1, $2, $3, $4, $5)`,
+      [contentId, vid.views || 0, vid.likes || 0, vid.comments || 0, currentRevenue]
     );
     // If it was unmatched but now matched, we can return false for unmatched
     return { isNew: false, unmatched: finalStatus === 'unmatched' };
