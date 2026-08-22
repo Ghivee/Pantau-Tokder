@@ -26,8 +26,9 @@
   <nav id="navList">
     <div class="nav-item active" data-view="dashboard"><i data-lucide="layout-dashboard" style="width:18px;height:18px;margin-right:8px;opacity:0.7;"></i><span>Dashboard</span></div>
     <div class="nav-item" data-view="editor"><i data-lucide="users" style="width:18px;height:18px;margin-right:8px;opacity:0.7;"></i><span>Editor</span></div>
-    <div class="nav-item" data-view="konten"><i data-lucide="play-square" style="width:18px;height:18px;margin-right:8px;opacity:0.7;"></i><span>Konten</span></div>
-    <div class="nav-item" data-view="unmatched"><i data-lucide="file-question" style="width:18px;height:18px;margin-right:8px;opacity:0.7;"></i><span>Belum teridentifikasi</span><span id="unmatchedBadge" style="display:none; margin-left:auto; background:#FA5252; color:#fff; border-radius:10px; font-size:10px; font-weight:700; padding:1px 7px; min-width:18px; text-align:center;"></span></div>
+    <div class="nav-item" data-view="konten"><i data-lucide="play-square" style="width:18px;height:18px;opacity:0.7;"></i><span>Konten</span></div>
+    <div class="nav-item" data-view="monetisasi"><i data-lucide="banknote" style="width:18px;height:18px;opacity:0.7;"></i><span>Monetisasi</span></div>
+    <div class="nav-item" data-view="unmatched"><i data-lucide="file-question" style="width:18px;height:18px;opacity:0.7;"></i><span>Belum teridentifikasi</span><span id="unmatchedBadge" style="display:none; margin-left:auto; background:#FA5252; color:#fff; border-radius:10px; font-size:10px; font-weight:700; padding:1px 7px; min-width:18px; text-align:center;"></span></div>
     <div class="nav-item admin-only" data-view="pengaturan" style="display:none;"><i data-lucide="settings" style="width:18px;height:18px;margin-right:8px;opacity:0.7;"></i><span>Pengaturan</span></div>
     
     <div style="margin-top: 16px; margin-bottom: 8px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); padding: 0 16px;">Sistem</div>
@@ -351,7 +352,62 @@
     </section>
   </div>
 
+  <!-- ===== MONETISASI ===== -->
+  <div class="view" id="view-monetisasi">
+    <header class="page-head">
+      <div>
+        <h1>Keuangan &amp; Monetisasi</h1>
+        <div class="sub">Data pendapatan iklan YouTube dan pengelolaan target affiliate</div>
+      </div>
+    </header>
+
+    <!-- Revenue Metric Cards -->
+    <section class="metrics" id="revenueCards" style="margin-bottom:28px;"></section>
+
+    <!-- Split: Editor Revenue | Affiliate Goal -->
+    <div class="grid-2" style="margin-bottom:24px;">
+      <div class="panel" style="position:relative;">
+        <div class="panel-head">
+          <div class="panel-title">Pendapatan per Editor</div>
+          <div class="panel-note">Estimasi dari iklan YouTube</div>
+        </div>
+        <div id="revenueEditorList"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head" style="margin-bottom:14px;">
+          <div>
+            <div class="panel-title">Target Affiliate</div>
+            <div class="panel-note" id="monetisasiGoalBulan">Bulan ini</div>
+          </div>
+          <button class="btn btn-sm admin-only" id="editGoalBtn2" style="display:none;"><i data-lucide="edit-2" style="width:13px;height:13px;"></i> Edit</button>
+        </div>
+        <div id="monetisasiGoalContent"></div>
+      </div>
+    </div>
+
+    <!-- Top Revenue Videos -->
+    <section class="panel" style="margin-bottom:24px;">
+      <div class="panel-head">
+        <div class="panel-title">Video Penghasil Terbanyak</div>
+        <div class="panel-note">Berdasarkan estimasi pendapatan iklan per video</div>
+      </div>
+      <div id="revenueTopVideos" style="overflow-x:auto;"></div>
+    </section>
+
+    <!-- YouTube Studio Shortcuts -->
+    <section class="panel">
+      <div class="panel-head" style="margin-bottom:20px;">
+        <div>
+          <div class="panel-title">Akses Cepat YouTube Studio</div>
+          <div class="panel-note">Data berikut tidak tersedia via API &mdash; klik untuk membuka langsung di YouTube Studio</div>
+        </div>
+      </div>
+      <div id="studioShortcutsGrid" class="studio-shortcuts-grid"></div>
+    </section>
+  </div>
+
 </main>
+
 
 <!-- Modal: detail konten -->
 <div class="overlay" id="contentModal">
