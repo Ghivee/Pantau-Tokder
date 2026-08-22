@@ -71,6 +71,10 @@ function fmt(n) {
   if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, '') + "k"; 
   return n.toString(); 
 }
+function formatRupiah(n) {
+  if (!n) return "Rp 0";
+  return "Rp " + Math.round(n).toLocaleString('id-ID');
+}
 function platformLabel(p) {
   if (p === 'youtube') return '<img src="/assets/youtube.svg" style="width:14px;height:14px;vertical-align:middle;"> YouTube';
   if (p === 'instagram') return '<img src="/assets/instagram-icon.svg" style="width:14px;height:14px;vertical-align:middle;"> Instagram';
@@ -341,6 +345,8 @@ function renderMetrics() {
     }
   }
   
+  const totalRevenue = data.reduce((s, c) => s + (Number(c.revenue) || 0), 0);
+  
   document.getElementById("metricCards").innerHTML = `
     <div class="metric-card">
       <div class="metric-label">Total konten</div>
@@ -353,6 +359,10 @@ function renderMetrics() {
     <div class="metric-card">
       <div class="metric-label">Total likes</div>
       <div class="metric-value num">${fmt(totalLikes)}</div>
+    </div>
+    <div class="metric-card admin-only" style="${isAdminMode ? '' : 'display:none;'}">
+      <div class="metric-label" style="color:var(--teal);">Total Pendapatan (Ads)</div>
+      <div class="metric-value num" style="color:var(--teal); font-size:18px;">${formatRupiah(totalRevenue)}</div>
     </div>
     <div class="metric-card warn-card" style="cursor:pointer;" onclick="switchView('unmatched')">
       <div class="metric-label">Belum teridentifikasi</div>
@@ -1367,6 +1377,7 @@ function openContentModal(id) {
     <div class="detail-row"><span class="detail-label">Views</span><span class="num">${views.toLocaleString('id-ID')}</span></div>
     <div class="detail-row"><span class="detail-label">Likes</span><span class="num">${likes.toLocaleString('id-ID')}</span></div>
     <div class="detail-row"><span class="detail-label">Komentar</span><span class="num">${comments.toLocaleString('id-ID')}</span></div>
+    <div class="detail-row admin-only" style="${isAdminMode ? '' : 'display:none;'}"><span class="detail-label" style="color:var(--teal);">Pendapatan</span><span class="num" style="color:var(--teal); font-weight:700;">${formatRupiah(c.revenue)}</span></div>
     <div class="detail-row"><span class="detail-label">Tautan</span><span><a href="${c.url}" target="_blank" rel="noopener">Buka postingan ↗</a></span></div>
     
     <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--line);">

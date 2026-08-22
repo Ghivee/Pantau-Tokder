@@ -3,7 +3,8 @@ const axios = require('axios');
 function getAuthUrl(redirectUri) {
   const scopes = [
     'https://www.googleapis.com/auth/yt-analytics.readonly',
-    'https://www.googleapis.com/auth/youtube.readonly'
+    'https://www.googleapis.com/auth/youtube.readonly',
+    'https://www.googleapis.com/auth/yt-analytics-monetary.readonly'
   ].join(' ');
   
   return `https://accounts.google.com/o/oauth2/v2/auth?client_id=${process.env.GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scopes)}&access_type=offline&prompt=consent`;
@@ -66,4 +67,35 @@ async function fetchRetentionData(videoId, accessToken) {
   }
 }
 
-module.exports = { getAuthUrl, exchangeCodeForTokens, getAccessToken, fetchRetentionData };
+/**
+ * Fetch estimated revenue data for a specific video.
+ * Returns revenue amount (number).
+ * Returns null if not available or no revenue.
+ */
+async function fetchRevenueData(videoId, accessToken) {
+  if (!accessToken) return null;
+
+  try {
+    const response = await axios.get('https://youtubeanalytics.googleapis.com/v2/reports', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      params: {
+        ids: 'channel==MINE',
+        startDate: '2020-01-01',
+        endDate: new Date().toISOString().slice(0, 10),
+        metrics: 'estimatedRevenue',
+        filters: `video==${videoId}`
+      }
+    });
+
+    const rows = response.data.rows || [];
+    if (rows.length === 0) return 0;
+
+    // rows[0][0] will be the estimatedRevenue value
+    return parseFloat(rows[0][0]) || 0;
+  } catch (err) {
+    console.error(`Revenue fetch failed for video ${videoId}:`, err.response?.data || err.message);
+    return null;
+  }
+}
+
+module.exports = { getAuthUrl, exchangeCodeForTokens, getAccessToken, fetchRetentionData, fetchRevenueData };
