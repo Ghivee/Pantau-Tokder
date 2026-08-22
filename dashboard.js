@@ -171,6 +171,9 @@ function switchView(viewName) {
     renderCodeTable();
     checkAnalyticsStatus();
   }
+  if (viewName === "monetisasi") {
+    renderMonetisasi();
+  }
   closeMobileMenu();
 }
 
@@ -1816,3 +1819,177 @@ observer.observe(document.body, { attributes: true });
 })();
 
 loadData();
+
+// ============ MONETISASI PAGE ============
+function editorById(id) {
+  return editors.find(e => e.id === id) || null;
+}
+
+function renderMonetisasi() {
+  const ytContent = content.filter(c => c.platform === 'youtube');
+  const totalRevenue = ytContent.reduce((s, c) => s + (Number(c.revenue) || 0), 0);
+  const revenueVideos = ytContent.filter(c => (Number(c.revenue) || 0) > 0);
+  const avgRevenue = revenueVideos.length > 0 ? totalRevenue / revenueVideos.length : 0;
+  const now = new Date();
+  const thisMonth = ytContent.filter(c => {
+    const d = new Date(c.tanggal_upload);
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+  });
+  const thisMonthRevenue = thisMonth.reduce((s, c) => s + (Number(c.revenue) || 0), 0);
+
+  // Revenue metric cards
+  const revenueCards = document.getElementById('revenueCards');
+  if (revenueCards) {
+    revenueCards.innerHTML = `
+      <div class="metric-card revenue-metric-card">
+        <div class="metric-label">Total Pendapatan Iklan</div>
+        <div class="metric-value" style="font-size:28px;">${formatRupiah(totalRevenue)}</div>
+        <div class="metric-sub">Estimasi kumulatif dari YouTube API</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Bulan ${now.toLocaleString('id-ID',{month:'long', year:'numeric'})}</div>
+        <div class="metric-value" style="font-size:28px;">${formatRupiah(thisMonthRevenue)}</div>
+        <div class="metric-sub">${thisMonth.length} video diupload bulan ini</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Rata-rata per Video</div>
+        <div class="metric-value" style="font-size:28px;">${formatRupiah(avgRevenue)}</div>
+        <div class="metric-sub">Dari ${revenueVideos.length} video termonetisasi</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Video Termonetisasi</div>
+        <div class="metric-value" style="font-size:36px; color:var(--teal);">${revenueVideos.length}</div>
+        <div class="metric-sub">Dari ${ytContent.length} total video YouTube</div>
+      </div>
+    `;
+  }
+
+  // Revenue per editor
+  const revenueEditorList = document.getElementById('revenueEditorList');
+  if (revenueEditorList) {
+    const edRevenue = editors.map(e => {
+      const ec = ytContent.filter(c => c.editor_id === e.id);
+      const rev = ec.reduce((s, c) => s + (Number(c.revenue) || 0), 0);
+      return { ...e, revenue: rev, count: ec.length };
+    }).filter(e => e.count > 0).sort((a, b) => b.revenue - a.revenue);
+
+    if (edRevenue.length === 0) {
+      revenueEditorList.innerHTML = '<div class="empty-note">Belum ada data. Sinkronkan setelah menghubungkan YouTube Analytics.</div>';
+    } else {
+      const maxRev = Math.max(edRevenue[0]?.revenue || 1, 1);
+      revenueEditorList.innerHTML = edRevenue.map(e => `
+        <div class="revenue-editor-row">
+          <div class="editor-id">
+            <div class="avatar">${(e.nama||'?')[0].toUpperCase()}</div>
+            <div>
+              <div class="editor-name">${e.nama}</div>
+              <div class="editor-count">${e.count} video YouTube</div>
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <div class="revenue-amount">${formatRupiah(e.revenue)}</div>
+            <div class="bar-track" style="width:80px; margin-top:6px; margin-left:auto;">
+              <div class="bar-fill" style="width:${Math.round((e.revenue/maxRev)*100)}%;"></div>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+  }
+
+  // Goal section in monetisasi
+  const monetisasiGoalContent = document.getElementById('monetisasiGoalContent');
+  const monetisasiGoalBulan = document.getElementById('monetisasiGoalBulan');
+  if (monetisasiGoalContent && currentGoal) {
+    const bulanStr = currentGoal.bulan ? (() => {
+      const [yr, mo] = currentGoal.bulan.split('-');
+      return new Date(yr, parseInt(mo)-1).toLocaleString('id-ID',{month:'long', year:'numeric'});
+    })() : 'Bulan ini';
+    if (monetisasiGoalBulan) monetisasiGoalBulan.textContent = bulanStr;
+    const pct = currentGoal.target_omset > 0 ? Math.min((currentGoal.tercapai / currentGoal.target_omset) * 100, 100) : 0;
+    const color = pct >= 100 ? 'var(--teal)' : pct >= 60 ? 'var(--amber)' : 'var(--red)';
+    monetisasiGoalContent.innerHTML = `
+      <div style="font-size:32px; font-weight:700; color:var(--teal); font-family:'Space Grotesk',sans-serif; letter-spacing:-0.02em; margin-bottom:6px;">Rp ${fmt(currentGoal.tercapai)}</div>
+      <div style="font-size:13px; color:var(--muted); margin-bottom:14px;">dari target <strong style="color:var(--ink);">Rp ${fmt(currentGoal.target_omset)}</strong></div>
+      <div style="height:10px; background:var(--line); border-radius:8px; overflow:hidden; margin-bottom:8px;">
+        <div style="height:100%; width:${pct.toFixed(1)}%; background:${color}; border-radius:8px; transition:width 1s ease-out;"></div>
+      </div>
+      <div style="font-size:13px; font-weight:600; color:${color};">${pct.toFixed(1)}% tercapai</div>
+    `;
+  } else if (monetisasiGoalContent) {
+    monetisasiGoalContent.innerHTML = '<div class="empty-note">Belum ada target. Set target di atas untuk mulai.</div>';
+  }
+
+  // Bind editGoalBtn2
+  const editGoalBtn2 = document.getElementById('editGoalBtn2');
+  if (editGoalBtn2) {
+    editGoalBtn2.style.display = isAdminMode ? '' : 'none';
+    editGoalBtn2.onclick = () => {
+      document.getElementById('goalInputTarget').value = currentGoal?.target_omset || 0;
+      document.getElementById('goalInputTercapai').value = currentGoal?.tercapai || 0;
+      openModal('goalModal');
+    };
+  }
+
+  // Top Revenue Videos
+  const revenueTopVideos = document.getElementById('revenueTopVideos');
+  if (revenueTopVideos) {
+    const topVideos = ytContent
+      .filter(c => (Number(c.revenue) || 0) > 0)
+      .sort((a, b) => (Number(b.revenue)||0) - (Number(a.revenue)||0))
+      .slice(0, 10);
+
+    if (topVideos.length === 0) {
+      revenueTopVideos.innerHTML = '<div class="empty-note" style="padding:24px 0;">Belum ada data pendapatan. Sinkronkan setelah menghubungkan YouTube Analytics.</div>';
+    } else {
+      revenueTopVideos.innerHTML = `
+        <table>
+          <thead><tr>
+            <th>#</th><th>Video</th><th>Editor</th>
+            <th style="text-align:right">Views</th>
+            <th style="text-align:right">Pendapatan (Est.)</th>
+          </tr></thead>
+          <tbody>
+            ${topVideos.map((c, i) => {
+              const ed = editorById(c.editor_id);
+              return `<tr class="clickable" onclick="openContentModal(${c.id})">
+                <td data-label="#" style="color:var(--muted); font-weight:600; width:32px;">${i+1}</td>
+                <td data-label="Video"><div class="content-title" style="max-width:300px;">${c.judul}</div></td>
+                <td data-label="Editor">${ed ? ed.nama : '-'}</td>
+                <td data-label="Views" class="num-cell">${fmt(c.views || 0)}</td>
+                <td data-label="Pendapatan" class="num-cell" style="color:var(--teal); font-weight:700;">${formatRupiah(c.revenue)}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+  }
+
+  // Studio Shortcuts
+  const shortcutsGrid = document.getElementById('studioShortcutsGrid');
+  if (shortcutsGrid) {
+    const shortcuts = [
+      { icon: 'bar-chart-2', title: 'Ringkasan Pendapatan', desc: 'Total semua pendapatan dari seluruh sumber dalam satu laporan ringkas', url: 'https://studio.youtube.com/', bg: 'rgba(32,201,151,0.12)', color: '#20C997' },
+      { icon: 'users', title: 'Membership', desc: 'Data anggota berbayar channel dan pendapatan dari langganan bulanan', url: 'https://www.youtube.com/memberships', bg: 'rgba(51,154,240,0.12)', color: '#339AF0' },
+      { icon: 'zap', title: 'Super Chat & Super Thanks', desc: 'Pendapatan dari donasi penonton saat siaran langsung maupun pada video biasa', url: 'https://studio.youtube.com/', bg: 'rgba(245,159,0,0.12)', color: '#F59F00' },
+      { icon: 'shopping-bag', title: 'Shopping & Affiliate', desc: 'Data produk yang ditag di video, konversi penjualan, dan komisi affiliate', url: 'https://studio.youtube.com/', bg: 'rgba(255,107,107,0.12)', color: '#FF6B6B' },
+      { icon: 'trending-up', title: 'Analytics — Tab Revenue', desc: 'Laporan pendapatan lengkap dengan breakdown per sumber di YouTube Analytics', url: 'https://studio.youtube.com/', bg: 'rgba(204,93,232,0.12)', color: '#CC5DE8' },
+      { icon: 'settings-2', title: 'Kelola Monetisasi', desc: 'Aktifkan, nonaktifkan, dan konfigurasi semua fitur monetisasi channel', url: 'https://studio.youtube.com/', bg: 'rgba(81,207,102,0.12)', color: '#51CF66' },
+    ];
+
+    shortcutsGrid.innerHTML = shortcuts.map(s => `
+      <a href="${s.url}" target="_blank" rel="noopener" class="studio-shortcut-card">
+        <div class="shortcut-icon" style="background:${s.bg};">
+          <i data-lucide="${s.icon}" style="width:20px;height:20px;color:${s.color};"></i>
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div class="shortcut-title">${s.title}</div>
+          <div class="shortcut-desc">${s.desc}</div>
+          <div class="shortcut-open">Buka di Studio <i data-lucide="external-link" style="width:11px;height:11px;"></i></div>
+        </div>
+      </a>
+    `).join('');
+    lucide.createIcons({ root: shortcutsGrid });
+  }
+}
