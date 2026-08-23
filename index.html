@@ -9,33 +9,43 @@
 <script src="https://unpkg.com/lucide@latest"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="dashboard.css?v=7">
+<link rel="stylesheet" href="dashboard.css?v=8">
 </head>
 <body data-theme="light">
 
 <aside>
-  <div class="brand" style="justify-content: center; width: 100%; padding: 12px 0;">
-    <img src="tokderlogo.png" alt="Logo" style="width: 48px; height: 48px; border-radius: 12px; object-fit: contain;">
+  <div class="brand">
+    <img src="tokderlogo.png" alt="Logo" style="width: 36px; height: 36px; border-radius: 10px; object-fit: contain; flex-shrink:0;">
+    <span class="brand-name">Pantau Tokder</span>
   </div>
+
   <nav id="navList">
-    <div class="nav-item active" data-view="dashboard"><i data-lucide="layout-dashboard" style="width:18px;height:18px;margin-right:8px;opacity:0.7;"></i><span>Dashboard</span></div>
-    <div class="nav-item" data-view="editor"><i data-lucide="users" style="width:18px;height:18px;margin-right:8px;opacity:0.7;"></i><span>Editor</span></div>
-    <div class="nav-item" data-view="konten"><i data-lucide="play-square" style="width:18px;height:18px;opacity:0.7;"></i><span>Konten</span></div>
-    <div class="nav-item" data-view="monetisasi"><i data-lucide="banknote" style="width:18px;height:18px;opacity:0.7;"></i><span>Monetisasi</span></div>
-    <div class="nav-item" data-view="unmatched"><i data-lucide="file-question" style="width:18px;height:18px;opacity:0.7;"></i><span>Belum teridentifikasi</span><span id="unmatchedBadge" style="display:none; margin-left:auto; background:#FA5252; color:#fff; border-radius:10px; font-size:10px; font-weight:700; padding:1px 7px; min-width:18px; text-align:center;"></span></div>
-    <div class="nav-item admin-only" data-view="pengaturan" style="display:none;"><i data-lucide="settings" style="width:18px;height:18px;margin-right:8px;opacity:0.7;"></i><span>Pengaturan</span></div>
-    
-    <div style="margin-top: 16px; margin-bottom: 8px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); padding: 0 16px;">Sistem</div>
-    <div class="nav-item" id="adminMenuBtn" style="cursor: pointer; justify-content: space-between;">
-      <div style="display: flex; align-items: center;">
-        <i data-lucide="lock" id="adminMenuIcon" style="width:18px;height:18px;margin-right:8px;opacity:0.7;"></i>
+    <div class="nav-section-label">Menu</div>
+    <div class="nav-item active" data-view="dashboard"><i data-lucide="layout-dashboard" style="width:17px;height:17px;"></i><span>Dashboard</span></div>
+    <div class="nav-item" data-view="editor"><i data-lucide="users" style="width:17px;height:17px;"></i><span>Editor</span></div>
+    <div class="nav-item" data-view="konten"><i data-lucide="play-square" style="width:17px;height:17px;"></i><span>Konten</span></div>
+    <div class="nav-item" data-view="monetisasi"><i data-lucide="banknote" style="width:17px;height:17px;"></i><span>Monetisasi</span></div>
+    <div class="nav-item" data-view="unmatched"><i data-lucide="file-question" style="width:17px;height:17px;"></i><span>Belum Teridentifikasi</span><span id="unmatchedBadge" style="display:none; margin-left:auto; background:#EF4444; color:#fff; border-radius:10px; font-size:10px; font-weight:700; padding:1px 7px; min-width:18px; text-align:center;"></span></div>
+
+    <div class="nav-section-label">General</div>
+    <div class="nav-item admin-only" data-view="pengaturan" style="display:none;"><i data-lucide="settings" style="width:17px;height:17px;"></i><span>Pengaturan</span></div>
+    <div class="nav-item" id="adminMenuBtn" style="cursor:pointer; justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <i data-lucide="lock" id="adminMenuIcon" style="width:17px;height:17px;"></i>
         <span id="adminMenuText">Mode Admin</span>
       </div>
-      <div id="adminMenuStatusDot" style="width: 8px; height: 8px; border-radius: 50%; background: var(--line-strong);"></div>
+      <div id="adminMenuStatusDot" style="width:8px;height:8px;border-radius:50%;background:var(--line-strong);flex-shrink:0;"></div>
     </div>
   </nav>
-  <div class="sidebar-foot" style="margin-top: auto; display:flex; justify-content:space-between; align-items:center;">
-    <span style="font-size: 13px; color: var(--muted);">Pantau Konten 2026</span>
+
+  <div class="sidebar-promo">
+    <div class="sidebar-promo-card">
+      <div class="sidebar-promo-title">Sinkronisasi Otomatis</div>
+      <div class="sidebar-promo-sub">Data konten diperbarui setiap hari secara otomatis</div>
+      <button class="sidebar-promo-btn" id="refreshBtn2" onclick="document.getElementById('refreshBtn').click()">
+        <i data-lucide="refresh-cw" style="width:13px;height:13px;"></i> Sync Sekarang
+      </button>
+    </div>
   </div>
 </aside>
 
@@ -55,35 +65,55 @@
 
 <main>
   <!-- TOP NAVBAR -->
-  <header class="top-navbar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; padding-bottom: 16px; border-bottom: 1px solid var(--line);">
-    <h1 id="globalPageTitle" style="font-size: 22px; font-weight: 700; color: var(--ink); margin: 0;">Dashboard</h1>
-    <div class="header-actions" style="display: flex; align-items: center; gap: 16px;">
-      <button id="sidebarThemeToggle" class="theme-toggle" title="Ganti Tema" style="width: 40px; height: 40px; border-radius: 50%; background: var(--surface); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--ink);">
-        <i data-lucide="moon" class="theme-icon" style="width: 20px; height: 20px;"></i>
+  <header class="top-navbar">
+    <div class="topbar-search">
+      <i data-lucide="search" style="width:16px;height:16px;"></i>
+      <input type="text" id="globalSearch" placeholder="Cari konten, editor..." autocomplete="off">
+    </div>
+    <div class="topbar-actions">
+      <button id="sidebarThemeToggle" class="theme-toggle" title="Ganti Tema">
+        <i data-lucide="moon" class="theme-icon" style="width:18px;height:18px;"></i>
       </button>
+      <div id="lastSyncDisplay" class="topbar-icon-btn" title="Sinkronisasi terakhir" style="width:auto; padding:0 10px; gap:6px; font-size:11.5px; color:var(--muted); cursor:default;"></div>
+      <button class="btn btn-sm btn-primary" id="refreshBtn" style="gap:6px;">
+        <i data-lucide="refresh-cw" style="width:14px;height:14px;"></i>
+        <span class="btn-text">Sinkronkan</span>
+      </button>
+      <button class="btn btn-sm" id="exportDashBtn" style="gap:6px;">
+        <i data-lucide="download" style="width:14px;height:14px;"></i> CSV
+      </button>
+      <div class="topbar-profile">
+        <div class="topbar-avatar"><i data-lucide="layout-dashboard" style="width:16px;height:16px;"></i></div>
+        <div>
+          <div class="topbar-name">Pantau Tokder</div>
+          <div class="topbar-email">pantau.tokder</div>
+        </div>
+      </div>
     </div>
   </header>
   <!-- ===== DASHBOARD ===== -->
   <div class="view active" id="view-dashboard">
-    <div class="filter-bar" style="margin-bottom: 24px;">
-      <select id="filterEditor"><option value="all">Semua editor</option></select>
-      <select id="filterPlatform">
-        <option value="all">Semua platform</option>
-        <option value="youtube">YouTube</option>
-        <option value="instagram">Instagram</option>
-        <option value="facebook">Facebook</option>
-        <option value="tiktok">TikTok</option>
-      </select>
-      <select id="filterRange">
-        <option value="7">7 hari terakhir</option>
-        <option value="30" selected>30 hari terakhir</option>
-        <option value="90">90 hari terakhir</option>
-      </select>
-      <button class="btn" id="exportDashBtn"><i data-lucide="download" style="width:16px;height:16px;"></i> Unduh CSV</button>
-      <div id="lastSyncDisplay" style="font-size:11.5px; color:var(--muted); display:flex; align-items:center; gap:5px; justify-content:center;"></div>
-      <button class="btn btn-primary" id="refreshBtn">
-        <span class="btn-text">Sinkronkan sekarang</span>
-      </button>
+    <div class="page-content">
+    <div class="page-head">
+      <div>
+        <h1>Dashboard</h1>
+        <div class="sub">Pantau performa konten semua platform dalam satu tempat</div>
+      </div>
+      <div class="toolbar">
+        <select id="filterEditor" style="min-width:140px;"><option value="all">Semua editor</option></select>
+        <select id="filterPlatform" style="min-width:140px;">
+          <option value="all">Semua platform</option>
+          <option value="youtube">YouTube</option>
+          <option value="instagram">Instagram</option>
+          <option value="facebook">Facebook</option>
+          <option value="tiktok">TikTok</option>
+        </select>
+        <select id="filterRange" style="min-width:140px;">
+          <option value="7">7 hari terakhir</option>
+          <option value="30" selected>30 hari terakhir</option>
+          <option value="90">90 hari terakhir</option>
+        </select>
+      </div>
     </div>
     <section class="panel metric-primary" id="goalPanel" style="margin-bottom: 24px; padding: 24px; background: var(--teal); color: #FFF;">
       <div class="panel-head" style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
@@ -177,7 +207,8 @@
         <a id="goToKonten">Lihat semua konten →</a>
       </div>
     </section>
-  </div>
+    </div><!-- /page-content -->
+  </div><!-- /view-dashboard -->
 
   <!-- ===== EDITOR ===== -->
   <div class="view" id="view-editor">
