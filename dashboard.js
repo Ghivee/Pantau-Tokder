@@ -615,7 +615,7 @@ function renderChart() {
     },
     options: {
       responsive: true,
-      maintainAspectRatio: true,
+      maintainAspectRatio: false,
       interaction: {
         mode: 'index',
         intersect: false,
@@ -1391,17 +1391,17 @@ function openContentModal(id) {
   const avgDuration = c.avg_view_duration || '-';
   
   document.getElementById("contentModalBody").innerHTML = `
-    <div class="detail-row"><span class="detail-label">Judul</span><span>${c.judul}</span></div>
-    <div class="detail-row"><span class="detail-label">Platform</span><span class="plat ${platformClass(c.platform)}">${platformLabel(c.platform)}</span></div>
-    <div class="detail-row"><span class="detail-label">Jenis Konten</span><span style="font-weight:600;">${jenisLabel}</span></div>
-    <div class="detail-row"><span class="detail-label">Durasi Video</span><span class="num" style="font-size:15px; font-weight:700;">${realDuration}</span></div>
-    <div class="detail-row"><span class="detail-label">Editor</span><span>${editor ? editor.nama : "Belum teridentifikasi"}</span></div>
-    <div class="detail-row"><span class="detail-label">Waktu upload</span><span>${formattedUpload}</span></div>
-    <div class="detail-row"><span class="detail-label">Views</span><span class="num">${views.toLocaleString('id-ID')}</span></div>
-    <div class="detail-row"><span class="detail-label">Likes</span><span class="num">${likes.toLocaleString('id-ID')}</span></div>
-    <div class="detail-row"><span class="detail-label">Komentar</span><span class="num">${comments.toLocaleString('id-ID')}</span></div>
-    <div class="detail-row admin-only" style="${isAdminMode ? '' : 'display:none;'}"><span class="detail-label" style="color:var(--teal);">Pendapatan</span><span class="num" style="color:var(--teal); font-weight:700;">${formatRupiah(c.revenue)}</span></div>
-    <div class="detail-row"><span class="detail-label">Tautan</span><span><a href="${c.url}" target="_blank" rel="noopener">Buka postingan ↗</a></span></div>
+    <div class="detail-row"><span class="detail-label">Judul</span><span class="detail-value" style="text-align:right;">${c.judul}</span></div>
+    <div class="detail-row"><span class="detail-label">Platform</span><span class="detail-value"><span class="plat ${platformClass(c.platform)}">${platformLabel(c.platform)}</span></span></div>
+    <div class="detail-row"><span class="detail-label">Jenis Konten</span><span class="detail-value" style="font-weight:600;">${jenisLabel}</span></div>
+    <div class="detail-row"><span class="detail-label">Durasi Video</span><span class="detail-value num" style="font-size:15px; font-weight:700;">${realDuration}</span></div>
+    <div class="detail-row"><span class="detail-label">Editor</span><span class="detail-value">${editor ? editor.nama : "Belum teridentifikasi"}</span></div>
+    <div class="detail-row"><span class="detail-label">Waktu upload</span><span class="detail-value">${formattedUpload}</span></div>
+    <div class="detail-row"><span class="detail-label">Views</span><span class="detail-value num">${views.toLocaleString('id-ID')}</span></div>
+    <div class="detail-row"><span class="detail-label">Likes</span><span class="detail-value num">${likes.toLocaleString('id-ID')}</span></div>
+    <div class="detail-row"><span class="detail-label">Komentar</span><span class="detail-value num">${comments.toLocaleString('id-ID')}</span></div>
+    <div class="detail-row admin-only" style="${isAdminMode ? '' : 'display:none;'}"><span class="detail-label" style="color:var(--teal);">Pendapatan</span><span class="detail-value num" style="color:var(--teal); font-weight:700;">${formatRupiah(c.revenue)}</span></div>
+    <div class="detail-row"><span class="detail-label">Tautan</span><span class="detail-value"><a href="${c.url}" target="_blank" rel="noopener">Buka postingan ↗</a></span></div>
     
     <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--line);">
       <div style="display:flex; align-items:center; gap:8px; margin-bottom: 12px;">
@@ -1548,10 +1548,10 @@ function openEditorModal(id) {
   
   document.getElementById("editorModalName").textContent = e.nama;
   document.getElementById("editorModalBody").innerHTML = `
-    <div class="detail-row"><span class="detail-label">Kode identifikasi</span><span class="code-tag">${e.kode_identifikasi || e.kode}</span></div>
-    <div class="detail-row"><span class="detail-label">Total konten</span><span class="num">${items.length} <span style="font-size:12px;color:var(--muted);font-weight:normal;">(${longCount} Panjang, ${shortCount} Shorts)</span></span></div>
-    <div class="detail-row"><span class="detail-label">Total views</span><span class="num">${fmt(views)}</span></div>
-    <div class="detail-row"><span class="detail-label">Total likes</span><span class="num">${fmt(likes)}</span></div>
+    <div class="detail-row"><span class="detail-label">Kode identifikasi</span><span class="detail-value"><span class="code-tag">${e.kode_identifikasi || e.kode}</span></span></div>
+    <div class="detail-row"><span class="detail-label">Total konten</span><span class="detail-value num" style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;">${items.length} <span style="font-size:12px;color:var(--muted);font-weight:normal;">(${longCount} Panjang, ${shortCount} Shorts)</span></span></div>
+    <div class="detail-row"><span class="detail-label">Total views</span><span class="detail-value num">${fmt(views)}</span></div>
+    <div class="detail-row"><span class="detail-label">Total likes</span><span class="detail-value num">${fmt(likes)}</span></div>
 
     <div style="margin-top:16px; padding:14px; border-radius:10px; background:var(--surface); border:1px solid var(--line);">
       <div style="font-size:12px; color:var(--muted); font-weight:600; margin-bottom:10px; text-transform:uppercase; letter-spacing:0.5px;">Perbandingan Bulan Ini vs Lalu</div>
