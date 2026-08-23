@@ -352,27 +352,47 @@ function renderMetrics() {
   
   document.getElementById("metricCards").innerHTML = `
     <div class="metric-card">
-      <div class="metric-label">Total konten</div>
+      <div class="metric-header">
+        <div class="metric-label">Total konten</div>
+        <div class="metric-icon"><i data-lucide="play-square" style="width:20px;height:20px;"></i></div>
+      </div>
       <div class="metric-value num">${data.length}</div>
+      <div class="metric-sub">Terdeteksi di sistem</div>
     </div>
     <div class="metric-card">
-      <div class="metric-label">Total views</div>
+      <div class="metric-header">
+        <div class="metric-label">Total views</div>
+        <div class="metric-icon" style="background:var(--teal-tint); color:var(--teal-deep);"><i data-lucide="eye" style="width:20px;height:20px;"></i></div>
+      </div>
       <div class="metric-value num">${fmt(totalViews)}</div>
+      <div class="metric-sub"><span class="trend-up"><i data-lucide="trending-up" style="width:12px;height:12px;margin-right:2px;"></i></span> Akumulasi semua platform</div>
     </div>
     <div class="metric-card">
-      <div class="metric-label">Total likes</div>
+      <div class="metric-header">
+        <div class="metric-label">Total likes</div>
+        <div class="metric-icon" style="background:var(--red-tint); color:var(--red-deep);"><i data-lucide="heart" style="width:20px;height:20px;"></i></div>
+      </div>
       <div class="metric-value num">${fmt(totalLikes)}</div>
+      <div class="metric-sub">Akumulasi semua platform</div>
     </div>
     <div class="metric-card admin-only" style="${isAdminMode ? '' : 'display:none;'}">
-      <div class="metric-label" style="color:var(--teal);">Total Pendapatan (Ads)</div>
-      <div class="metric-value num" style="color:var(--teal); font-size:18px;">${formatRupiah(totalRevenue)}</div>
+      <div class="metric-header">
+        <div class="metric-label" style="color:var(--teal);">Total Pendapatan (Ads)</div>
+        <div class="metric-icon" style="background:rgba(5, 205, 153, 0.15); color:var(--teal);"><i data-lucide="dollar-sign" style="width:20px;height:20px;"></i></div>
+      </div>
+      <div class="metric-value num" style="color:var(--teal); font-size:24px;">${formatRupiah(totalRevenue)}</div>
+      <div class="metric-sub">Dari YouTube Analytics</div>
     </div>
     <div class="metric-card warn-card" style="cursor:pointer;" onclick="switchView('unmatched')">
-      <div class="metric-label">Belum teridentifikasi</div>
+      <div class="metric-header">
+        <div class="metric-label">Belum teridentifikasi</div>
+        <div class="metric-icon" style="background:var(--amber-tint); color:var(--amber-deep);"><i data-lucide="alert-circle" style="width:20px;height:20px;"></i></div>
+      </div>
       <div class="metric-value num">${unmatched}</div>
       <div class="metric-sub">Klik untuk tinjau →</div>
     </div>
   `;
+  lucide.createIcons();
 }
 
 function renderLeaderboard() {
@@ -626,12 +646,12 @@ function renderChart() {
       scales: {
         y: { 
           ticks: { callback: v => fmt(v), color: textColor, font: { family: "JetBrains Mono", size: 11 } }, 
-          grid: { color: gridColor }, 
+          grid: { color: gridColor, drawBorder: false, borderDash: [4, 4] }, 
           beginAtZero: true 
         },
         x: { 
           ticks: { color: textColor, font: { size: 11 } }, 
-          grid: { display: false } 
+          grid: { display: false, drawBorder: false } 
         }
       }
     }
@@ -793,49 +813,49 @@ function renderDistChart() {
           label: "YT Panjang",
           data: stats.map(s => s.yt_long),
           backgroundColor: "#C92A2A", // Dark red
-          borderRadius: 4, barThickness: 'flex', maxBarThickness: 24
+          borderRadius: 8, barThickness: 'flex', maxBarThickness: 24
         },
         {
           label: "YT Shorts",
           data: stats.map(s => s.yt_short),
           backgroundColor: "#FF6B6B", // Light red
-          borderRadius: 4, barThickness: 'flex', maxBarThickness: 24
+          borderRadius: 8, barThickness: 'flex', maxBarThickness: 24
         },
         {
           label: "IG Video",
           data: stats.map(s => s.ig_long),
           backgroundColor: "#A61E4D", // Dark pink
-          borderRadius: 4, barThickness: 'flex', maxBarThickness: 24
+          borderRadius: 8, barThickness: 'flex', maxBarThickness: 24
         },
         {
           label: "IG Reels",
           data: stats.map(s => s.ig_short),
           backgroundColor: "#F06595", // Light pink
-          borderRadius: 4, barThickness: 'flex', maxBarThickness: 24
+          borderRadius: 8, barThickness: 'flex', maxBarThickness: 24
         },
         {
           label: "FB Video",
           data: stats.map(s => s.fb_long),
           backgroundColor: "#1864AB", // Dark blue
-          borderRadius: 4, barThickness: 'flex', maxBarThickness: 24
+          borderRadius: 8, barThickness: 'flex', maxBarThickness: 24
         },
         {
           label: "FB Reels",
           data: stats.map(s => s.fb_short),
           backgroundColor: "#339AF0", // Light blue
-          borderRadius: 4, barThickness: 'flex', maxBarThickness: 24
+          borderRadius: 8, barThickness: 'flex', maxBarThickness: 24
         },
         {
           label: "TK Video",
           data: stats.map(s => s.tk_long),
           backgroundColor: "#25F4EE", // TikTok Cyan
-          borderRadius: 4, barThickness: 'flex', maxBarThickness: 24
+          borderRadius: 8, barThickness: 'flex', maxBarThickness: 24
         },
         {
           label: "TK Shorts",
           data: stats.map(s => s.tk_short),
           backgroundColor: "#000000", // TikTok Black
-          borderRadius: 4, barThickness: 'flex', maxBarThickness: 24
+          borderRadius: 8, barThickness: 'flex', maxBarThickness: 24
         }
       ]
     },
@@ -853,7 +873,7 @@ function renderDistChart() {
         x: {
           stacked: true,
           ticks: { color: textColor, font: { family: "JetBrains Mono", size: 11 }, stepSize: 1 },
-          grid: { color: gridColor },
+          grid: { display: false, drawBorder: false },
           beginAtZero: true
         },
         y: {
@@ -1842,26 +1862,39 @@ function renderMonetisasi() {
   if (revenueCards) {
     revenueCards.innerHTML = `
       <div class="metric-card revenue-metric-card">
-        <div class="metric-label">Total Pendapatan Iklan</div>
-        <div class="metric-value" style="font-size:28px;">${formatRupiah(totalRevenue)}</div>
+        <div class="metric-header">
+          <div class="metric-label">Total Pendapatan Iklan</div>
+          <div class="metric-icon" style="background:rgba(5, 205, 153, 0.15); color:var(--teal);"><i data-lucide="dollar-sign" style="width:20px;height:20px;"></i></div>
+        </div>
+        <div class="metric-value" style="font-size:24px;">${formatRupiah(totalRevenue)}</div>
         <div class="metric-sub">Estimasi kumulatif dari YouTube API</div>
       </div>
       <div class="metric-card">
-        <div class="metric-label">Bulan ${now.toLocaleString('id-ID',{month:'long', year:'numeric'})}</div>
-        <div class="metric-value" style="font-size:28px;">${formatRupiah(thisMonthRevenue)}</div>
+        <div class="metric-header">
+          <div class="metric-label">Bulan ${now.toLocaleString('id-ID',{month:'long', year:'numeric'})}</div>
+          <div class="metric-icon" style="background:var(--amber-tint); color:var(--amber-deep);"><i data-lucide="calendar" style="width:20px;height:20px;"></i></div>
+        </div>
+        <div class="metric-value" style="font-size:24px;">${formatRupiah(thisMonthRevenue)}</div>
         <div class="metric-sub">${thisMonth.length} video diupload bulan ini</div>
       </div>
       <div class="metric-card">
-        <div class="metric-label">Rata-rata per Video</div>
-        <div class="metric-value" style="font-size:28px;">${formatRupiah(avgRevenue)}</div>
+        <div class="metric-header">
+          <div class="metric-label">Rata-rata per Video</div>
+          <div class="metric-icon" style="background:var(--red-tint); color:var(--red-deep);"><i data-lucide="pie-chart" style="width:20px;height:20px;"></i></div>
+        </div>
+        <div class="metric-value" style="font-size:24px;">${formatRupiah(avgRevenue)}</div>
         <div class="metric-sub">Dari ${revenueVideos.length} video termonetisasi</div>
       </div>
       <div class="metric-card">
-        <div class="metric-label">Video Termonetisasi</div>
-        <div class="metric-value" style="font-size:36px; color:var(--teal);">${revenueVideos.length}</div>
+        <div class="metric-header">
+          <div class="metric-label">Video Termonetisasi</div>
+          <div class="metric-icon"><i data-lucide="play" style="width:20px;height:20px;"></i></div>
+        </div>
+        <div class="metric-value" style="font-size:24px; color:var(--teal);">${revenueVideos.length}</div>
         <div class="metric-sub">Dari ${ytContent.length} total video YouTube</div>
       </div>
     `;
+    lucide.createIcons({ root: revenueCards });
   }
 
   // Revenue per editor
