@@ -380,7 +380,7 @@ function renderMetrics() {
         <div class="metric-label" style="color:var(--teal);">Total Pendapatan (Ads)</div>
         <div class="metric-icon" style="background:rgba(5, 205, 153, 0.15); color:var(--teal);"><i data-lucide="dollar-sign" style="width:20px;height:20px;"></i></div>
       </div>
-      <div class="metric-value num" style="color:var(--teal); font-size:24px;">${formatRupiah(totalRevenue)}</div>
+      <div class="metric-value num">${formatRupiah(totalRevenue)}</div>
       <div class="metric-sub">Dari YouTube Analytics</div>
     </div>
     <div class="metric-card warn-card" style="cursor:pointer;" onclick="switchView('unmatched')">
@@ -595,22 +595,16 @@ function renderChart() {
   gradient.addColorStop(1, gradAlpha0);
 
   chartInstance = new Chart(ctx, {
-    type: "line",
+    type: "bar",
     data: { 
       labels, 
       datasets: [{ 
         label: metricLabel,
         data: chartData, 
-        borderColor: finalLineColor,
-        backgroundColor: gradient,
-        borderWidth: 3,
-        pointBackgroundColor: finalLineColor,
-        pointBorderColor: isDark ? "#1E1E1E" : "#fff",
-        pointBorderWidth: 2,
-        pointRadius: 0,
-        pointHoverRadius: 6,
-        fill: true,
-        tension: 0.4
+        backgroundColor: finalLineColor,
+        borderRadius: 50,
+        borderSkipped: false,
+        barThickness: 16
       }] 
     },
     options: {
@@ -1861,12 +1855,12 @@ function renderMonetisasi() {
   const revenueCards = document.getElementById('revenueCards');
   if (revenueCards) {
     revenueCards.innerHTML = `
-      <div class="metric-card revenue-metric-card">
+      <div class="metric-card metric-primary">
         <div class="metric-header">
           <div class="metric-label">Total Pendapatan Iklan</div>
-          <div class="metric-icon" style="background:rgba(5, 205, 153, 0.15); color:var(--teal);"><i data-lucide="dollar-sign" style="width:20px;height:20px;"></i></div>
+          <div class="metric-icon"><i data-lucide="dollar-sign" style="width:20px;height:20px;"></i></div>
         </div>
-        <div class="metric-value" style="font-size:24px;">${formatRupiah(totalRevenue)}</div>
+        <div class="metric-value">${formatRupiah(totalRevenue)}</div>
         <div class="metric-sub">Estimasi kumulatif dari YouTube API</div>
       </div>
       <div class="metric-card">
@@ -1874,7 +1868,7 @@ function renderMonetisasi() {
           <div class="metric-label">Bulan ${now.toLocaleString('id-ID',{month:'long', year:'numeric'})}</div>
           <div class="metric-icon" style="background:var(--amber-tint); color:var(--amber-deep);"><i data-lucide="calendar" style="width:20px;height:20px;"></i></div>
         </div>
-        <div class="metric-value" style="font-size:24px;">${formatRupiah(thisMonthRevenue)}</div>
+        <div class="metric-value">${formatRupiah(thisMonthRevenue)}</div>
         <div class="metric-sub">${thisMonth.length} video diupload bulan ini</div>
       </div>
       <div class="metric-card">
@@ -1882,7 +1876,7 @@ function renderMonetisasi() {
           <div class="metric-label">Rata-rata per Video</div>
           <div class="metric-icon" style="background:var(--red-tint); color:var(--red-deep);"><i data-lucide="pie-chart" style="width:20px;height:20px;"></i></div>
         </div>
-        <div class="metric-value" style="font-size:24px;">${formatRupiah(avgRevenue)}</div>
+        <div class="metric-value">${formatRupiah(avgRevenue)}</div>
         <div class="metric-sub">Dari ${revenueVideos.length} video termonetisasi</div>
       </div>
       <div class="metric-card">
@@ -1890,7 +1884,7 @@ function renderMonetisasi() {
           <div class="metric-label">Video Termonetisasi</div>
           <div class="metric-icon"><i data-lucide="play" style="width:20px;height:20px;"></i></div>
         </div>
-        <div class="metric-value" style="font-size:24px; color:var(--teal);">${revenueVideos.length}</div>
+        <div class="metric-value">${revenueVideos.length}</div>
         <div class="metric-sub">Dari ${ytContent.length} total video YouTube</div>
       </div>
     `;
