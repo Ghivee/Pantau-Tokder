@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { fail, bad } = require('../utils/httpError');
 const db = require('../config/db');
 
 // Dapatkan goal bulan ini
@@ -19,23 +20,27 @@ router.get('/', async (req, res) => {
     
     res.json(result.rows[0]);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    fail(res, err);
   }
 });
 
 // Update goal bulan ini
 router.put('/', async (req, res) => {
   try {
-    const { bulan, target_omset, tercapai } = req.body;
+    const { bulan, target_omset, tercapai } = req.body || {};
+    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(String(bulan || ''))) throw bad(400, 'Bulan harus berformat YYYY-MM');
+    for (const [label, v] of [['Target', target_omset], ['Tercapai', tercapai]]) {
+      if (!Number.isFinite(Number(v)) || Number(v) < 0 || Number(v) > 1e13) throw bad(400, label + ' harus angka 0 atau lebih');
+    }
     
     const result = await db.query(
-      'UPDATE affiliate_goals SET target_omset = $1, tercapai = $2 WHERE bulan = $3 RETURNING *',
-      [target_omset, tercapai, bulan]
+      `INSERT INTO affiliate_goals (bulan, target_omset, tercapai) VALUES ($1, $2, $3)
+       ON CONFLICT (bulan) DO UPDATE SET target_omset = $2, tercapai = $3 RETURNING *`,
+      [bulan, Number(target_omset), Number(tercapai)]
     );
-    
     res.json(result.rows[0]);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    fail(res, err);
   }
 });
 

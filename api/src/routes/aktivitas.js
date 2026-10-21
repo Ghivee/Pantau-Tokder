@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { fail, bad } = require('../utils/httpError');
 const db = require('../config/db');
 
 const TUGAS = ['Riset harga cabai', 'Buat thumbnail', 'Cek SEO & tag', 'Balas komentar', 'Edit video', 'Lainnya'];
@@ -25,7 +26,7 @@ router.get('/', async (req, res) => {
     const result = await db.query(sql, params);
     res.json(result.rows);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    fail(res, err);
   }
 });
 
@@ -56,7 +57,7 @@ router.post('/', async (req, res) => {
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    fail(res, err);
   }
 });
 
@@ -72,7 +73,7 @@ router.delete('/:id', async (req, res) => {
     await db.query('DELETE FROM aktivitas WHERE id = $1', [req.params.id]);
     res.status(204).send();
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    fail(res, err);
   }
 });
 

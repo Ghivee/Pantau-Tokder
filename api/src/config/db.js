@@ -1,4 +1,9 @@
-const { Pool } = require('pg');
+const { Pool, types } = require('pg');
+
+// Timestamps are stored as UTC wall-clock time (TIMESTAMP without zone). Read them as UTC
+// whatever the server's own time zone is, and keep DATE values as plain YYYY-MM-DD text.
+types.setTypeParser(1114, (v) => new Date(v.replace(' ', 'T') + 'Z'));
+types.setTypeParser(1082, (v) => v);
 try { require('dotenv').config(); } catch (e) { /* .env not present */ }
 
 let isMock = false;

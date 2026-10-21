@@ -9,7 +9,7 @@
   const cf = new Intl.NumberFormat('id-ID', { notation: 'compact', maximumFractionDigits: 1 });
   const fmt = (n) => (n == null || isNaN(n) ? '—' : Math.abs(n) >= 10000 ? cf.format(n) : nf.format(Math.round(n)));
   const pct = (v) => (v == null || isNaN(v) ? '—' : Math.round(v * 100) + '%');
-  const usd = (v) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(v || 0);
+  const usd = (v) => (v == null || isNaN(v) ? '—' : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(v));
   const idr = (v) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(v || 0);
   const signed = (v, f = nf.format) => (v == null || isNaN(v) ? '' : (v > 0 ? '+' : v < 0 ? '−' : '±') + f(Math.abs(v)));
   const BLN = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
@@ -35,6 +35,7 @@
     money: '<path d="M12 2v20M17 6.5c-.8-1.5-2.6-2.5-5-2.5-3 0-5 1.5-5 3.7 0 5 10 2.6 10 7.6 0 2.2-2 3.7-5 3.7-2.6 0-4.5-1-5.3-2.6"/>',
     gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.6 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.6-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/>',
     plus: '<path d="M12 5v14M5 12h14"/>',
+    chart: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
     left: '<path d="M15 18l-6-6 6-6"/>',
     right: '<path d="M9 18l6-6-6-6"/>',
     search: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>',
@@ -75,8 +76,9 @@
 
   // ============ state ============
   const S = {
-    editors: [], content: [], aktivitas: [], channels: [], goal: null, scan: null, oauth: null,
-    demo: false, error: null,
+    editors: [], content: [], aktivitas: [], channels: [], daily: [], goal: null, scan: null, oauth: null,
+    anPeriode: 28,
+    error: null, warnings: [], loadedAt: null,
     session: readSession(),
     periode: 7, channel: 'all', day: null,
     konten: { q: '', channel: 'all', editor: 'all', tipe: 'all', periode: '30', sort: 'tanggal', dir: 'desc', page: 1 },
@@ -113,44 +115,110 @@
     return { 'x-editor-id': String(s.id), 'x-editor-pin': s.pin };
   }
   async function api(path, opts = {}) {
-    if (S.demo) return window.PantauDemo.handle(S, path, opts);
-    const res = await fetch(path, {
-      method: opts.method || 'GET',
-      headers: { 'Content-Type': 'application/json', ...authHeaders() },
-      body: opts.body ? JSON.stringify(opts.body) : undefined,
-    });
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), opts.timeout || 20000);
+    let res;
+    try {
+      res = await fetch(path, {
+        method: opts.method || 'GET',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: opts.body ? JSON.stringify(opts.body) : undefined,
+        signal: ctl.signal,
+        cache: 'no-store',
+      });
+    } catch (e) {
+      throw new Error(e.name === 'AbortError' ? 'Server terlalu lama menjawab. Periksa koneksi lalu coba lagi.' : 'Tidak bisa terhubung ke server. Periksa koneksi internet Anda.');
+    } finally {
+      clearTimeout(timer);
+    }
     if (res.status === 204) return null;
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || 'Server menjawab ' + res.status);
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      const err = new Error((data && data.error) || 'Server menjawab ' + res.status);
+      err.status = res.status;
+      // A changed password or PIN makes the saved session useless: sign out instead of failing silently.
+      if (res.status === 401 && S.session && !path.includes('/api/auth/login') && !path.includes('editor-login')) {
+        saveSession(null);
+        renderNav();
+        err.message = 'Sesi Anda tidak berlaku lagi (password atau PIN sudah berubah). Silakan masuk ulang.';
+      }
+      throw err;
+    }
+    if (data === null) throw new Error('Jawaban server tidak bisa dibaca. Coba lagi.');
     return data;
   }
-  const optional = (p) => p.catch(() => null);
+  // Secondary data may fail on its own; the page still shows what loaded and says what did not.
+  const optional = (p, label) => p.catch((e) => { S.warnings.push(label + ': ' + e.message); return null; });
+
+  async function fetchAll() {
+    S.warnings = [];
+    const [editors, content, aktivitas, channels, scan, oauth, goal, daily] = await Promise.all([
+      api('/api/editors'),
+      api('/api/content'),
+      optional(api('/api/aktivitas?dari=' + addDays(today(), -60) + '&sampai=' + today()), 'Aktivitas'),
+      optional(api('/api/channels'), 'Daftar channel'),
+      optional(api('/api/scan/status'), 'Status sinkronisasi'),
+      optional(api('/api/auth/status'), 'Status YouTube Analytics'),
+      isAdmin() ? optional(api('/api/goals'), 'Target omzet') : Promise.resolve(S.goal),
+      optional(api('/api/analytics?dari=' + addDays(today(), -190) + '&sampai=' + today()), 'YouTube Analytics'),
+    ]);
+    Object.assign(S, { editors, content, aktivitas: aktivitas || [], channels: channels || [], scan, oauth, goal, daily: daily || [], error: null, loadedAt: Date.now() });
+    normalize();
+  }
 
   async function load() {
-    const wantDemo = /[?&]demo\b/.test(location.search);
-    if (!wantDemo) {
-      try {
-        const [editors, content] = await Promise.all([api('/api/editors'), api('/api/content')]);
-        const [aktivitas, channels, scan, oauth, goal] = await Promise.all([
-          optional(api('/api/aktivitas?dari=' + addDays(today(), -60) + '&sampai=' + today())),
-          optional(api('/api/channels')),
-          optional(api('/api/scan/status')),
-          optional(api('/api/auth/status')),
-          optional(api('/api/goals')),
-        ]);
-        Object.assign(S, { editors, content, aktivitas: aktivitas || [], channels: channels || [], scan, oauth, goal, demo: false });
-      } catch (e) {
-        console.error(e);
-        S.error = e.message;
-      }
+    try {
+      await fetchAll();
+    } catch (e) {
+      console.error(e);
+      S.error = e.message;
     }
-    if (wantDemo || S.error) {
-      S.demo = true;
-      Object.assign(S, window.PantauDemo.build());
-    }
-    normalize();
     render();
+    autoSync();
   }
+
+  // Quiet refresh: new numbers without losing the open dialog or scroll position.
+  let refreshing = false;
+  async function refresh() {
+    if (refreshing) return;
+    refreshing = true;
+    try {
+      await fetchAll();
+      if (!$('#overlay').innerHTML && !document.activeElement.matches('input, select, textarea')) render(); else renderNav();
+    } catch (e) {
+      console.warn('Refresh failed:', e.message);
+    } finally {
+      refreshing = false;
+    }
+  }
+
+  // Asks the server to pull fresh numbers from YouTube when the last sync is older than 15 minutes.
+  let syncing = false;
+  const lastScanAt = () => { const l = S.scan && S.scan.last_scan; const t = l && new Date(l.waktu_scan || l.created_at).getTime(); return t || null; };
+  async function autoSync(force = false) {
+    if (syncing || S.error) return;
+    const last = lastScanAt();
+    if (!force && last && Date.now() - last < 15 * 60000) return;
+    syncing = true;
+    renderNav();
+    try {
+      const r = await api('/api/scan/auto', { timeout: 75000 });
+      if (!r.skipped) await refresh();
+    } catch (e) {
+      S.warnings.push('Sinkronisasi otomatis: ' + e.message);
+    } finally {
+      syncing = false;
+      renderNav();
+    }
+  }
+  setInterval(() => { if (document.visibilityState === 'visible' && !S.error) refresh().then(() => autoSync()); }, 5 * 60000);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && S.loadedAt && Date.now() - S.loadedAt > 2 * 60000) refresh().then(() => autoSync());
+  });
+  const agoText = (t) => {
+    const m = Math.round((Date.now() - t) / 60000);
+    return m < 1 ? 'baru saja' : m < 60 ? m + ' menit lalu' : m < 1440 ? Math.round(m / 60) + ' jam lalu' : Math.round(m / 1440) + ' hari lalu';
+  };
 
   function normalize() {
     S.cache.clear();
@@ -165,7 +233,7 @@
       c._ch = c.channel_id || firstCh;
       c._chNama = c.channel_nama || chNames[c._ch] || 'Channel utama';
       c._topik = topikOf(c.judul || '');
-      c.views = +c.views || 0; c.likes = +c.likes || 0; c.comments = +c.comments || 0; c.revenue = +c.revenue || 0;
+      c.views = +c.views || 0; c.likes = +c.likes || 0; c.comments = +c.comments || 0; c.revenue = c.revenue == null ? null : +c.revenue;
       c._age = (Date.now() - new Date(c.tanggal_upload).getTime()) / 86400000;
       if (typeof c.retention_data === 'string') { try { c.retention_data = JSON.parse(c.retention_data); } catch (e) { c.retention_data = null; } }
     });
@@ -174,6 +242,10 @@
       S.content.forEach((c) => { seen[c._ch] = c._chNama; });
       S.channels = Object.entries(seen).map(([id, nama]) => ({ id, nama }));
     }
+    const CH_COLORS = ['var(--s4)', 'var(--s5)', 'var(--s3)', 'var(--s1)', 'var(--s2)'];
+    S.channels.forEach((c, i) => { c._color = CH_COLORS[i % CH_COLORS.length]; });
+    S.connected = new Set(((S.oauth && S.oauth.channels) || []).filter((c) => c.connected).map((c) => c.id));
+    S.daily.forEach((d) => { d.views = +d.views || 0; d.menit_tonton = +d.menit_tonton || 0; d.sub_naik = +d.sub_naik || 0; d.sub_turun = +d.sub_turun || 0; d.revenue = d.revenue == null ? null : +d.revenue; });
     S.aktivitas.forEach((a) => { a.editor_id = +a.editor_id; a.jumlah = +a.jumlah || 1; a.tanggal = String(a.tanggal).slice(0, 10); });
     // Median views per channel + type, from videos old enough for views to settle.
     S.medians = {};
@@ -186,6 +258,18 @@
   const editorById = (id) => S.editors.find((e) => e.id === +id) || null;
   const activeEditors = () => S.editors.filter((e) => e.status !== 'nonaktif');
   const chName = (id) => (S.channels.find((c) => c.id === id) || {}).nama || 'Channel utama';
+  const chColor = (id) => (S.channels.find((c) => c.id === id) || {})._color || 'var(--muted)';
+  // Monitored channels with their YouTube Analytics connection state.
+  function analyticsChannels() {
+    const st = (S.oauth && S.oauth.channels) || [];
+    const ids = [...new Set([...S.channels.map((c) => c.id), ...st.map((c) => c.id)])];
+    return ids.map((id) => {
+      const x = st.find((c) => c.id === id) || {};
+      return { id, nama: (S.channels.find((c) => c.id === id) || {}).nama || x.nama || id, connected: !!x.connected, connected_at: x.connected_at || null };
+    });
+  }
+  const jamMenit = (menit) => (menit >= 600 ? fmt(menit / 60) + ' jam' : nf.format(Math.round(menit / 60 * 10) / 10) + ' jam');
+  const niceStep = (max) => { const raw = max / 4; const p = Math.pow(10, Math.floor(Math.log10(raw || 1))); return [1, 2, 2.5, 5, 10].map((m) => m * p).find((x) => x >= raw) || p * 10; };
 
   // ============ scoring ============
   // Which schedule slot an upload belongs to: the latest slot no more than 30 minutes after the upload.
@@ -271,7 +355,7 @@
   }, true);
 
   const peranLabel = (p) => (p === 'terbatas' ? 'Editor terbatas' : 'Editor');
-  const thumb = (c) => (c.post_id && !String(c.post_id).startsWith('demo') ? `https://i.ytimg.com/vi/${encodeURIComponent(c.post_id)}/mqdefault.jpg` : '');
+  const thumb = (c) => (c.post_id ? `https://i.ytimg.com/vi/${encodeURIComponent(c.post_id)}/mqdefault.jpg` : '');
   const vidCell = (c) => `<div class="vid">${thumb(c) ? `<img src="${thumb(c)}" alt="" loading="lazy">` : '<span class="ph"></span>'}<div class="tx"><b>${esc(c.judul)}</b><div>${esc(c._chNama)} · ${c.tipe_video === 'short' ? 'Shorts' : 'Video panjang'}</div></div></div>`;
   const editorCell = (c) => { const e = editorById(c.editor_id); return e ? `<span class="ed">${avatar(e, 'xs')}${esc(e.nama)}</span>` : '<span class="pill warn">Belum dikenali</span>'; };
 
@@ -295,22 +379,22 @@
   }
 
   // Stacked bars per day with an optional dashed target line.
-  function drawStacked(box, { days, series, target }) {
+  function drawStacked(box, { days, series, target, label = 'Video tayang per hari' }) {
     const W = Math.max(280, box.clientWidth), H = 230;
-    box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="Video tayang per hari"></svg><div class="tip" hidden></div>`;
+    box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="${esc(label)}"></svg><div class="tip" hidden></div>`;
     const svg = $('svg', box), tip = $('.tip', box);
     const totals = days.map((d, i) => sum(series, (s) => s.values[i]));
     const max = Math.max(target || 0, ...totals, 1);
-    const yMax = Math.ceil(max * 1.15);
-    const step = yMax <= 8 ? 2 : yMax <= 20 ? 5 : yMax <= 50 ? 10 : 20;
-    const ticks = []; for (let v = 0; v <= yMax; v += step) ticks.push(v);
-    const left = Math.max(...ticks.map((t) => measureText(svg, String(t)))) + 10;
+    const step = Math.max(1, niceStep(max * 1.1));
+    const yMax = Math.ceil((max * 1.1) / step) * step;
+    const ticks = []; for (let v = 0; v <= yMax + step / 2; v += step) ticks.push(v);
+    const left = Math.max(...ticks.map((t) => measureText(svg, fmt(t)))) + 10;
     const m = { t: 10, r: 6, b: 24, l: left };
     const iw = W - m.l - m.r, ih = H - m.t - m.b;
     const bw = iw / days.length;
     const y = (v) => m.t + ih - (v / yMax) * ih;
     let html = '';
-    ticks.forEach((t) => { html += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(t)}" y2="${y(t)}" stroke="var(--chart-grid)"/><text x="${m.l - 8}" y="${y(t)}" dy="0.32em" text-anchor="end">${t}</text>`; });
+    ticks.forEach((t) => { html += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(t)}" y2="${y(t)}" stroke="var(--chart-grid)"/><text x="${m.l - 8}" y="${y(t)}" dy="0.32em" text-anchor="end">${fmt(t)}</text>`; });
     const labelEvery = Math.ceil(days.length / Math.max(2, Math.floor(iw / 52)));
     days.forEach((d, i) => {
       const x = m.l + i * bw, w = Math.min(28, bw * 0.62), x0 = x + (bw - w) / 2;
@@ -332,7 +416,7 @@
       const r = ev.target.closest('.hit');
       if (!r) { tip.hidden = true; return; }
       const i = +r.dataset.i;
-      tip.innerHTML = `<div class="h">${tglPanjang(days[i])}</div>` + series.filter((s) => s.values[i]).map((s) => `<div><i style="background:${s.color}"></i>${esc(s.name)}: <b>${s.values[i]}</b></div>`).join('') + `<div class="h" style="margin-top:3px">Total ${totals[i]}${target ? ' dari target ' + target : ''}</div>`;
+      tip.innerHTML = `<div class="h">${tglPanjang(days[i])}</div>` + series.filter((s) => s.values[i]).map((s) => `<div><i style="background:${s.color}"></i>${esc(s.name)}: <b>${nf.format(s.values[i])}</b></div>`).join('') + `<div class="h" style="margin-top:3px">Total ${nf.format(totals[i])}${target ? ' dari target ' + target : ''}</div>`;
       tip.hidden = false;
       const bx = box.getBoundingClientRect();
       const px = ev.clientX - bx.left;
@@ -391,6 +475,7 @@
     { id: 'ringkasan', label: 'Ringkasan', icon: 'home' },
     { id: 'harian', label: 'Harian', icon: 'day' },
     { id: 'konten', label: 'Konten', icon: 'video' },
+    { id: 'analytics', label: 'Analytics', icon: 'chart' },
     { id: 'identifikasi', label: 'Belum dikenali', icon: 'help' },
     { id: 'karyawan', label: 'Karyawan', icon: 'team' },
     { id: 'monetisasi', label: 'Pendapatan', icon: 'money', admin: true },
@@ -407,20 +492,22 @@
     const cur = route();
     const unmatched = S.content.filter((c) => !editorById(c.editor_id)).length;
     $('#nav').innerHTML = ROUTES.filter((r) => !r.admin || isAdmin()).map((r, i) =>
-      (i === 5 ? '<div class="nav-label">Pemilik</div>' : '') +
+      (r.admin && !ROUTES.slice(0, ROUTES.indexOf(r)).some((x) => x.admin) ? '<div class="nav-label">Pemilik</div>' : '') +
       `<a href="#${r.id}" ${r.id === cur ? 'aria-current="page"' : ''}>${icon(r.icon)}<span>${r.label}</span>${r.id === 'identifikasi' && unmatched ? `<span class="count">${unmatched}</span>` : ''}</a>`
     ).join('');
     const who = me();
     const theme = document.documentElement.dataset.theme;
     const dark = theme ? theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    const last = lastScanAt();
     $('#side-foot').innerHTML = `
+      <div class="fresh" title="Data YouTube ditarik otomatis tiap 15 menit selama aplikasi terbuka">${syncing ? '<span class="dot live"></span>Memperbarui data YouTube…' : last ? `<span class="dot"></span>YouTube diperbarui ${agoText(last)}` : 'Belum pernah sinkron'}</div>
       ${S.session ? `<div class="who">${who ? avatar(who, 'sm') : '<span class="ava sm" style="background:var(--ink)">P</span>'}<div class="t"><b>${who ? esc(who.nama) : 'Pemilik'}</b><small>${who ? peranLabel(who.peran) : 'Akses penuh'}</small></div></div>` : ''}
       <div class="side-actions">
         ${S.session ? `<button class="btn sm ghost" data-act="logout">${icon('out')}Keluar</button>` : `<button class="btn sm primary" data-act="login">Masuk</button>`}
         <button class="btn sm ghost icon" data-act="theme" aria-label="${dark ? 'Mode terang' : 'Mode gelap'}">${icon(dark ? 'sun' : 'moon')}</button>
       </div>`;
-    $('#demo-banner').innerHTML = S.demo
-      ? `<div class="demo-banner"><b>Data contoh.</b> ${S.error ? 'Server belum bisa dihubungi (' + esc(S.error) + '), jadi yang tampil adalah data buatan.' : 'Anda membuka mode demo.'} Di mode ini password pemilik <span class="mono">demo</span>, PIN karyawan <span class="mono">1234</span>.</div>`
+    $('#notice').innerHTML = S.warnings.length && !S.error
+      ? `<div class="notice" role="status"><b>Sebagian data tidak termuat.</b> ${S.warnings.map(esc).join(' · ')} <button class="btn sm ghost" data-act="retry">Coba lagi</button></div>`
       : '';
   }
 
@@ -428,6 +515,10 @@
     renderNav();
     const r = route();
     const page = $('#page');
+    if (S.error) {
+      page.innerHTML = `<section class="card empty" style="padding:48px 20px" role="alert"><b style="font-size:16px">Data belum bisa dimuat</b><p style="margin:6px 0 16px">${esc(S.error)}</p><button class="btn primary" data-act="retry">${icon('sync')}Coba lagi</button></section>`;
+      return;
+    }
     page.innerHTML = PAGES[r]();
     page.dataset.route = r;
     (AFTER[r] || (() => {}))();
@@ -631,14 +722,83 @@
         </section>`;
     },
 
+    analytics() {
+      const chans = analyticsChannels();
+      const latest = S.daily.reduce((m, d) => (d.tanggal > m ? d.tanggal : m), '');
+      const end = latest || addDays(today(), -2);
+      const days = daysBack(S.anPeriode, end);
+      const prev = daysBack(S.anPeriode, addDays(days[0], -1));
+      const pick = (ids, ds) => S.daily.filter((d) => ids.includes(d.channel_id) && ds.includes(d.tanggal));
+      const tot = (list) => ({
+        views: sum(list, (d) => d.views), menit: sum(list, (d) => d.menit_tonton),
+        naik: sum(list, (d) => d.sub_naik), turun: sum(list, (d) => d.sub_turun),
+        rev: list.some((d) => d.revenue != null) ? sum(list, (d) => d.revenue || 0) : null,
+      });
+      const ids = chans.map((c) => c.id);
+      const cur = tot(pick(ids, days)), pv = tot(pick(ids, prev));
+      const has = pick(ids, days).length > 0;
+      const show = (txt) => (has ? txt : '—');
+      const change = (a, b) => {
+        if (!b) return `<span class="d">belum ada pembanding</span>`;
+        const x = Math.round(((a - b) / Math.abs(b)) * 100);
+        return `<span class="d ${x >= 0 ? 'ok' : 'bad'}">${signed(x, (v) => nf.format(v) + '%')} dari ${S.anPeriode} hari sebelumnya</span>`;
+      };
+      const avgDur = (t) => (t.views ? durasi(Math.round((t.menit * 60) / t.views)) : '—');
+      const showRev = isAdmin() && cur.rev != null;
+      const nConn = chans.filter((c) => c.connected).length;
+      const missing = chans.filter((c) => !c.connected);
+      return `
+        <header class="head">
+          <div><h1>Analytics</h1><p><b>${nConn}</b> dari ${chans.length} channel tersambung ke YouTube Analytics. ${latest ? 'Angka sampai ' + tglPanjang(latest) + '; YouTube biasanya terlambat 2–3 hari.' : 'Belum ada angka tersimpan.'}</p></div>
+          <div class="tools"><div class="seg" role="group" aria-label="Periode">
+            ${[7, 28, 90].map((n) => `<button data-act="an-periode" data-v="${n}" aria-pressed="${S.anPeriode === n}">${n} hari</button>`).join('')}
+          </div></div>
+        </header>
+        ${missing.length ? `<section class="card" style="border-color:var(--warn)"><div class="card-h"><h2>${missing.length} channel belum tersambung</h2><p>${isAdmin() ? 'Klik Hubungkan, login dengan akun tokodeeres@gmail.com, lalu pilih channel yang sesuai di layar Google. Ulangi untuk tiap channel.' : 'Minta pemilik menghubungkannya di Pengaturan.'}</p></div>
+          <div class="tools">${missing.map((c) => isAdmin() ? `<a class="btn" href="/api/auth/google">${icon('plus')}Hubungkan ${esc(c.nama)}</a>` : `<span class="pill warn">${esc(c.nama)}</span>`).join('')}</div></section>` : ''}
+        <section class="kpis" aria-label="Total ${S.anPeriode} hari">
+          <div class="kpi"><span class="l">Views</span><span class="v">${show(fmt(cur.views))}</span>${has ? change(cur.views, pv.views) : '<span class="d">belum ada data</span>'}</div>
+          <div class="kpi"><span class="l">Jam tonton</span><span class="v">${show(jamMenit(cur.menit))}</span>${has ? change(cur.menit, pv.menit) : ''}</div>
+          <div class="kpi"><span class="l">Subscriber bersih</span><span class="v ${cur.naik - cur.turun < 0 ? 'bad' : ''}">${show(signed(cur.naik - cur.turun))}</span>${has ? `<span class="d">+${nf.format(cur.naik)} baru, −${nf.format(cur.turun)} berhenti</span>` : ''}</div>
+          <div class="kpi"><span class="l">Rata-rata ditonton</span><span class="v mono" style="font-size:24px">${show(avgDur(cur))}</span><span class="d">menit:detik per view</span></div>
+          ${showRev ? `<div class="kpi"><span class="l">Perkiraan pendapatan</span><span class="v">${usd(cur.rev)}</span>${change(cur.rev, pv.rev)}</div>` : ''}
+        </section>
+        <section class="card" id="kartu-views-harian">
+          <div class="card-h"><h2>Views harian per channel</h2><p>Semua video di channel, termasuk video lama.</p></div>
+          <div class="chart-legend">${chans.map((c) => `<span><i style="background:${chColor(c.id)}"></i>${esc(c.nama)}</span>`).join('')}</div>
+          ${has ? '<div class="chart" id="an-chart" style="min-height:230px"></div>' : '<div class="empty"><b>Belum ada angka dari YouTube Analytics</b>Hubungkan channel di Pengaturan, lalu klik Sinkronkan sekarang.</div>'}
+        </section>
+        <div class="grid-3">${chans.map((c) => {
+          const t = tot(pick([c.id], days)), p = tot(pick([c.id], prev));
+          return `<section class="card" id="an-${esc(c.id)}">
+            <div class="card-h"><h2><span class="ed"><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${chColor(c.id)}"></i>${esc(c.nama)}</span></h2>${c.connected ? '<span class="pill ok">Tersambung</span>' : '<span class="pill warn">Belum tersambung</span>'}</div>
+            ${t.views || t.menit ? `
+              <div class="minis" style="grid-template-columns:repeat(2,minmax(0,1fr));gap:14px">
+                <div class="mini"><h3>Views</h3><div class="v">${fmt(t.views)}</div>${change(t.views, p.views)}</div>
+                <div class="mini"><h3>Jam tonton</h3><div class="v">${jamMenit(t.menit)}</div><div class="d">${avgDur(t)} per view</div></div>
+                <div class="mini"><h3>Subscriber bersih</h3><div class="v">${signed(t.naik - t.turun)}</div><div class="d">+${nf.format(t.naik)} / −${nf.format(t.turun)}</div></div>
+                ${isAdmin() && t.rev != null ? `<div class="mini"><h3>Pendapatan</h3><div class="v">${usd(t.rev)}</div>${change(t.rev, p.rev)}</div>` : `<div class="mini"><h3>Video baru</h3><div class="v">${nf.format(S.content.filter((x) => x._ch === c.id && days.includes(x._day)).length)}</div><div class="d">di periode ini</div></div>`}
+              </div>
+              <div class="chart an-spark" data-ch="${esc(c.id)}" style="margin-top:12px"></div>`
+            : `<div class="empty"><b>${c.connected ? 'Menunggu data' : 'Belum ada data'}</b>${c.connected ? 'Klik Sinkronkan sekarang di Pengaturan.' : 'Hubungkan channel ini di Pengaturan.'}</div>`}
+          </section>`;
+        }).join('')}</div>
+        <section class="card">
+          <div class="card-h"><h2>Perbandingan channel</h2><p>${S.anPeriode} hari sampai ${latest ? tglPendek(latest) : '—'}.</p></div>
+          <div class="table-wrap"><table class="t"><thead><tr><th>Channel</th><th class="num">Views</th><th class="num">Jam tonton</th><th class="num">Ditonton / view</th><th class="num">Sub baru</th><th class="num">Berhenti</th><th class="num">Bersih</th>${showRev ? '<th class="num">Pendapatan</th>' : ''}<th class="num">Video baru</th></tr></thead><tbody>
+            ${chans.map((c) => { const t = tot(pick([c.id], days)); if (!pick([c.id], days).length) return `<tr><td><span class="ed"><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${chColor(c.id)}"></i>${esc(c.nama)}</span></td><td colspan="${showRev ? 8 : 7}" class="muted">Belum ada data${c.connected ? '' : ' · belum tersambung'}</td></tr>`; return `<tr><td><span class="ed"><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${chColor(c.id)}"></i>${esc(c.nama)}</span></td><td class="num">${nf.format(t.views)}</td><td class="num">${jamMenit(t.menit)}</td><td class="num mono">${avgDur(t)}</td><td class="num">${nf.format(t.naik)}</td><td class="num">${nf.format(t.turun)}</td><td class="num">${signed(t.naik - t.turun)}</td>${showRev ? `<td class="num">${t.rev == null ? '—' : usd(t.rev)}</td>` : ''}<td class="num">${nf.format(S.content.filter((x) => x._ch === c.id && days.includes(x._day)).length)}</td></tr>`; }).join('')}
+          </tbody></table></div>
+        </section>`;
+    },
+
     monetisasi() {
       const rows = S.content;
-      const total = sum(rows, (c) => c.revenue);
+      const total = sum(rows, (c) => c.revenue || 0);
       const month = today().slice(0, 7);
       const thisMonth = rows.filter((c) => c._day.slice(0, 7) === month);
       const by = (keyFn, nameFn) => {
         const m = new Map();
-        rows.forEach((c) => { const k = keyFn(c); m.set(k, (m.get(k) || 0) + c.revenue); });
+        rows.forEach((c) => { const k = keyFn(c); m.set(k, (m.get(k) || 0) + (c.revenue || 0)); });
         return [...m.entries()].map(([k, v]) => ({ k, nama: nameFn(k), v })).sort((a, b) => b.v - a.v);
       };
       const perEditor = by((c) => (editorById(c.editor_id) ? c.editor_id : 0), (k) => (k ? editorById(k).nama : 'Belum dikenali'));
@@ -650,7 +810,7 @@
         <header class="head"><div><h1>Pendapatan</h1><p>Perkiraan pendapatan iklan dari YouTube Analytics (dalam US$, sesuai laporan YouTube), ditambah target omzet afiliasi bulanan.</p></div></header>
         <section class="kpis">
           <div class="kpi"><span class="l">Pendapatan iklan, semua video tercatat</span><span class="v">${usd(total)}</span><span class="d">${nf.format(rows.filter((c) => c.revenue > 0).length)} video menghasilkan</span></div>
-          <div class="kpi"><span class="l">Video bulan ini</span><span class="v">${usd(sum(thisMonth, (c) => c.revenue))}</span><span class="d">dari ${nf.format(thisMonth.length)} video tayang bulan ini</span></div>
+          <div class="kpi"><span class="l">Video bulan ini</span><span class="v">${usd(sum(thisMonth, (c) => c.revenue || 0))}</span><span class="d">dari ${nf.format(thisMonth.length)} video tayang bulan ini</span></div>
           <div class="kpi"><span class="l">Omzet afiliasi bulan ini</span><span class="v">${idr(g.tercapai)}</span><span class="d">target ${idr(g.target_omset)}</span></div>
         </section>
         <div class="grid-2">
@@ -660,7 +820,7 @@
           <section class="card"><div class="card-h"><h2>Per karyawan</h2></div><div class="rank">${perEditor.map((x) => `<div class="rank-row">${avatar(editorById(x.k), 'sm')}<div class="tx"><b>${esc(x.nama)}</b><div class="bar"><i style="width:${(x.v / maxE) * 100}%"></i></div></div><b>${usd(x.v)}</b></div>`).join('')}</div></section>
           <section class="card"><div class="card-h"><h2>Per channel</h2></div><div class="rank">${perCh.map((x) => `<div class="rank-row"><span></span><div class="tx"><b>${esc(x.nama)}</b><div class="bar"><i style="width:${(x.v / maxC) * 100}%"></i></div></div><b>${usd(x.v)}</b></div>`).join('')}</div></section>
           <section class="card"><div class="card-h"><h2>Video dengan pendapatan tertinggi</h2></div>
-            <div class="table-wrap"><table class="t"><tbody>${[...rows].sort((a, b) => b.revenue - a.revenue).slice(0, 8).map((c) => `<tr class="click" data-act="video" data-id="${c.id}"><td>${vidCell(c)}</td><td class="num"><b>${usd(c.revenue)}</b></td></tr>`).join('')}</tbody></table></div></section>
+            <div class="table-wrap"><table class="t"><tbody>${[...rows].filter((c) => c.revenue > 0).sort((a, b) => b.revenue - a.revenue).slice(0, 8).map((c) => `<tr class="click" data-act="video" data-id="${c.id}"><td>${vidCell(c)}</td><td class="num"><b>${usd(c.revenue)}</b></td></tr>`).join('')}</tbody></table></div></section>
         </div>`;
     },
 
@@ -677,7 +837,8 @@
               ${item(sc.database_url, 'Database', sc.database_url ? 'Tersambung' : 'Isi DATABASE_URL di Vercel')}
               ${item(sc.youtube_api_key, 'YouTube Data API', sc.youtube_api_key ? 'Kunci API terpasang' : 'Isi YOUTUBE_API_KEY di Vercel')}
               ${item((sc.youtube_channels || 0) >= 3, 'Channel dipantau', (sc.youtube_channels || 0) + ' channel' + ((sc.youtube_channels || 0) < 3 ? '. Tambahkan ketiga channel di kartu Channel.' : ''))}
-              ${item(S.oauth && S.oauth.connected, 'YouTube Analytics', S.oauth && S.oauth.connected ? 'Terhubung: retensi dan pendapatan asli' : 'Belum terhubung: retensi masih perkiraan', `<a class="btn sm" href="/api/auth/google">${S.oauth && S.oauth.connected ? 'Hubungkan ulang' : 'Hubungkan'}</a>`)}
+              ${analyticsChannels().map((c) => item(c.connected, 'Analytics: ' + esc(c.nama), c.connected ? 'Terhubung' + (c.connected_at ? ' sejak ' + new Date(c.connected_at).toLocaleDateString('id-ID', { dateStyle: 'medium' }) : '') : 'Belum terhubung: retensi, jam tonton dan pendapatan belum terbaca',
+                c.connected ? `<button class="btn sm ghost danger" data-act="putus-analytics" data-id="${esc(c.id)}">Putuskan</button>` : `<a class="btn sm" href="/api/auth/google">Hubungkan</a>`)).join('')}
             </div></section>
           <section class="card"><div class="card-h"><h2>Channel</h2><p>Channel yang videonya ditarik saat sinkronisasi.</p></div>
             <div class="rank">${S.channels.map((c) => `<div class="rank-row"><span></span><div class="tx"><b>${esc(c.nama)}</b><div class="mono">${esc(c.id)}</div></div><span class="muted">${nf.format(S.content.filter((x) => x._ch === c.id).length)} video</span></div>`).join('') || '<div class="empty">Belum ada channel.</div>'}</div>
@@ -778,6 +939,15 @@
 
   // ============ after render (charts, inputs) ============
   const AFTER = {
+    analytics() {
+      const chans = analyticsChannels();
+      const latest = S.daily.reduce((m, d) => (d.tanggal > m ? d.tanggal : m), '') || addDays(today(), -2);
+      const days = daysBack(S.anPeriode, latest);
+      const val = (id, d) => (S.daily.find((x) => x.channel_id === id && x.tanggal === d) || {}).views || 0;
+      const box = $('#an-chart');
+      if (box) drawStacked(box, { days, series: chans.map((c) => ({ name: c.nama, color: chColor(c.id), values: days.map((d) => val(c.id, d)) })), label: 'Views harian per channel' });
+      $$('.an-spark').forEach((el) => drawSparkbars(el, days.map((d) => val(el.dataset.ch, d)), chColor(el.dataset.ch)));
+    },
     pengaturan() {
       const f = $('#ch-form');
       if (!f) return;
@@ -841,8 +1011,7 @@
   }
 
   async function refreshAktivitas() {
-    if (S.demo) { S.cache.clear(); return; }
-    const rows = await optional(api('/api/aktivitas?dari=' + addDays(today(), -60) + '&sampai=' + today()));
+    const rows = await optional(api('/api/aktivitas?dari=' + addDays(today(), -60) + '&sampai=' + today()), 'Aktivitas');
     if (rows) { S.aktivitas = rows; normalize(); }
   }
 
@@ -889,7 +1058,7 @@
           }
           closeOverlay();
           toast('Berhasil masuk');
-          if (!S.demo) await load(); else render();
+          await load();
         } catch (e) { $('#login-err', d).textContent = e.message; }
       });
     });
@@ -968,7 +1137,7 @@
         if (!body.pin) delete body.pin;
         try {
           const saved = await api(id ? '/api/editors/' + id : '/api/editors', { method: id ? 'PUT' : 'POST', body });
-          if (!S.demo) { const i = S.editors.findIndex((x) => x.id === saved.id); if (i >= 0) S.editors[i] = saved; else S.editors.push(saved); }
+          const i = S.editors.findIndex((x) => x.id === saved.id); if (i >= 0) S.editors[i] = saved; else S.editors.push(saved);
           normalize();
           closeOverlay();
           toast('Data karyawan tersimpan');
@@ -1002,8 +1171,7 @@
     const c = S.content.find((x) => x.id === +id);
     if (!c) return;
     const e = editorById(c.editor_id);
-    const ret = Array.isArray(c.retention_data) && c.retention_data.length ? c.retention_data : null;
-    const real = S.oauth && S.oauth.connected;
+    const connected = S.connected.has(c._ch);
     $('#overlay').innerHTML = `<div class="scrim" data-act="close-overlay" style="justify-content:flex-end;padding:0"></div>
       <aside class="drawer" role="dialog" aria-modal="true" aria-label="Detail video">
         <div class="drawer-top"><h2>${esc(c.judul)}</h2><button class="btn icon ghost" data-act="close-overlay" aria-label="Tutup">${icon('x')}</button></div>
@@ -1014,11 +1182,18 @@
           ${e ? `<span class="ed">${avatar(e, 'sm')}<b>${esc(e.nama)}</b></span>` : '<span class="pill warn">Belum dikenali</span>'}
           ${canAssign() ? `<div class="tools" style="margin-top:10px"><select class="input" id="dr-assign" style="width:auto"><option value="">${e ? 'Ganti pembuat…' : 'Tetapkan pembuat…'}</option>${activeEditors().map((x) => `<option value="${x.id}">${esc(x.nama)}</option>`).join('')}</select></div>` : ''}
         </div>
-        <div><div class="card-h" style="margin-bottom:6px"><h2>Retensi penonton</h2><p>${real ? 'Dari YouTube Analytics.' : 'Perkiraan. Hubungkan YouTube Analytics di Pengaturan untuk angka asli.'}</p></div>
-          ${ret ? '<div class="chart" id="dr-ret"></div>' : '<div class="empty">Belum ada data retensi.</div>'}</div>
+        <div><div class="card-h" style="margin-bottom:6px"><h2>Retensi penonton</h2><p>Dari YouTube Analytics.</p></div>
+          <div class="chart" id="dr-ret" style="min-height:120px"><div class="skeleton" style="height:170px"></div></div></div>
         <a class="btn" href="${esc(c.url)}" target="_blank" rel="noopener">${icon('ext')}Buka di YouTube</a>
       </aside>`;
-    if (ret) drawRetention($('#dr-ret'), ret);
+    const box = $('#dr-ret');
+    api('/api/content/' + c.id).then((full) => {
+      if (!box.isConnected) return;
+      let ret = full.retention_data;
+      if (typeof ret === 'string') { try { ret = JSON.parse(ret); } catch (e) { ret = null; } }
+      if (Array.isArray(ret) && ret.length) drawRetention(box, ret);
+      else box.innerHTML = `<div class="empty"><b>Belum ada data retensi</b>${connected ? 'YouTube biasanya baru mengeluarkan angka retensi 2–3 hari setelah video tayang. Akan terisi otomatis.' : esc(c._chNama) + ' belum tersambung ke YouTube Analytics. Hubungkan di Pengaturan.'}</div>`;
+    }).catch((e) => { if (box.isConnected) box.innerHTML = `<div class="empty"><b>Retensi gagal dimuat</b>${esc(e.message)}</div>`; });
     const s = $('#dr-assign');
     if (s) s.addEventListener('change', () => { if (s.value) { closeOverlay(); assign([c.id], +s.value); } });
     $('.drawer .btn').focus();
@@ -1043,7 +1218,8 @@
     if (act === 'close-overlay') { if (ev.target === el || el.tagName === 'BUTTON') closeOverlay(); return; }
     switch (act) {
       case 'login': loginDialog(); break;
-      case 'logout': saveSession(null); toast('Anda sudah keluar'); if (!S.demo) await load(); else render(); break;
+      case 'logout': saveSession(null); toast('Anda sudah keluar'); await load(); break;
+      case 'retry': S.error = null; $('#page').innerHTML = '<div class="skeleton" style="height:320px"></div>'; await load(); break;
       case 'theme': {
         const cur = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
         const next = cur === 'dark' ? 'light' : 'dark';
@@ -1060,7 +1236,7 @@
       case 'catat': catatDialog(+el.dataset.id || null); break;
       case 'hapus-aktivitas':
         confirmDialog('Hapus aktivitas?', 'Catatan ini akan dihapus dan skor dihitung ulang.', 'Hapus', async () => {
-          try { await api('/api/aktivitas/' + el.dataset.id, { method: 'DELETE' }); if (!S.demo) await refreshAktivitas(); S.cache.clear(); toast('Aktivitas dihapus'); render(); } catch (e) { toast(e.message, true); }
+          try { await api('/api/aktivitas/' + el.dataset.id, { method: 'DELETE' }); await refreshAktivitas(); S.cache.clear(); toast('Aktivitas dihapus'); render(); } catch (e) { toast(e.message, true); }
         });
         break;
       case 'video': ev.preventDefault(); videoDrawer(el.dataset.id); break;
@@ -1072,14 +1248,22 @@
       case 'editor-hapus': {
         const e = editorById(el.dataset.id);
         confirmDialog('Hapus ' + e.nama + '?', 'Video buatannya akan kembali ke daftar "Belum dikenali". Untuk sekadar menonaktifkan, ubah statusnya menjadi Nonaktif.', 'Hapus', async () => {
-          try { await api('/api/editors/' + e.id, { method: 'DELETE' }); if (!S.demo) { S.editors = S.editors.filter((x) => x.id !== e.id); S.content.forEach((c) => { if (c.editor_id === e.id) c.editor_id = null; }); } normalize(); toast(e.nama + ' dihapus'); render(); } catch (err) { toast(err.message, true); }
+          try { await api('/api/editors/' + e.id, { method: 'DELETE' }); S.editors = S.editors.filter((x) => x.id !== e.id); S.content.forEach((c) => { if (c.editor_id === e.id) c.editor_id = null; }); normalize(); toast(e.nama + ' dihapus'); render(); } catch (err) { toast(err.message, true); }
         });
         break;
       }
       case 'goal': goalDialog(); break;
+      case 'an-periode': S.anPeriode = +el.dataset.v; render(); break;
+      case 'putus-analytics': {
+        const c = analyticsChannels().find((x) => x.id === el.dataset.id);
+        confirmDialog('Putuskan ' + c.nama + '?', 'Angka YouTube Analytics yang sudah tersimpan tetap ada, tapi tidak diperbarui lagi sampai dihubungkan ulang.', 'Putuskan', async () => {
+          try { await api('/api/auth/google/' + encodeURIComponent(c.id), { method: 'DELETE' }); S.oauth = await optional(api('/api/auth/status'), 'Status YouTube Analytics'); normalize(); toast(c.nama + ' diputuskan'); render(); } catch (e) { toast(e.message, true); }
+        });
+        break;
+      }
       case 'sync': {
         el.disabled = true; el.innerHTML = icon('sync') + 'Menyinkronkan…';
-        try { const r = await api('/api/scan', { method: 'POST' }); toast(`Selesai: ${r.newPosts || 0} video baru, ${r.updatedPosts || 0} diperbarui`); if (!S.demo) await load(); } catch (e) { toast(e.message, true); render(); }
+        try { const r = await api('/api/scan', { method: 'POST' }); toast(`Selesai: ${r.newPosts || 0} video baru, ${r.updatedPosts || 0} diperbarui` + (r.analyticsChannels != null ? `, analytics ${r.analyticsChannels} channel` : '') + (r.errors ? ` · ${r.errors.length} catatan, lihat log` : '') + (r.skipped ? ' (' + r.reason + ')' : '')); await refresh(); } catch (e) { toast(e.message, true); render(); }
         break;
       }
       case 'ganti-pw': {

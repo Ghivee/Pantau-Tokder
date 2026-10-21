@@ -14,12 +14,13 @@ Pantau Tokder memantau kerja harian tim konten di tiga channel: **Tokder**, **Bu
 | Ringkasan | Video tayang vs target, views, tepat jadwal, kinerja tiap karyawan, per channel, ide topik, video terbaik | Semua |
 | Harian | Satu kartu per karyawan untuk hari yang dipilih: skor, cek harian, garis waktu jadwal vs jam tayang, skor 14 hari, daftar yang dikerjakan | Semua |
 | Konten | Semua video: cari, filter, urutkan, detail dan retensi, unduh CSV | Semua |
+| Analytics | Views, jam tonton, subscriber dan pendapatan harian ketiga channel dari YouTube Analytics | Semua (pendapatan hanya Pemilik) |
 | Belum dikenali | Video tanpa kode karyawan, untuk ditetapkan manual | Pemilik dan Editor |
 | Karyawan | Kode, peran, jadwal, target, PIN | Diubah oleh Pemilik |
 | Pendapatan | Pendapatan iklan per karyawan/channel/video, target omzet afiliasi | Pemilik |
 | Pengaturan | Status sambungan, sinkronisasi, channel, password | Pemilik |
 
-Kalau server belum tersambung, atau alamat diakhiri `?demo`, aplikasi menampilkan **data contoh** dengan pita kuning di bagian atas. Di mode ini password pemilik adalah `demo` dan PIN karyawan `1234`.
+Semua angka berasal dari data asli: YouTube Data API, YouTube Analytics, dan catatan karyawan. Tidak ada data contoh atau perkiraan. Kalau sebuah angka belum tersedia, aplikasi menampilkan "—" atau "Belum ada data" beserta alasannya. Kalau server tidak bisa dihubungi, muncul pesan error dengan tombol **Coba lagi**.
 
 ---
 
@@ -88,19 +89,37 @@ Untuk video lama yang mungkin salah tercatat, periksa di menu **Konten** (filter
 
 Video tanpa kode masuk ke **Belum dikenali**. Pemilik atau Alivia bisa menetapkan pembuatnya di sana, satu per satu atau beberapa sekaligus.
 
-### 6. Sinkronisasi
+### 6. Sinkronisasi (otomatis)
 
-- Klik **Pengaturan → Sinkronkan sekarang** untuk menarik video 30 hari terakhir dari ketiga channel.
-- Vercel juga menjalankan sinkronisasi otomatis sekali sehari, pukul 07:00 WIB (`vercel.json`, bagian `crons`). Paket gratis Vercel hanya mengizinkan jadwal harian. Agar data lebih sering diperbarui, klik Sinkronkan, atau pakai layanan cron luar yang memanggil `https://<domain>/api/scan/cron`.
-- Satu sinkronisasi dibatasi sekitar 45 detik. Kalau videonya banyak, sisanya dilanjutkan di sinkronisasi berikutnya; pesan di layar akan memberi tahu.
+- Selama aplikasi terbuka di browser siapa pun, data YouTube ditarik ulang otomatis bila sudah lebih dari **15 menit**. Pojok kiri bawah menunjukkan kapan terakhir diperbarui.
+- Angka di layar dimuat ulang tiap 5 menit, dan saat tab dibuka kembali.
+- Vercel juga menjalankan sinkronisasi sekali sehari pukul 07:00 WIB, untuk berjaga-jaga kalau tidak ada yang membuka aplikasi.
+- Klik **Pengaturan → Sinkronkan sekarang** untuk menarik saat itu juga.
+- Hanya satu sinkronisasi yang bisa berjalan pada satu waktu, dan satu kali sinkronisasi dibatasi sekitar 45 detik. Sisanya dilanjutkan di sinkronisasi berikutnya.
 
-> Video terakhir di database bertanggal **21 Agustus 2026**. Setelah langkah 2 dan 6, cek **Pengaturan → Sambungan** untuk memastikan sinkronisasi berjalan lagi. Kalau masih gagal, buka Vercel → Deployments → **Logs**, cari baris `Scan`, lalu kirimkan pesannya.
+Views, like dan komentar per video dari YouTube Data API hampir seketika. Angka **YouTube Analytics** (jam tonton, subscriber, retensi, pendapatan) memang baru dikeluarkan YouTube 2–3 hari kemudian. Itu batasan dari YouTube, bukan dari aplikasi.
 
-### 7. YouTube Analytics (retensi dan pendapatan)
+### 7. YouTube Analytics untuk ketiga channel
 
-Di **Pengaturan**, klik **Hubungkan** lalu login dengan akun Google pemilik channel.
+Satu sambungan Google hanya berlaku untuk satu channel. Jadi lakukan ini **tiga kali**, sekali untuk tiap channel:
 
-Ada satu batasan dari YouTube: satu sambungan hanya membaca **satu channel**, yaitu channel yang dipilih saat login. Untuk channel lain, grafik retensi ditampilkan sebagai perkiraan, dan pendapatan mereka tidak terbaca.
+1. Masuk sebagai pemilik, buka **Pengaturan**.
+2. Di baris "Analytics: Tokder", klik **Hubungkan**.
+3. Login dengan **tokodeeres@gmail.com**. Saat Google bertanya "Pilih akun atau channel", **pilih channel yang sesuai**.
+4. Setujui izinnya. Halaman berikutnya menyebut channel yang baru tersambung dan menyediakan tombol **Hubungkan channel lain**.
+5. Ulangi untuk **Budidaya Cabe** dan **Harga Cabe Hari Ini**.
+
+Setelah ketiganya tersambung, menu **Analytics** menampilkan:
+
+- total views, jam tonton, subscriber bersih, rata-rata durasi tonton, dan pendapatan (khusus pemilik), dengan perbandingan ke periode sebelumnya;
+- grafik views harian per channel;
+- kartu dan tabel perbandingan tiap channel.
+
+Grafik retensi di detail video juga terisi untuk ketiga channel.
+
+Sambungan lama (satu channel) dipindahkan otomatis ke channel yang benar. Sambungan bisa diputus per channel di Pengaturan.
+
+> **Pembersihan data palsu.** Versi lama mengisi grafik retensi dan rata-rata durasi tonton dengan angka acak kalau Analytics belum tersambung. Saat versi ini pertama kali jalan, semua angka itu dihapus sekali. Retensi asli diisi ulang otomatis untuk channel yang tersambung: video 14 hari terakhir di setiap sinkronisasi, dan video lama 25 per sinkronisasi. Dua skrip pembuat data contoh (`migrate_retention.js`, `seed2.js`) juga dihapus dari repo.
 
 ### 8. Kebiasaan harian karyawan
 
@@ -145,6 +164,8 @@ Topik ditebak dari kata di judul, misalnya "harga", "thrips", "pupuk" atau "sema
 - Halaman bisa **dilihat** tanpa masuk, sama seperti versi sebelumnya. Mencatat, menetapkan dan mengubah data perlu PIN atau password pemilik. Untuk mengunci seluruh website, aktifkan **Vercel → Settings → Deployment Protection**.
 - PIN disimpan dalam bentuk hash, bukan teks asli.
 - `/api/scan/status` sekarang hanya menjawab "ada/tidak". Potongan kunci API tidak lagi ditampilkan.
+- Pendapatan hanya dikirim server ke pemilik yang sudah masuk.
+- Semua isian diperiksa di server: kode karyawan, jadwal, PIN, tanggal, jam, angka target. Pesan kesalahannya dalam bahasa Indonesia, dan kalau database tidak bisa dihubungi, aplikasi mengatakan itu dengan jelas.
 
 ## Struktur file
 
@@ -152,6 +173,5 @@ Topik ditebak dari kata di judul, misalnya "harga", "thrips", "pupuk" atau "sema
 index.html          kerangka halaman
 app/styles.css      tampilan (warna, huruf, tata letak, mode gelap)
 app/main.js         logika halaman, skor, grafik
-app/demo.js         data contoh untuk mode demo
 api/src/...         server: sinkronisasi YouTube, karyawan, aktivitas, akses
 ```

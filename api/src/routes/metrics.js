@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { fail, bad } = require('../utils/httpError');
 const metricsService = require('../services/metricsService');
 
 router.get('/summary', async (req, res) => {
@@ -7,7 +8,7 @@ router.get('/summary', async (req, res) => {
     const summary = await metricsService.getSummary();
     res.json(summary);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    fail(res, err);
   }
 });
 
@@ -16,7 +17,7 @@ router.get('/trend', async (req, res) => {
     const trend = await metricsService.getTrend();
     res.json(trend);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    fail(res, err);
   }
 });
 
