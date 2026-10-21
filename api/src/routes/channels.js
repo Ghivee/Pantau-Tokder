@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { fail, bad } = require('../utils/httpError');
 const db = require('../config/db');
 const { getChannelIds, getChannelNames, saveChannels } = require('../services/channelService');
 
@@ -21,7 +22,7 @@ router.get('/', async (req, res) => {
       jumlah_video: (byId[id] && byId[id].jumlah_video) || 0,
     })));
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    fail(res, err);
   }
 });
 

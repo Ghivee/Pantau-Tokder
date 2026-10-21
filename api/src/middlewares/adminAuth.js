@@ -74,3 +74,4 @@ module.exports = requireAdmin;
 module.exports.hashPin = hashPin;
 module.exports.verifyPin = verifyPin;
 module.exports.adminPassword = adminPassword;
+module.exports.identify = identify;
