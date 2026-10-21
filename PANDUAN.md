@@ -37,16 +37,19 @@ Saat aplikasi pertama kali dibuka setelah terbit, database diperbarui otomatis. 
 
 > Link Preview dari Vercel memakai database yang sama dengan website utama. Jadi membuka link Preview juga menjalankan pembaruan database di atas.
 
-### 2. Masukkan ketiga channel
+### 2. Channel yang dipantau
 
-Tidak perlu login Vercel. Lakukan dari aplikasi:
+Ketiga channel dari akun tokodeeres@gmail.com sudah dipasang di proyek (`api/src/config/channels.js`):
 
-1. Masuk sebagai pemilik (langkah 3), lalu buka **Pengaturan**.
-2. Di kartu **Channel**, isi satu channel per baris. Bisa berupa link channel (`https://www.youtube.com/@namachannel`), @handle, atau ID channel (`UC…`).
-3. Klik **Simpan channel**. Aplikasi memeriksa ke YouTube dan menampilkan nama channel yang ditemukan.
-4. Klik **Sinkronkan sekarang**.
+| Channel | Handle | ID |
+|---|---|---|
+| Tokder | @tokder-tv | `UC1wIvd8HotnZe0KENzHj2kQ` |
+| Budidaya Cabe | @BudidayaCabeTV | `UCzT5qFGfREJM11U81VbVhsw` |
+| Harga Cabe Hari Ini | @hargacabehariini | `UCn9o9wh8IaSPUsGmXeA9qDQ` |
 
-Daftar yang disimpan di sini menggantikan `YOUTUBE_CHANNEL_ID` di Vercel. Channel yang dipantau sebelumnya (`UC1wIvd8HotnZe0KENzHj2kQ`) tidak punya video baru sejak 21 Agustus, jadi kemungkinan besar perlu diganti.
+Setelah terbit, klik **Pengaturan → Sinkronkan sekarang** untuk menarik video ketiganya.
+
+Untuk menambah atau mengganti channel nanti, tidak perlu login Vercel. Buka **Pengaturan → Channel**, isi satu channel per baris (link, @handle, atau ID `UC…`), lalu klik **Simpan channel**. Daftar yang disimpan di sana menggantikan daftar bawaan.
 
 ### 3. Masuk sebagai pemilik dan ganti password
 
