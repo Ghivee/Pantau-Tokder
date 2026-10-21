@@ -35,6 +35,8 @@
     money: '<path d="M12 2v20M17 6.5c-.8-1.5-2.6-2.5-5-2.5-3 0-5 1.5-5 3.7 0 5 10 2.6 10 7.6 0 2.2-2 3.7-5 3.7-2.6 0-4.5-1-5.3-2.6"/>',
     gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.6 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.6-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/>',
     plus: '<path d="M12 5v14M5 12h14"/>',
+    more: '<circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/>',
+    bulb: '<path d="M9 18h6M10 21h4M12 3a6 6 0 00-3.5 10.9c.6.5 1 1.2 1 2V16h5v-.1c0-.8.4-1.5 1-2A6 6 0 0012 3z"/>',
     chart: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
     left: '<path d="M15 18l-6-6 6-6"/>',
     right: '<path d="M9 18l6-6-6-6"/>',
@@ -499,8 +501,18 @@
     const theme = document.documentElement.dataset.theme;
     const dark = theme ? theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
     const last = lastScanAt();
+    const freshText = syncing ? 'Memperbarui data YouTube…' : last ? 'YouTube diperbarui ' + agoText(last) : 'Belum pernah sinkron';
+    const who2 = me();
+    $('#appbar').innerHTML = `
+      <img class="logo" src="/tokderlogo.png" alt="">
+      <div class="ttl"><b>Pantau Tokder</b><small>${last || syncing ? '<span class="dot"></span>' : ''}${freshText}</small></div>
+      ${S.session ? `<button data-act="lainnya" aria-label="Akun dan menu lain">${who2 ? avatar(who2, 'sm') : '<span class="ava sm" style="background:var(--ink);color:var(--paper)">P</span>'}</button>` : '<button class="btn sm primary" data-act="login" style="border-radius:9px;padding:0 14px">Masuk</button>'}`;
+    const TABS = ['ringkasan', 'harian', 'konten', 'analytics'];
+    const moreActive = !TABS.includes(cur);
+    $('#tabbar').innerHTML = TABS.map((id) => { const r = ROUTES.find((x) => x.id === id); return `<a href="#${id}" ${id === cur ? 'aria-current="page"' : ''}>${icon(r.icon)}<span>${r.label}</span></a>`; }).join('') +
+      `<button data-act="lainnya" ${moreActive ? 'aria-current="page"' : ''}>${icon('more')}<span>Lainnya</span>${unmatched ? `<span class="count">${unmatched > 99 ? '99+' : unmatched}</span>` : ''}</button>`;
     $('#side-foot').innerHTML = `
-      <div class="fresh" title="Data YouTube ditarik otomatis tiap 15 menit selama aplikasi terbuka">${syncing ? '<span class="dot live"></span>Memperbarui data YouTube…' : last ? `<span class="dot"></span>YouTube diperbarui ${agoText(last)}` : 'Belum pernah sinkron'}</div>
+      <div class="fresh" title="Data YouTube ditarik otomatis tiap 15 menit selama aplikasi terbuka">${last || syncing ? `<span class="dot${syncing ? ' live' : ''}"></span>` : ''}${freshText}</div>
       ${S.session ? `<div class="who">${who ? avatar(who, 'sm') : '<span class="ava sm" style="background:var(--ink)">P</span>'}<div class="t"><b>${who ? esc(who.nama) : 'Pemilik'}</b><small>${who ? peranLabel(who.peran) : 'Akses penuh'}</small></div></div>` : ''}
       <div class="side-actions">
         ${S.session ? `<button class="btn sm ghost" data-act="logout">${icon('out')}Keluar</button>` : `<button class="btn sm primary" data-act="login">Masuk</button>`}
@@ -599,8 +611,8 @@
           </section>
           <section class="card span-all" id="kartu-terbaik">
             <div class="card-h"><h2>Video terbaik ${label}</h2></div>
-            ${vids.length ? `<div class="table-wrap"><table class="t"><thead><tr><th>Video</th><th>Pembuat</th><th>Tayang</th><th class="num">Views</th><th class="num">Like</th><th class="num">Komentar</th></tr></thead><tbody>
-              ${[...vids].sort((a, b) => b.views - a.views).slice(0, 5).map((c) => `<tr class="click" data-act="video" data-id="${c.id}"><td>${vidCell(c)}</td><td>${editorCell(c)}</td><td class="mono">${tglPendek(c._day)} ${c._jam}</td><td class="num">${nf.format(c.views)}</td><td class="num">${nf.format(c.likes)}</td><td class="num">${nf.format(c.comments)}</td></tr>`).join('')}
+            ${vids.length ? `<div class="table-wrap"><table class="t stack"><thead><tr><th>Video</th><th>Pembuat</th><th>Tayang</th><th class="num">Views</th><th class="num">Like</th><th class="num">Komentar</th></tr></thead><tbody>
+              ${[...vids].sort((a, b) => b.views - a.views).slice(0, 5).map((c) => `<tr class="click" data-act="video" data-id="${c.id}"><td class="full">${vidCell(c)}</td><td data-label="Pembuat">${editorCell(c)}</td><td class="mono" data-label="Tayang">${tglPendek(c._day)} ${c._jam}</td><td class="num" data-label="Views">${nf.format(c.views)}</td><td class="num" data-label="Like">${nf.format(c.likes)}</td><td class="num" data-label="Komentar">${nf.format(c.comments)}</td></tr>`).join('')}
             </tbody></table></div>` : '<div class="empty"><b>Belum ada video di periode ini</b>Jalankan sinkronisasi di Pengaturan bila seharusnya sudah ada.</div>'}
           </section>
         </div>`;
@@ -660,8 +672,8 @@
             <select class="input" id="k-tipe" style="width:auto" aria-label="Jenis"><option value="all">Semua jenis</option><option value="short" ${k.tipe === 'short' ? 'selected' : ''}>Shorts</option><option value="long" ${k.tipe === 'long' ? 'selected' : ''}>Video panjang</option></select>
             <select class="input" id="k-periode" style="width:auto" aria-label="Periode"><option value="7" ${k.periode === '7' ? 'selected' : ''}>7 hari</option><option value="30" ${k.periode === '30' ? 'selected' : ''}>30 hari</option><option value="90" ${k.periode === '90' ? 'selected' : ''}>90 hari</option><option value="all" ${k.periode === 'all' ? 'selected' : ''}>Semua</option></select>
           </div>
-          ${shown.length ? `<div class="table-wrap"><table class="t"><thead><tr>${th('judul', 'Video')}${th('editor', 'Pembuat')}${th('tanggal', 'Tayang (WIB)')}${th('views', 'Views', 'num')}${th('likes', 'Like', 'num')}${th('comments', 'Komentar', 'num')}${th('durasi', 'Durasi', 'num')}</tr></thead><tbody>
-            ${shown.map((c) => `<tr class="click" data-act="video" data-id="${c.id}"><td>${vidCell(c)}</td><td>${editorCell(c)}</td><td class="mono">${tglPendek(c._day)} ${c._jam}</td><td class="num">${nf.format(c.views)}</td><td class="num">${nf.format(c.likes)}</td><td class="num">${nf.format(c.comments)}</td><td class="num mono">${durasi(c.duration_secs)}</td></tr>`).join('')}
+          ${shown.length ? `<div class="table-wrap"><table class="t stack"><thead><tr>${th('judul', 'Video')}${th('editor', 'Pembuat')}${th('tanggal', 'Tayang (WIB)')}${th('views', 'Views', 'num')}${th('likes', 'Like', 'num')}${th('comments', 'Komentar', 'num')}${th('durasi', 'Durasi', 'num')}</tr></thead><tbody>
+            ${shown.map((c) => `<tr class="click" data-act="video" data-id="${c.id}"><td class="full">${vidCell(c)}</td><td data-label="Pembuat">${editorCell(c)}</td><td class="mono" data-label="Tayang">${tglPendek(c._day)} ${c._jam}</td><td class="num" data-label="Views">${nf.format(c.views)}</td><td class="num" data-label="Like">${nf.format(c.likes)}</td><td class="num" data-label="Komentar">${nf.format(c.comments)}</td><td class="num mono" data-label="Durasi">${durasi(c.duration_secs)}</td></tr>`).join('')}
           </tbody></table></div>
           <div class="pager"><span>Menampilkan ${(k.page - 1) * per + 1}–${(k.page - 1) * per + shown.length} dari ${nf.format(rows.length)}</span>
             <span class="tools"><button class="btn sm" data-act="page" data-v="-1" ${k.page <= 1 ? 'disabled' : ''}>${icon('left')}Sebelumnya</button><span>Hal. ${k.page}/${pages}</span><button class="btn sm" data-act="page" data-v="1" ${k.page >= pages ? 'disabled' : ''}>Berikutnya${icon('right')}</button></span></div>`
@@ -684,8 +696,8 @@
             <select class="input" id="bulk-editor" style="width:auto" aria-label="Tetapkan ke"><option value="">Tetapkan ke…</option>${activeEditors().map((e) => `<option value="${e.id}">${esc(e.nama)}</option>`).join('')}</select>
             <button class="btn primary" data-act="bulk-assign">Tetapkan yang dipilih</button>
           </div>` : '<p class="muted" style="margin:0 0 12px">Masuk sebagai pemilik atau editor untuk menetapkan pembuat video.</p>'}
-          <div class="table-wrap"><table class="t"><thead><tr>${allowed ? '<th style="width:32px"><input type="checkbox" id="sel-all" aria-label="Pilih semua"></th>' : ''}<th>Video</th><th>Tayang (WIB)</th><th class="num">Views</th>${allowed ? '<th>Pembuat</th>' : ''}</tr></thead><tbody>
-            ${rows.map((c) => `<tr>${allowed ? `<td><input type="checkbox" data-sel="${c.id}" ${S.sel.has(c.id) ? 'checked' : ''} aria-label="Pilih ${esc(c.judul)}"></td>` : ''}<td><a href="#identifikasi" data-act="video" data-id="${c.id}" style="text-decoration:none">${vidCell(c)}</a></td><td class="mono">${tglPendek(c._day)} ${c._jam}</td><td class="num">${nf.format(c.views)}</td>${allowed ? `<td><select class="input" data-assign="${c.id}" style="width:auto" aria-label="Pembuat"><option value="">Pilih…</option>${activeEditors().map((e) => `<option value="${e.id}">${esc(e.nama)}</option>`).join('')}</select></td>` : ''}</tr>`).join('')}
+          <div class="table-wrap"><table class="t stack"><thead><tr><th>${allowed ? '<label style="display:inline-flex;gap:10px;align-items:center"><input type="checkbox" id="sel-all" aria-label="Pilih semua"> Video</label>' : 'Video'}</th><th>Tayang (WIB)</th><th class="num">Views</th>${allowed ? '<th>Pembuat</th>' : ''}</tr></thead><tbody>
+            ${rows.map((c) => `<tr><td class="full"><div style="display:flex;gap:10px;align-items:center">${allowed ? `<input type="checkbox" data-sel="${c.id}" ${S.sel.has(c.id) ? 'checked' : ''} aria-label="Pilih ${esc(c.judul)}" style="width:20px;height:20px;flex:none">` : ''}<a href="#identifikasi" data-act="video" data-id="${c.id}" style="text-decoration:none;min-width:0">${vidCell(c)}</a></div></td><td class="mono" data-label="Tayang">${tglPendek(c._day)} ${c._jam}</td><td class="num" data-label="Views">${nf.format(c.views)}</td>${allowed ? `<td class="full"><select class="input" data-assign="${c.id}" aria-label="Pembuat"><option value="">Tetapkan pembuat…</option>${activeEditors().map((e) => `<option value="${e.id}">${esc(e.nama)}</option>`).join('')}</select></td>` : ''}</tr>`).join('')}
           </tbody></table></div>` : '<div class="empty"><b>Semua video sudah dikenali</b>Video baru tanpa kode akan muncul di sini setelah sinkronisasi.</div>'}
         </section>`;
     },
@@ -713,11 +725,9 @@
         }).join('') || '<div class="card empty"><b>Belum ada karyawan</b>Masuk sebagai pemilik untuk menambahkan.</div>'}</div>
         <section class="card">
           <div class="card-h"><h2>Hak akses</h2></div>
-          <div class="table-wrap"><table class="t"><thead><tr><th>Bisa…</th><th>Pemilik</th><th>Editor</th><th>Editor terbatas</th><th>Tanpa masuk</th></tr></thead><tbody>
-            <tr><td>Melihat ringkasan, harian, konten</td><td>Ya</td><td>Ya</td><td>Ya</td><td>Ya</td></tr>
-            <tr><td>Mencatat aktivitas sendiri</td><td>Ya (siapa pun)</td><td>Ya</td><td>Ya</td><td>—</td></tr>
-            <tr><td>Menetapkan pembuat video</td><td>Ya</td><td>Ya</td><td>—</td><td>—</td></tr>
-            <tr><td>Mengatur karyawan, sinkronisasi, pendapatan</td><td>Ya</td><td>—</td><td>—</td><td>—</td></tr>
+          <div class="table-wrap"><table class="t stack"><thead><tr><th>Bisa…</th><th>Pemilik</th><th>Editor</th><th>Editor terbatas</th><th>Tanpa masuk</th></tr></thead><tbody>
+            ${[['Melihat ringkasan, harian, konten, analytics', 'Ya', 'Ya', 'Ya', 'Ya'], ['Mencatat aktivitas sendiri', 'Ya (siapa pun)', 'Ya', 'Ya', '—'], ['Menetapkan pembuat video', 'Ya', 'Ya', '—', '—'], ['Mengatur karyawan, sinkronisasi, pendapatan', 'Ya', '—', '—', '—']]
+              .map((r) => `<tr><td class="full"><b>${r[0]}</b></td>${['Pemilik', 'Editor', 'Editor terbatas', 'Tanpa masuk'].map((l, i) => `<td data-label="${l}">${r[i + 1]}</td>`).join('')}</tr>`).join('')}
           </tbody></table></div>
         </section>`;
     },
@@ -763,6 +773,7 @@
           <div class="kpi"><span class="l">Rata-rata ditonton</span><span class="v mono" style="font-size:24px">${show(avgDur(cur))}</span><span class="d">menit:detik per view</span></div>
           ${showRev ? `<div class="kpi"><span class="l">Perkiraan pendapatan</span><span class="v">${usd(cur.rev)}</span>${change(cur.rev, pv.rev)}</div>` : ''}
         </section>
+        ${strategiHtml(days, chans)}
         <section class="card" id="kartu-views-harian">
           <div class="card-h"><h2>Views harian per channel</h2><p>Semua video di channel, termasuk video lama.</p></div>
           <div class="chart-legend">${chans.map((c) => `<span><i style="background:${chColor(c.id)}"></i>${esc(c.nama)}</span>`).join('')}</div>
@@ -785,8 +796,8 @@
         }).join('')}</div>
         <section class="card">
           <div class="card-h"><h2>Perbandingan channel</h2><p>${S.anPeriode} hari sampai ${latest ? tglPendek(latest) : '—'}.</p></div>
-          <div class="table-wrap"><table class="t"><thead><tr><th>Channel</th><th class="num">Views</th><th class="num">Jam tonton</th><th class="num">Ditonton / view</th><th class="num">Sub baru</th><th class="num">Berhenti</th><th class="num">Bersih</th>${showRev ? '<th class="num">Pendapatan</th>' : ''}<th class="num">Video baru</th></tr></thead><tbody>
-            ${chans.map((c) => { const t = tot(pick([c.id], days)); if (!pick([c.id], days).length) return `<tr><td><span class="ed"><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${chColor(c.id)}"></i>${esc(c.nama)}</span></td><td colspan="${showRev ? 8 : 7}" class="muted">Belum ada data${c.connected ? '' : ' · belum tersambung'}</td></tr>`; return `<tr><td><span class="ed"><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${chColor(c.id)}"></i>${esc(c.nama)}</span></td><td class="num">${nf.format(t.views)}</td><td class="num">${jamMenit(t.menit)}</td><td class="num mono">${avgDur(t)}</td><td class="num">${nf.format(t.naik)}</td><td class="num">${nf.format(t.turun)}</td><td class="num">${signed(t.naik - t.turun)}</td>${showRev ? `<td class="num">${t.rev == null ? '—' : usd(t.rev)}</td>` : ''}<td class="num">${nf.format(S.content.filter((x) => x._ch === c.id && days.includes(x._day)).length)}</td></tr>`; }).join('')}
+          <div class="table-wrap"><table class="t stack"><thead><tr><th>Channel</th><th class="num">Views</th><th class="num">Jam tonton</th><th class="num">Ditonton / view</th><th class="num">Sub baru</th><th class="num">Berhenti</th><th class="num">Bersih</th>${showRev ? '<th class="num">Pendapatan</th>' : ''}<th class="num">Video baru</th></tr></thead><tbody>
+            ${chans.map((c) => { const t = tot(pick([c.id], days)); if (!pick([c.id], days).length) return `<tr><td class="full"><span class="ed"><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${chColor(c.id)}"></i>${esc(c.nama)}</span></td><td colspan="${showRev ? 8 : 7}" class="muted full">Belum ada data${c.connected ? '' : ' · belum tersambung'}</td></tr>`; return `<tr><td class="full"><b><span class="ed"><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${chColor(c.id)}"></i>${esc(c.nama)}</span></b></td><td class="num" data-label="Views">${nf.format(t.views)}</td><td class="num" data-label="Jam tonton">${jamMenit(t.menit)}</td><td class="num mono" data-label="Ditonton / view">${avgDur(t)}</td><td class="num" data-label="Sub baru">${nf.format(t.naik)}</td><td class="num" data-label="Berhenti">${nf.format(t.turun)}</td><td class="num" data-label="Bersih">${signed(t.naik - t.turun)}</td>${showRev ? `<td class="num" data-label="Pendapatan">${t.rev == null ? '—' : usd(t.rev)}</td>` : ''}<td class="num" data-label="Video baru">${nf.format(S.content.filter((x) => x._ch === c.id && days.includes(x._day)).length)}</td></tr>`; }).join('')}
           </tbody></table></div>
         </section>`;
     },
@@ -853,6 +864,133 @@
         </div>`;
     },
   };
+
+  // Revenue and growth advice computed from the channels' own numbers. A rule shows only when
+  // there is enough data behind it, and each one states the numbers it is based on.
+  function strategiHtml(days, chans) {
+    const admin = isAdmin();
+    const out = [];
+    const money = usd;
+    const period = S.anPeriode + ' hari';
+    const recent = (n) => S.content.filter((c) => c._age >= 2 && c._age <= n);
+    const dayRows = (id) => S.daily.filter((d) => d.channel_id === id && days.includes(d.tanggal));
+
+    // 1. Channels not yet sending revenue numbers
+    if (admin) {
+      chans.filter((c) => !c.connected).forEach((c) => out.push({
+        impact: 1e9, title: `Sambungkan YouTube Analytics ${esc(c.nama)}`,
+        why: 'Tanpa sambungan, pendapatan, jam tonton dan retensi channel ini tidak terbaca, jadi saran di bawah tidak menghitungnya.',
+        act: 'Pengaturan → Hubungkan, login tokodeeres@gmail.com, pilih channel ini.',
+      }));
+      chans.filter((c) => c.connected && dayRows(c.id).length >= 7 && dayRows(c.id).every((d) => d.revenue == null)).forEach((c) => out.push({
+        impact: 9e8, title: `${esc(c.nama)} belum menghasilkan pendapatan iklan`,
+        why: `YouTube tidak mengirim angka pendapatan untuk channel ini selama ${period}, padahal views-nya ${fmt(sum(dayRows(c.id), (d) => d.views))}.`,
+        act: 'Cek YouTube Studio → Hasilkan uang. Syarat umum Program Partner: 1.000 subscriber dan 4.000 jam tonton publik dalam 12 bulan, atau 10 juta views Shorts dalam 90 hari.',
+      }));
+    }
+
+    // 2. Revenue per 1,000 views by channel
+    if (admin) {
+      const rpm = chans.map((c) => { const r = dayRows(c.id); const v = sum(r, (d) => d.views); const rev = r.some((d) => d.revenue != null) ? sum(r, (d) => d.revenue || 0) : null; return { c, v, rev, rpm: rev != null && v >= 1000 ? (rev / v) * 1000 : null }; }).filter((x) => x.rpm != null);
+      if (rpm.length >= 2) {
+        rpm.sort((a, b) => b.rpm - a.rpm);
+        const hi = rpm[0], lo = rpm[rpm.length - 1];
+        if (lo.rpm > 0 ? hi.rpm / lo.rpm >= 1.5 : hi.rpm > 0) {
+          out.push({
+            impact: (hi.rpm - lo.rpm) * lo.v / 1000,
+            title: `${esc(hi.c.nama)} paling menguntungkan per view`,
+            why: `Pendapatan per 1.000 views (${period}): ` + rpm.map((x) => `${esc(x.c.nama)} <b>${money(x.rpm)}</b>`).join(' · ') + '.',
+            act: `Arahkan penonton ${esc(lo.c.nama)} ke ${esc(hi.c.nama)} lewat layar akhir, kartu dan playlist, dan tambah slot jadwal di ${esc(hi.c.nama)} bila tim sanggup.`,
+          });
+        }
+      }
+    }
+
+    // 3. Long videos vs Shorts
+    if (admin) {
+      const vids = recent(90).filter((c) => c.revenue != null && c.views >= 100);
+      const by = (t) => { const v = vids.filter((c) => c.tipe_video === t); return { n: v.length, rpm: sum(v, (c) => c.views) ? (sum(v, (c) => c.revenue) / sum(v, (c) => c.views)) * 1000 : 0 }; };
+      const L = by('long'), Sh = by('short');
+      if (L.n >= 3 && Sh.n >= 3 && L.rpm >= Sh.rpm * 1.5) {
+        const topShorts = vids.filter((c) => c.tipe_video === 'short').sort((a, b) => b.views - a.views).slice(0, 2);
+        const shareLong = L.n / (L.n + Sh.n);
+        out.push({
+          impact: (L.rpm - Sh.rpm) * sum(topShorts, (c) => c.views) / 1000 + 1,
+          title: `Video panjang menghasilkan ${(L.rpm / Math.max(Sh.rpm, 0.0001)).toFixed(1).replace('.', ',')}× lebih banyak per view`,
+          why: `Per 1.000 views: video panjang <b>${money(L.rpm)}</b> (${L.n} video), Shorts <b>${money(Sh.rpm)}</b> (${Sh.n} video), 90 hari terakhir. Video panjang baru ${pct(shareLong)} dari upload.`,
+          act: `Buat versi panjang (8 menit atau lebih, supaya bisa dipasang iklan tengah) dari Shorts terlaris: ${topShorts.map((c) => '“' + esc(c.judul) + '”').join(', ')}. Di Shorts-nya, tautkan video panjang tersebut.`,
+        });
+      } else if (L.n >= 3 && Sh.n >= 3 && Sh.rpm >= L.rpm * 1.5) {
+        out.push({
+          impact: 1, title: 'Shorts menghasilkan lebih banyak per view daripada video panjang',
+          why: `Per 1.000 views: Shorts <b>${money(Sh.rpm)}</b> (${Sh.n} video), video panjang <b>${money(L.rpm)}</b> (${L.n} video), 90 hari terakhir.`,
+          act: 'Pertahankan porsi Shorts, dan pendekkan video panjang yang retensinya turun cepat.',
+        });
+      }
+    }
+
+    // 4. Topics that earn (owner) or draw views (everyone) the most
+    {
+      const vids = recent(90).filter((c) => (admin ? c.revenue != null : true));
+      const metric = (c) => (admin ? c.revenue : c.views);
+      const overall = median(vids.map(metric));
+      const groups = {};
+      vids.forEach((c) => { if (c._topik !== 'Lainnya') (groups[c._topik] ||= []).push(c); });
+      const best = Object.entries(groups).filter(([, l]) => l.length >= 3).map(([t, l]) => ({ t, l, m: median(l.map(metric)) })).sort((a, b) => b.m - a.m)[0];
+      if (best && overall > 0 && best.m / overall >= 1.3) {
+        const top = best.l.reduce((a, b) => (metric(b) > metric(a) ? b : a));
+        out.push({
+          impact: admin ? (best.m - overall) * 10 : 0.5,
+          title: `Perbanyak topik “${esc(best.t)}”`,
+          why: admin
+            ? `Median pendapatan per video topik ini <b>${money(best.m)}</b>, sedangkan median semua video ${money(overall)} (${best.l.length} video, 90 hari).`
+            : `Median views per video topik ini <b>${fmt(best.m)}</b>, sedangkan median semua video ${fmt(overall)} (${best.l.length} video, 90 hari).`,
+          act: `Jadikan topik ini menu tetap di jadwal mingguan. Contoh terbaik: “${esc(top.judul)}” (${esc(top._chNama)}).`,
+        });
+      }
+    }
+
+    // 5. Best publishing time per channel
+    chans.forEach((c) => {
+      const vids = recent(60).filter((x) => x._ch === c.id);
+      const med = median(vids.map((x) => x.views));
+      if (vids.length < 9 || !med) return;
+      const buckets = {};
+      vids.forEach((x) => { const h = Math.floor(+x._jam.slice(0, 2) / 3) * 3; (buckets[h] ||= []).push(x.views); });
+      const best = Object.entries(buckets).filter(([, l]) => l.length >= 3).map(([h, l]) => ({ h: +h, n: l.length, m: median(l) })).sort((a, b) => b.m - a.m)[0];
+      if (!best || best.m / med < 1.25 || best.n / vids.length > 0.6) return;
+      const hh = (h) => String(h).padStart(2, '0') + ':00';
+      out.push({
+        impact: ((best.m - med) * (vids.length - best.n)) / 1e6 + 0.3,
+        title: `${esc(c.nama)}: tayang di jam ${hh(best.h)}–${hh(best.h + 3)} lebih ramai`,
+        why: `Median views video yang tayang di jam itu <b>${fmt(best.m)}</b>, sedangkan median channel ${fmt(med)} (${best.n} dari ${vids.length} video, 60 hari).`,
+        act: 'Geser satu slot jadwal karyawan ke jam ini (menu Karyawan → Ubah → Jadwal tayang).',
+      });
+    });
+
+    // 6. Days without uploads
+    chans.forEach((c) => {
+      const rows = dayRows(c.id);
+      const upDays = new Set(S.content.filter((x) => x._ch === c.id).map((x) => x._day));
+      const withUp = rows.filter((d) => upDays.has(d.tanggal)), without = rows.filter((d) => !upDays.has(d.tanggal));
+      if (withUp.length < 4 || without.length < 4) return;
+      const a = sum(withUp, (d) => d.views) / withUp.length, b = sum(without, (d) => d.views) / without.length;
+      if (!b || a / b < 1.1) return;
+      out.push({
+        impact: ((a - b) * without.length) / 1e6 + 0.2,
+        title: `${esc(c.nama)}: jangan ada hari tanpa upload`,
+        why: `Hari dengan upload rata-rata <b>${fmt(a)}</b> views, hari tanpa upload ${fmt(b)} (${Math.round((1 - b / a) * 100)}% lebih rendah). Ada ${without.length} hari kosong dalam ${period}.`,
+        act: 'Pastikan minimal satu video tiap hari. Siapkan stok 2–3 video untuk hari libur atau saat karyawan berhalangan.',
+      });
+    });
+
+    const list = out.sort((a, b) => b.impact - a.impact).slice(0, 6);
+    return `<section class="card" id="kartu-strategi">
+      <div class="card-h"><h2>${admin ? 'Strategi menaikkan pendapatan' : 'Strategi menaikkan views'}</h2><p>Dihitung dari data channel Anda sendiri, diurutkan dari dampak terbesar. Saran hanya muncul bila datanya cukup.${admin ? '' : ' Masuk sebagai pemilik untuk saran berbasis pendapatan.'}</p></div>
+      ${list.length ? `<ol class="advice">${list.map((x) => `<li><div class="t"><b>${x.title}</b><div class="why">${x.why}</div><div class="act">${icon('bulb')}<span>${x.act}</span></div></div></li>`).join('')}</ol>`
+        : '<div class="empty"><b>Belum cukup data untuk saran</b>Butuh setidaknya beberapa minggu angka YouTube Analytics dan video berumur 2 hari atau lebih.</div>'}
+    </section>`;
+  }
 
   function topikHtml() {
     const base = S.content.filter((c) => c._age >= 2 && c._age <= 32);
@@ -1023,6 +1161,22 @@
     if (onMount) onMount(ov.querySelector('.dialog'));
   }
   const closeOverlay = () => { $('#overlay').innerHTML = ''; };
+
+  // Phone: the routes and account actions that don't fit in the bottom bar.
+  function moreSheet() {
+    const unmatched = S.content.filter((c) => !editorById(c.editor_id)).length;
+    const who = me();
+    const theme = document.documentElement.dataset.theme;
+    const dark = theme ? theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    const extra = ROUTES.filter((r) => !['ringkasan', 'harian', 'konten', 'analytics'].includes(r.id) && (!r.admin || isAdmin()));
+    openDialog(`
+      ${S.session ? `<div class="who">${who ? avatar(who, 'sm') : '<span class="ava sm" style="background:var(--ink);color:var(--paper)">P</span>'}<div class="t"><b>${who ? esc(who.nama) : 'Pemilik'}</b><small>${who ? peranLabel(who.peran) : 'Akses penuh'}</small></div></div>` : '<h2>Menu</h2>'}
+      <div class="sheet-list">
+        ${extra.map((r) => `<a href="#${r.id}" data-act="close-overlay">${icon(r.icon)}${r.label}${r.id === 'identifikasi' && unmatched ? `<span class="count">${unmatched}</span>` : ''}</a>`).join('')}
+        <button data-act="theme">${icon(dark ? 'sun' : 'moon')}${dark ? 'Mode terang' : 'Mode gelap'}</button>
+        ${S.session ? `<button data-act="logout">${icon('out')}Keluar</button>` : `<button data-act="login">${icon('out')}Masuk</button>`}
+      </div>`);
+  }
 
   function confirmDialog(title, msg, okLabel, onOk) {
     openDialog(`<h2>${esc(title)}</h2><p>${esc(msg)}</p><div class="actions"><button class="btn ghost" data-act="close-overlay">Batal</button><button class="btn primary" id="ok">${esc(okLabel)}</button></div>`, (d) => {
@@ -1215,12 +1369,14 @@
     const el = ev.target.closest('[data-act]');
     if (!el) return;
     const act = el.dataset.act;
-    if (act === 'close-overlay') { if (ev.target === el || el.tagName === 'BUTTON') closeOverlay(); return; }
+    if (act === 'close-overlay') { if (ev.target === el || el.tagName === 'BUTTON' || el.tagName === 'A') closeOverlay(); return; }
     switch (act) {
-      case 'login': loginDialog(); break;
-      case 'logout': saveSession(null); toast('Anda sudah keluar'); await load(); break;
+      case 'login': closeOverlay(); loginDialog(); break;
+      case 'lainnya': moreSheet(); break;
+      case 'logout': closeOverlay(); saveSession(null); toast('Anda sudah keluar'); await load(); break;
       case 'retry': S.error = null; $('#page').innerHTML = '<div class="skeleton" style="height:320px"></div>'; await load(); break;
       case 'theme': {
+        closeOverlay();
         const cur = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
         const next = cur === 'dark' ? 'light' : 'dark';
         document.documentElement.dataset.theme = next;

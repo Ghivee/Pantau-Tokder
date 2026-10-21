@@ -113,7 +113,8 @@ Setelah ketiganya tersambung, menu **Analytics** menampilkan:
 
 - total views, jam tonton, subscriber bersih, rata-rata durasi tonton, dan pendapatan (khusus pemilik), dengan perbandingan ke periode sebelumnya;
 - grafik views harian per channel;
-- kartu dan tabel perbandingan tiap channel.
+- kartu dan tabel perbandingan tiap channel;
+- **strategi menaikkan pendapatan**: saran yang dihitung dari angka channel sendiri dan diurutkan dari dampak terbesar. Contohnya: channel dengan pendapatan per 1.000 views tertinggi, video panjang dibanding Shorts, topik yang paling menghasilkan, jam tayang yang paling ramai, dan hari tanpa upload. Setiap saran menyebut angka dasarnya dan langkah yang perlu diambil, dan hanya muncul kalau datanya cukup. Karyawan melihat versi berbasis views tanpa angka pendapatan.
 
 Grafik retensi di detail video juga terisi untuk ketiga channel.
 
@@ -166,6 +167,10 @@ Topik ditebak dari kata di judul, misalnya "harga", "thrips", "pupuk" atau "sema
 - `/api/scan/status` sekarang hanya menjawab "ada/tidak". Potongan kunci API tidak lagi ditampilkan.
 - Pendapatan hanya dikirim server ke pemilik yang sudah masuk.
 - Semua isian diperiksa di server: kode karyawan, jadwal, PIN, tanggal, jam, angka target. Pesan kesalahannya dalam bahasa Indonesia, dan kalau database tidak bisa dihubungi, aplikasi mengatakan itu dengan jelas.
+
+## Di ponsel
+
+Di layar ponsel, menu pindah ke **bilah bawah**: Ringkasan, Harian, Konten, Analytics, dan **Lainnya** (Belum dikenali, Karyawan, Pendapatan, Pengaturan, tema, keluar). Tabel berubah menjadi kartu yang mudah digulir, dan formulir muncul dari bawah layar.
 
 ## Struktur file
 

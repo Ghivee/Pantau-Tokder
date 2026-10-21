@@ -337,22 +337,112 @@ table.t { width: 100%; border-collapse: collapse; }
   @keyframes slide { from { transform: translateX(24px); opacity: 0; } }
 }
 
-/* ---------- narrow ---------- */
+/* ---------- advice ---------- */
+.advice { list-style: none; margin: 0; padding: 0; counter-reset: adv; display: flex; flex-direction: column; }
+.advice li { counter-increment: adv; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 12px; padding: 14px 0; border-top: 1px solid var(--line); }
+.advice li:first-child { border-top: 0; padding-top: 4px; }
+.advice li::before { content: counter(adv); width: 26px; height: 26px; border-radius: 8px; background: var(--leaf-soft); color: var(--leaf); font-weight: 700; font-size: 13px; display: flex; align-items: center; justify-content: center; }
+.advice b { font-weight: 650; font-size: 14.5px; }
+.advice .why { color: var(--ink-2); font-size: 13px; margin-top: 3px; max-width: 80ch; }
+.advice .why b { font-size: inherit; color: var(--ink); }
+.advice .act { display: flex; gap: 8px; align-items: flex-start; margin-top: 8px; padding: 8px 10px; border-radius: 8px; background: var(--sunken); font-size: 13px; max-width: 80ch; }
+.advice .act svg { width: 16px; height: 16px; flex: none; margin-top: 1px; stroke: var(--warn); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ---------- phone ---------- */
+.appbar, .tabbar { display: none; }
 @media (max-width: 900px) {
+  body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); background: var(--paper); z-index: 31; }
   .shell { grid-template-columns: minmax(0, 1fr); }
-  .side { position: sticky; top: 0; height: auto; z-index: 30; flex-direction: row; align-items: center; padding: 8px max(12px, env(safe-area-inset-left, 0px)); gap: 8px; border-right: 0; border-bottom: 1px solid var(--line); overflow-x: auto; }
-  .brand { padding: 0 6px 0 0; }
-  .brand span { display: none; }
-  .nav { flex-direction: row; gap: 2px; }
-  .nav-label { display: none; }
-  .nav a { white-space: nowrap; padding: 7px 10px; }
-  .nav a svg { display: none; }
-  .side-foot { margin: 0 0 0 auto; padding: 0; border: 0; flex-direction: row; }
-  .side-foot .who .t { display: none; }
-  .main { padding-top: 18px; }
-  .kpi { border-right: 0; border-bottom: 1px solid var(--line); }
-  .checks { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .side { display: none; }
+  .main { padding-top: 0; padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)); }
+
+  .appbar {
+    display: flex; align-items: center; gap: 10px; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 30;
+    margin: 0 calc(-1 * max(16px, env(safe-area-inset-right, 0px))) 16px calc(-1 * max(16px, env(safe-area-inset-left, 0px)));
+    padding: 10px max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px));
+    background: var(--paper); border-bottom: 1px solid var(--line);
+  }
+  .appbar img.logo { width: 28px; height: 28px; border-radius: 8px; background: var(--sunken); object-fit: contain; }
+  .appbar .ttl { flex: 1; min-width: 0; line-height: 1.2; }
+  .appbar .ttl b { display: block; font-size: 15px; font-weight: 700; }
+  .appbar .ttl small { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .appbar .ttl small .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ok); flex: none; }
+  .appbar button { border: 0; background: none; padding: 0; cursor: pointer; border-radius: 50%; }
+
+  .tabbar {
+    display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+    background: var(--surface); border-top: 1px solid var(--line);
+    padding: 4px max(6px, env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0px) max(6px, env(safe-area-inset-left, 0px));
+  }
+  .tabbar a, .tabbar button {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 56px;
+    border: 0; background: none; color: var(--muted); font-size: 11px; font-weight: 600; text-decoration: none; cursor: pointer; position: relative;
+  }
+  .tabbar svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+  .tabbar [aria-current="page"] { color: var(--leaf); }
+  .tabbar [aria-current="page"]::before { content: ""; position: absolute; top: 0; width: 28px; height: 3px; border-radius: 0 0 3px 3px; background: currentColor; }
+  .tabbar .count { position: absolute; top: 6px; left: 54%; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: var(--warn); color: var(--surface); font-size: 10px; line-height: 16px; }
+
+  .page { gap: 16px; }
+  .head { gap: 12px; }
+  .head h1 { font-size: 22px; }
+  .head p { font-size: 13.5px; }
+  .head .tools { width: 100%; }
+  .head .tools > .seg { flex: 1; }
+  .seg button { flex: 1; padding: 8px 6px; }
+  .head .tools > select.input { flex: 1; }
+  .daynav { flex: 1; }
+  .daynav .input { flex: 1; width: auto; }
+  .input, select.input, textarea.input { font-size: 16px; height: 42px; }
+  textarea.input { height: auto; }
+  .btn { height: 42px; }
+  .btn.sm { height: 36px; }
+  .btn.icon { width: 42px; }
+  .search, .search .input { width: 100%; }
+  .card { padding: 16px 14px; border-radius: 12px; }
+  .card-h { margin-bottom: 10px; }
+
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .kpi { padding: 12px 14px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .kpi:nth-child(2n), .kpi:last-child { border-right: 0; }
+  .kpi:last-child:nth-child(odd) { grid-column: 1 / -1; border-bottom: 0; }
+  .kpi .v { font-size: 21px; }
+  .kpi .d { font-size: 11.5px; }
+
+  .person { gap: 14px; }
+  .person-top { gap: 10px; }
+  .person-top .ava.lg { width: 44px; height: 44px; font-size: 17px; }
+  .person-top h2 { font-size: 16px; }
+  .score .n { font-size: 28px; }
+  .score .cap { display: none; }
+  .check { padding: 8px 10px; }
+  .check .v { font-size: 15px; }
+  .strip { gap: 2px; }
+  .strip button { height: 28px; font-size: 10.5px; border-radius: 5px; }
+  .tl { grid-template-columns: 44px 14px minmax(0, 1fr); }
+  .tl .res { grid-column: 3; align-items: flex-start; text-align: left; margin-top: 4px; }
+
   .table-wrap { margin: 0 -14px; padding: 0 14px; }
-  .card { padding: 16px 14px; }
+  .t.stack thead { display: none; }
+  .t.stack tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .t.stack tbody tr:last-child { border-bottom: 0; }
+  .t.stack td { border: 0; padding: 0; text-align: left; min-width: 0; }
+  .t.stack td.full { grid-column: 1 / -1; }
+  .t.stack td[data-label]::before { content: attr(data-label); display: block; font-size: 11.5px; color: var(--muted); font-weight: 500; }
+  .t.stack .num { text-align: left; }
+  .t.stack tbody tr.click:hover td { background: none; }
+  .vid { min-width: 0; }
+  .vid img, .vid .ph { width: 88px; }
+
+  .scrim { align-items: flex-end; padding: 0; }
+  .dialog { width: 100%; max-height: 92vh; border-radius: 18px 18px 0 0; padding: 20px max(16px, env(safe-area-inset-right, 0px)) calc(20px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+  .dialog::before { content: ""; align-self: center; width: 40px; height: 4px; border-radius: 4px; background: var(--line-2); margin: -8px 0 2px; }
+  .drawer { width: 100%; border-left: 0; padding-top: calc(16px + env(safe-area-inset-top, 0px)); padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)); }
+  .toast { bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }
+  .notice { margin-bottom: 12px; }
 }
-@media (max-width: 900px) { .fresh { display: none; } }
+.sheet-list { display: flex; flex-direction: column; margin: 0 -6px; }
+.sheet-list a, .sheet-list button { display: flex; align-items: center; gap: 12px; padding: 12px 6px; min-height: 48px; border: 0; border-top: 1px solid var(--line); background: none; text-decoration: none; color: var(--ink); font-weight: 600; font-size: 15px; text-align: left; cursor: pointer; width: 100%; }
+.sheet-list > :first-child { border-top: 0; }
+.sheet-list svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; color: var(--muted); }
+.sheet-list .count { margin-left: auto; font-size: 12px; font-weight: 650; color: var(--warn); background: var(--warn-soft); border-radius: 999px; padding: 0 8px; }
