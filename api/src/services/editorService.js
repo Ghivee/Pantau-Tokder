@@ -43,7 +43,7 @@ async function updateEditor(id, nama, kode, extra = {}) {
   const add = (col, val) => { params.push(val); sets.push(`${col} = $${params.length}`); };
   if (extra.peran !== undefined) add('peran', extra.peran === 'terbatas' ? 'terbatas' : 'editor');
   if (extra.jadwal !== undefined) add('jadwal', cleanJadwal(extra.jadwal) || '');
-  if (extra.target_harian !== undefined) add('target_harian', parseInt(extra.target_harian, 10) || 3);
+  if (extra.target_harian !== undefined && extra.target_harian !== '') add('target_harian', parseInt(extra.target_harian, 10) || 3);
   if (extra.foto_url !== undefined) add('foto_url', extra.foto_url || null);
   if (extra.status !== undefined) add('status', extra.status === 'nonaktif' ? 'nonaktif' : 'aktif');
   if (extra.pin) add('pin', hashPin(extra.pin));

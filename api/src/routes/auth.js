@@ -1,7 +1,10 @@
 const express = require('express');
 const router = express.Router();
+const { fail, bad } = require('../utils/httpError');
 const db = require('../config/db');
-const { getAuthUrl, exchangeCodeForTokens } = require('../integrations/analytics');
+const { getAuthUrl, exchangeCodeForTokens, fetchOwnChannel } = require('../integrations/analytics');
+const analyticsService = require('../services/analyticsService');
+const { getChannelIds, getChannelNames } = require('../services/channelService');
 const { verifyPin } = require('../middlewares/adminAuth');
 
 // GET /api/auth/google — Redirect user to Google OAuth consent screen
@@ -42,32 +45,25 @@ router.get('/callback', async (req, res) => {
     const redirectUri = `${protocol}://${host}/api/auth/callback`;
 
     const tokens = await exchangeCodeForTokens(code, redirectUri);
-    
-    // Store refresh_token in database settings table
-    if (tokens.refresh_token) {
-      await db.query(
-        `INSERT INTO settings (key, value, updated_at) VALUES ($1, $2, NOW()) 
-         ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = NOW()`,
-        ['google_refresh_token', tokens.refresh_token]
-      );
-    }
+    if (!tokens.refresh_token) throw new Error('Google tidak mengirim refresh token. Coba hubungkan ulang.');
+    const channel = await fetchOwnChannel(tokens.access_token);
+    if (!channel) throw new Error('Akun yang dipilih tidak punya channel YouTube.');
+    await analyticsService.saveConnection(channel, tokens.refresh_token);
 
-    // Also store access_token for immediate use
-    await db.query(
-      `INSERT INTO settings (key, value, updated_at) VALUES ($1, $2, NOW()) 
-       ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = NOW()`,
-      ['google_access_token', tokens.access_token]
-    );
+    // Pull the channel's daily numbers right away so the Analytics page fills in.
+    try { await analyticsService.syncChannelDaily(channel.id, tokens.access_token); } catch (e) { console.warn('First analytics sync failed:', e.message); }
 
-    return res.send(`<html><head><meta charset="UTF-8"></head><body style="font-family:sans-serif; padding:40px; text-align:center; background:#0f0f0f; color:white;">
-      <div style="max-width:500px; margin:0 auto; padding:40px; background:#1a1a1a; border-radius:16px; border:1px solid #333;">
-        <div style="font-size:48px; margin-bottom:16px;">✅</div>
-        <h2 style="color:#20C997; margin-bottom:8px;">YouTube Analytics Terhubung!</h2>
-        <p style="color:#aaa;">Token OAuth berhasil disimpan. Sistem sekarang dapat mengambil data retensi asli dari YouTube Analytics Anda.</p>
-        <p style="color:#aaa; margin-top:16px;">Kembali ke dashboard dan tekan <strong>"Sinkronkan Sekarang"</strong> untuk memperbarui data retensi semua video.</p>
-        <a href="/" style="display:inline-block; margin-top:24px; padding:12px 24px; background:#20C997; color:white; border-radius:8px; text-decoration:none; font-weight:600;">Kembali ke Dashboard</a>
-      </div>
-    </body></html>`);
+    const safe = (t) => String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    return res.send(`<!doctype html><html lang="id"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Channel terhubung</title></head>
+      <body style="font-family:system-ui,sans-serif;margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#F4F6F2;color:#17201B">
+      <div style="max-width:440px;margin:16px;padding:28px;background:#fff;border:1px solid #E0E5DE;border-radius:14px">
+        <h2 style="margin:0 0 8px;font-size:20px">${safe(channel.nama)} terhubung</h2>
+        <p style="margin:0 0 18px;color:#44524A;line-height:1.5">YouTube Analytics untuk channel ini sudah tersambung. Untuk channel lain, klik tombol di bawah lalu pilih channel tersebut di layar Google.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <a href="/api/auth/google" style="padding:10px 16px;border-radius:9px;border:1px solid #C9D1C7;color:#17201B;text-decoration:none;font-weight:600">Hubungkan channel lain</a>
+          <a href="/#analytics" style="padding:10px 16px;border-radius:9px;background:#1E6B45;color:#fff;text-decoration:none;font-weight:600">Lihat Analytics</a>
+        </div>
+      </div></body></html>`);
   } catch (err) {
     console.error('OAuth callback error:', err);
     return res.status(500).send(`<html><body style="font-family:sans-serif; padding:40px; text-align:center;">
@@ -78,17 +74,32 @@ router.get('/callback', async (req, res) => {
   }
 });
 
-// GET /api/auth/status — Check if OAuth is connected
+// GET /api/auth/status — which monitored channels have YouTube Analytics connected
 router.get('/status', async (req, res) => {
   try {
-    const result = await db.query(`SELECT value FROM settings WHERE key = 'google_refresh_token'`);
-    const isConnected = result.rows.length > 0 && !!result.rows[0].value;
-    res.json({ 
-      connected: isConnected,
-      message: isConnected ? 'YouTube Analytics terhubung ✅' : 'Belum terhubung ❌'
-    });
+    await analyticsService.migrateLegacyToken();
+    const [connections, ids, names] = await Promise.all([analyticsService.listConnections(), getChannelIds(), getChannelNames()]);
+    const byId = Object.fromEntries(connections.map((c) => [c.channel_id, c]));
+    const all = [...new Set([...ids, ...connections.map((c) => c.channel_id)])];
+    const channels = all.map((id) => ({
+      id,
+      nama: names[id] || (byId[id] && byId[id].nama) || id,
+      connected: !!byId[id],
+      connected_at: byId[id] ? byId[id].updated_at : null,
+    }));
+    res.json({ connected: connections.length > 0, channels });
   } catch (err) {
-    res.json({ connected: false, message: 'Tidak dapat memeriksa status: ' + err.message });
+    res.json({ connected: false, channels: [], message: 'Tidak dapat memeriksa status: ' + err.message });
+  }
+});
+
+// DELETE /api/auth/google/:channelId — owner disconnects one channel's analytics
+router.delete('/google/:channelId', async (req, res) => {
+  try {
+    await analyticsService.removeConnection(req.params.channelId);
+    res.status(204).send();
+  } catch (err) {
+    fail(res, err);
   }
 });
 

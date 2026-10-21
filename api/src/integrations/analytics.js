@@ -7,7 +7,7 @@ function getAuthUrl(redirectUri) {
     'https://www.googleapis.com/auth/yt-analytics-monetary.readonly'
   ].join(' ');
   
-  return `https://accounts.google.com/o/oauth2/v2/auth?client_id=${process.env.GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scopes)}&access_type=offline&prompt=consent`;
+  return `https://accounts.google.com/o/oauth2/v2/auth?client_id=${process.env.GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scopes)}&access_type=offline&prompt=${encodeURIComponent('consent select_account')}`;
 }
 
 async function exchangeCodeForTokens(code, redirectUri) {
@@ -98,4 +98,45 @@ async function fetchRevenueData(videoId, accessToken) {
   }
 }
 
-module.exports = { getAuthUrl, exchangeCodeForTokens, getAccessToken, fetchRetentionData, fetchRevenueData };
+/**
+ * The channel a token belongs to. With a Google account that owns several channels,
+ * each consent is for the one channel picked on Google's screen.
+ */
+async function fetchOwnChannel(accessToken) {
+  const res = await axios.get('https://www.googleapis.com/youtube/v3/channels', {
+    headers: { Authorization: `Bearer ${accessToken}` },
+    params: { part: 'snippet', mine: true }
+  });
+  const item = (res.data.items || [])[0];
+  return item ? { id: item.id, nama: item.snippet.title } : null;
+}
+
+/**
+ * Daily channel totals: views, minutes watched, subscribers gained/lost and estimated revenue.
+ * Channels without monetization access are retried without revenue.
+ */
+async function fetchChannelDaily(accessToken, startDate, endDate) {
+  const base = ['views', 'estimatedMinutesWatched', 'subscribersGained', 'subscribersLost'];
+  const run = (metrics) => axios.get('https://youtubeanalytics.googleapis.com/v2/reports', {
+    headers: { Authorization: `Bearer ${accessToken}` },
+    params: { ids: 'channel==MINE', startDate, endDate, metrics: metrics.join(','), dimensions: 'day', sort: 'day' }
+  });
+  let res;
+  let withRevenue = true;
+  try {
+    res = await run([...base, 'estimatedRevenue']);
+  } catch (err) {
+    withRevenue = false;
+    res = await run(base);
+  }
+  return (res.data.rows || []).map((r) => ({
+    tanggal: r[0],
+    views: Number(r[1]) || 0,
+    menit_tonton: Number(r[2]) || 0,
+    sub_naik: Number(r[3]) || 0,
+    sub_turun: Number(r[4]) || 0,
+    revenue: withRevenue ? Number(r[5]) || 0 : null,
+  }));
+}
+
+module.exports = { getAuthUrl, exchangeCodeForTokens, getAccessToken, fetchRetentionData, fetchRevenueData, fetchOwnChannel, fetchChannelDaily };
