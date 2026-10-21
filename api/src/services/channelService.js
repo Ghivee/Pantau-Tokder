@@ -1,6 +1,7 @@
 const axios = require('axios');
 const db = require('../config/db');
 const { channelIds: envChannelIds } = require('../integrations/youtube');
+const DEFAULT_CHANNELS = require('../config/channels');
 
 async function readSetting(key) {
   try {
@@ -27,10 +28,11 @@ async function getChannelIds() {
 }
 
 async function getChannelNames() {
+  const names = Object.fromEntries(DEFAULT_CHANNELS.map((c) => [c.id, c.nama]));
   try {
-    return JSON.parse((await readSetting('youtube_channel_names')) || '{}');
+    return { ...names, ...JSON.parse((await readSetting('youtube_channel_names')) || '{}') };
   } catch (e) {
-    return {};
+    return names;
   }
 }
 
