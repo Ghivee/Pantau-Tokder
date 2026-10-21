@@ -37,18 +37,19 @@ Saat aplikasi pertama kali dibuka setelah terbit, database diperbarui otomatis. 
 
 > Link Preview dari Vercel memakai database yang sama dengan website utama. Jadi membuka link Preview juga menjalankan pembaruan database di atas.
 
-### 2. Masukkan ketiga channel di Vercel
+### 2. Channel yang dipantau
 
-1. Cari **ID channel** masing-masing (diawali `UC…`). Caranya: login ke channel itu, buka https://www.youtube.com/account_advanced, lalu salin **ID Channel**. Ulangi untuk ketiga channel.
-2. Buka Vercel → project **Pantau-Tokder** → **Settings → Environment Variables**.
-3. Tambahkan:
+Ketiga channel dari akun tokodeeres@gmail.com sudah dipasang di proyek (`api/src/config/channels.js`):
 
-| Name | Value |
-|---|---|
-| `YOUTUBE_CHANNEL_IDS` | Tiga ID dipisah koma, misal `UC1wIvd8HotnZe0KENzHj2kQ,UCxxxx,UCyyyy` |
+| Channel | Handle | ID |
+|---|---|---|
+| Tokder | @tokder-tv | `UC1wIvd8HotnZe0KENzHj2kQ` |
+| Budidaya Cabe | @BudidayaCabeTV | `UCzT5qFGfREJM11U81VbVhsw` |
+| Harga Cabe Hari Ini | @hargacabehariini | `UCn9o9wh8IaSPUsGmXeA9qDQ` |
 
-4. Variabel yang sudah ada tetap dipakai: `DATABASE_URL`, `YOUTUBE_API_KEY`, `GOOGLE_CLIENT_ID` dan `GOOGLE_CLIENT_SECRET`. Kalau `YOUTUBE_CHANNEL_IDS` sudah diisi, `YOUTUBE_CHANNEL_ID` yang lama tidak dipakai lagi.
-5. Buka **Deployments**, klik ⋯ pada deployment terakhir, lalu **Redeploy**.
+Setelah terbit, klik **Pengaturan → Sinkronkan sekarang** untuk menarik video ketiganya.
+
+Untuk menambah atau mengganti channel nanti, tidak perlu login Vercel. Buka **Pengaturan → Channel**, isi satu channel per baris (link, @handle, atau ID `UC…`), lalu klik **Simpan channel**. Daftar yang disimpan di sana menggantikan daftar bawaan.
 
 ### 3. Masuk sebagai pemilik dan ganti password
 
