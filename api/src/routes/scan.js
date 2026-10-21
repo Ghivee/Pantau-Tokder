@@ -1,16 +1,23 @@
 const express = require('express');
 const router = express.Router();
 const scanService = require('../services/scanService');
+const db = require('../config/db');
+const { channelIds } = require('../integrations/youtube');
 
 // GET: Check API configuration status (for debugging)
-router.get('/status', (req, res) => {
-  const hasYtKey = !!process.env.YOUTUBE_API_KEY;
-  const hasYtChannel = !!process.env.YOUTUBE_CHANNEL_ID;
-  const hasDbUrl = !!process.env.DATABASE_URL;
+router.get('/status', async (req, res) => {
+  const ids = channelIds();
+  let lastScan = null;
+  try {
+    const r = await db.query('SELECT * FROM scan_log ORDER BY id DESC LIMIT 1');
+    lastScan = r.rows[0] || null;
+  } catch (e) { /* scan_log may not exist yet */ }
   res.json({
-    youtube_api_key: hasYtKey ? `✅ Set (${process.env.YOUTUBE_API_KEY.slice(0, 6)}...)` : '❌ Missing',
-    youtube_channel_id: hasYtChannel ? `✅ Set (${process.env.YOUTUBE_CHANNEL_ID})` : '❌ Missing',
-    database_url: hasDbUrl ? '✅ Set' : '❌ Missing',
+    youtube_api_key: !!process.env.YOUTUBE_API_KEY,
+    youtube_channels: ids.length,
+    database_url: !!process.env.DATABASE_URL,
+    google_oauth_client: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
+    last_scan: lastScan,
   });
 });
 

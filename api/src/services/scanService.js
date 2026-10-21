@@ -1,13 +1,16 @@
 const db = require('../config/db');
-const { fetchNewVideos, fetchVideosByIds } = require('../integrations/youtube');
+const { fetchNewVideos, fetchVideosByIds, channelIds } = require('../integrations/youtube');
 const { fetchRetentionData, fetchRevenueData, getAccessToken } = require('../integrations/analytics');
 
 function matchEditorCode(captionText, editors) {
   if (!captionText) return null;
   const upperCaption = captionText.toUpperCase();
   for (const ed of editors) {
-    const code = (ed.kode_identifikasi || ed.kode).toUpperCase();
-    if (upperCaption.includes(code)) return ed.id;
+    const code = (ed.kode_identifikasi || ed.kode || '').toUpperCase().replace(/^#/, '');
+    if (!code) continue;
+    // The code must stand alone ("#DE" or "DE"), so "KODE" or "DESA" do not count as DE.
+    const escaped = code.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    if (new RegExp(`(^|[^A-Z0-9])#?${escaped}($|[^A-Z0-9])`).test(upperCaption)) return ed.id;
   }
   return null;
 }
@@ -34,7 +37,7 @@ function formatAvgDuration(secs) {
 
 async function processVideo(vid, editors, accessToken = null) {
   const existing = await db.query(
-    'SELECT id, editor_id, status_identifikasi FROM content WHERE post_id = $1 AND platform = $2',
+    'SELECT id, editor_id, status_identifikasi, revenue FROM content WHERE post_id = $1 AND platform = $2',
     [vid.post_id, vid.platform]
   );
 
@@ -66,15 +69,17 @@ async function processVideo(vid, editors, accessToken = null) {
     const insertRes = await db.query(
       `INSERT INTO content 
        (post_id, platform, url, judul, tanggal_upload, editor_id, status_identifikasi, 
-        tipe_video, duration_secs, avg_view_duration, retention_data, revenue) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id`,
+        tipe_video, duration_secs, avg_view_duration, retention_data, revenue, channel_id, channel_nama) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING id`,
       [
         vid.post_id, vid.platform, vid.url, vid.title, vid.publishedAt,
         matchedEditorId, statusIdentifikasi, vid.tipe_video,
         vid.durationSecs,
         formatAvgDuration(avgDurationSecs),
         JSON.stringify(retentionData),
-        revenueData
+        revenueData,
+        vid.channelId || null,
+        vid.channelTitle || null
       ]
     );
     const newContentId = insertRes.rows[0].id;
@@ -97,7 +102,8 @@ async function processVideo(vid, editors, accessToken = null) {
     }
     
     let currentRevenue = contentRow.revenue || 0;
-    if (accessToken) {
+    const ageDays = (Date.now() - new Date(vid.publishedAt).getTime()) / 86400000;
+    if (accessToken && ageDays <= 14) {
       const retentionData = await fetchRetentionData(vid.post_id, accessToken);
       const rev = await fetchRevenueData(vid.post_id, accessToken);
       if (rev !== null) currentRevenue = rev;
@@ -120,6 +126,9 @@ async function processVideo(vid, editors, accessToken = null) {
       );
     }
     
+    if (vid.channelId) {
+      await db.query('UPDATE content SET channel_id = $1, channel_nama = $2 WHERE id = $3', [vid.channelId, vid.channelTitle || null, contentId]);
+    }
     await db.query(
       `INSERT INTO metrics_snapshot (content_id, views, likes, comments, revenue) VALUES ($1, $2, $3, $4, $5)`,
       [contentId, vid.views || 0, vid.likes || 0, vid.comments || 0, currentRevenue]
@@ -129,7 +138,11 @@ async function processVideo(vid, editors, accessToken = null) {
   }
 }
 
+// Stop before the serverless function limit; the next run picks up the rest.
+const TIME_BUDGET_MS = 45000;
+
 async function runFullScan() {
+  const startedAt = Date.now();
   console.log('=== Starting full scan (YouTube only) ===');
 
   const editorsRes = await db.query('SELECT * FROM editors WHERE status = $1', ['aktif']);
@@ -159,13 +172,19 @@ async function runFullScan() {
 
   // YouTube only — no TikTok/IG/FB mock
   try {
-    console.log('Fetching YouTube videos (last 30 days)...');
-    const ytVideos = await fetchNewVideos();
+    const ids = channelIds();
+    console.log(`Fetching YouTube videos (last 30 days) from ${ids.length} channel(s)...`);
+    const ytVideos = [];
+    for (const id of ids) ytVideos.push(...(await fetchNewVideos(id)));
     console.log(`Got ${ytVideos.length} YouTube videos.`);
 
     // Process videos in chunks of 10 concurrently to avoid Vercel 10s timeout
     const chunkSize = 10;
     for (let i = 0; i < ytVideos.length; i += chunkSize) {
+      if (Date.now() - startedAt > TIME_BUDGET_MS) {
+        errors.push(`Waktu habis: ${ytVideos.length - i} video akan diproses di sinkronisasi berikutnya`);
+        break;
+      }
       const chunk = ytVideos.slice(i, i + chunkSize);
       const promises = chunk.map(async (vid) => {
         try {
@@ -191,7 +210,7 @@ async function runFullScan() {
     const unmatchedRes = await db.query("SELECT post_id FROM content WHERE status_identifikasi = 'unmatched' AND platform = 'youtube'");
     const unmatchedIds = unmatchedRes.rows.map(r => r.post_id);
     
-    if (unmatchedIds.length > 0) {
+    if (unmatchedIds.length > 0 && Date.now() - startedAt < TIME_BUDGET_MS) {
       console.log(`Found ${unmatchedIds.length} unmatched videos in DB. Fetching full details to re-match...`);
       const unmatchedVideosDetails = await fetchVideosByIds(unmatchedIds);
       

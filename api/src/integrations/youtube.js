@@ -18,76 +18,66 @@ function formatDuration(secs) {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-async function fetchNewVideos() {
+function channelIds() {
+  const raw = process.env.YOUTUBE_CHANNEL_IDS || process.env.YOUTUBE_CHANNEL_ID || '';
+  return [...new Set(raw.split(/[\s,;]+/).map((s) => s.trim()).filter(Boolean))];
+}
+
+function toVideo(vid) {
+  const durationSecs = parseISODuration(vid.contentDetails.duration);
+  // < 120 seconds = Shorts, >= 120 seconds = Long video
+  const isShort = durationSecs > 0 && durationSecs < 120;
+  return {
+    post_id: vid.id,
+    platform: 'youtube',
+    url: isShort
+      ? `https://www.youtube.com/shorts/${vid.id}`
+      : `https://www.youtube.com/watch?v=${vid.id}`,
+    title: vid.snippet.title,
+    description: vid.snippet.description,
+    publishedAt: vid.snippet.publishedAt,
+    channelId: vid.snippet.channelId,
+    channelTitle: vid.snippet.channelTitle,
+    views: parseInt(vid.statistics.viewCount || 0),
+    likes: parseInt(vid.statistics.likeCount || 0),
+    comments: parseInt(vid.statistics.commentCount || 0),
+    durationSecs: durationSecs,
+    durationFormatted: formatDuration(durationSecs),
+    tipe_video: isShort ? 'short' : 'long'
+  };
+}
+
+// Uploads of one channel from the last `days` days, read from its uploads playlist
+// (1 quota unit per page instead of 100 for search).
+async function fetchNewVideos(channelId = channelIds()[0], days = 30) {
   const apiKey = process.env.YOUTUBE_API_KEY;
-  const channelId = process.env.YOUTUBE_CHANNEL_ID;
   if (!apiKey || !channelId) {
     console.warn('YouTube API keys missing, returning empty array.');
     return [];
   }
 
   try {
-    // Fetch videos published in the last 30 days only
-    // This handles the "only new videos going forward" requirement 
-    // while giving a 30-day window to catch recent uploads
-    const publishedAfter = new Date();
-    publishedAfter.setDate(publishedAfter.getDate() - 30);
-
-    const searchRes = await axios.get('https://www.googleapis.com/youtube/v3/search', {
-      params: {
-        key: apiKey,
-        channelId: channelId,
-        part: 'snippet',
-        order: 'date',
-        maxResults: 50,          // Max per page
-        type: 'video',
-        publishedAfter: publishedAfter.toISOString()  // Only recent videos
-      }
-    });
-
-    const items = searchRes.data.items || [];
-    if (items.length === 0) {
-      console.log('No new videos found in last 30 days.');
+    const since = Date.now() - days * 86400000;
+    const playlistId = 'UU' + channelId.slice(2);
+    const ids = [];
+    let pageToken;
+    for (let page = 0; page < 6; page++) {
+      const res = await axios.get('https://www.googleapis.com/youtube/v3/playlistItems', {
+        params: { key: apiKey, playlistId, part: 'contentDetails', maxResults: 50, pageToken }
+      });
+      const items = res.data.items || [];
+      const recent = items.filter((it) => new Date(it.contentDetails.videoPublishedAt || 0).getTime() >= since);
+      ids.push(...recent.map((it) => it.contentDetails.videoId));
+      pageToken = res.data.nextPageToken;
+      if (!pageToken || recent.length < items.length) break;
+    }
+    if (ids.length === 0) {
+      console.log(`No new videos found in last ${days} days for ${channelId}.`);
       return [];
     }
-
-    const videoIds = items.map(item => item.id.videoId).join(',');
-
-    // Fetch full details: stats + duration
-    const videoRes = await axios.get('https://www.googleapis.com/youtube/v3/videos', {
-      params: {
-        key: apiKey,
-        id: videoIds,
-        part: 'snippet,statistics,contentDetails'
-      }
-    });
-
-    const processedVideos = (videoRes.data.items || []).map(vid => {
-      const durationSecs = parseISODuration(vid.contentDetails.duration);
-      // < 120 seconds = Shorts, >= 120 seconds = Long video
-      const isShort = durationSecs > 0 && durationSecs < 120;
-
-      return {
-        post_id: vid.id,
-        platform: 'youtube',
-        url: isShort
-          ? `https://www.youtube.com/shorts/${vid.id}`
-          : `https://www.youtube.com/watch?v=${vid.id}`,
-        title: vid.snippet.title,
-        description: vid.snippet.description,
-        publishedAt: vid.snippet.publishedAt,
-        views: parseInt(vid.statistics.viewCount || 0),
-        likes: parseInt(vid.statistics.likeCount || 0),
-        comments: parseInt(vid.statistics.commentCount || 0),
-        durationSecs: durationSecs,
-        durationFormatted: formatDuration(durationSecs),
-        tipe_video: isShort ? 'short' : 'long'
-      };
-    });
-
-    return processedVideos;
+    return fetchVideosByIds(ids);
   } catch (error) {
-    console.error('Error fetching YouTube videos:', error.response?.data || error.message);
+    console.error(`Error fetching YouTube videos for ${channelId}:`, error.response?.data || error.message);
     return [];
   }
 }
@@ -95,7 +85,7 @@ async function fetchNewVideos() {
 async function fetchVideosByIds(videoIdsArray) {
   const apiKey = process.env.YOUTUBE_API_KEY;
   if (!apiKey || !videoIdsArray || videoIdsArray.length === 0) return [];
-  
+
   try {
     let processedVideos = [];
     // Process in chunks of 50
@@ -108,29 +98,7 @@ async function fetchVideosByIds(videoIdsArray) {
           part: 'snippet,statistics,contentDetails'
         }
       });
-      
-      const chunkProcessed = (videoRes.data.items || []).map(vid => {
-        const durationSecs = parseISODuration(vid.contentDetails.duration);
-        const isShort = durationSecs > 0 && durationSecs < 120;
-
-        return {
-          post_id: vid.id,
-          platform: 'youtube',
-          url: isShort
-            ? `https://www.youtube.com/shorts/${vid.id}`
-            : `https://www.youtube.com/watch?v=${vid.id}`,
-          title: vid.snippet.title,
-          description: vid.snippet.description,
-          publishedAt: vid.snippet.publishedAt,
-          views: parseInt(vid.statistics.viewCount || 0),
-          likes: parseInt(vid.statistics.likeCount || 0),
-          comments: parseInt(vid.statistics.commentCount || 0),
-          durationSecs: durationSecs,
-          durationFormatted: formatDuration(durationSecs),
-          tipe_video: isShort ? 'short' : 'long'
-        };
-      });
-      processedVideos = processedVideos.concat(chunkProcessed);
+      processedVideos = processedVideos.concat((videoRes.data.items || []).map(toVideo));
     }
     return processedVideos;
   } catch (error) {
@@ -139,4 +107,4 @@ async function fetchVideosByIds(videoIdsArray) {
   }
 }
 
-module.exports = { fetchNewVideos, fetchVideosByIds, parseISODuration, formatDuration };
+module.exports = { fetchNewVideos, fetchVideosByIds, parseISODuration, formatDuration, channelIds };

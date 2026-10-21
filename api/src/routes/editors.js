@@ -13,8 +13,8 @@ router.get('/', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const { nama, kode } = req.body;
-    const editor = await editorService.addEditor(nama, kode);
+    const { nama, kode, ...extra } = req.body;
+    const editor = await editorService.addEditor(nama, kode, extra);
     res.status(201).json(editor);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -24,8 +24,8 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { nama, kode } = req.body;
-    const editor = await editorService.updateEditor(id, nama, kode);
+    const { nama, kode, ...extra } = req.body;
+    const editor = await editorService.updateEditor(id, nama, kode, extra);
     res.json(editor);
   } catch (err) {
     res.status(500).json({ error: err.message });
