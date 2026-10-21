@@ -1,5 +1,15 @@
 const axios = require('axios');
 
+// The first few YouTube Analytics failures of a sync, kept so the app can show why numbers are missing.
+const recentErrors = [];
+function noteError(what, err) {
+  const msg = err.response?.data?.error?.message || err.message;
+  if (recentErrors.length < 5 && !recentErrors.some((e) => e.endsWith(msg))) recentErrors.push(`${what}: ${msg}`);
+}
+function takeErrors() {
+  return recentErrors.splice(0, recentErrors.length);
+}
+
 function getAuthUrl(redirectUri) {
   const scopes = [
     'https://www.googleapis.com/auth/yt-analytics.readonly',
@@ -63,6 +73,7 @@ async function fetchRetentionData(videoId, accessToken) {
     }));
   } catch (err) {
     console.error(`Analytics fetch failed for video ${videoId}:`, err.response?.data || err.message);
+    noteError('Retensi', err);
     return null;
   }
 }
@@ -94,6 +105,7 @@ async function fetchRevenueData(videoId, accessToken) {
     return parseFloat(rows[0][0]) || 0;
   } catch (err) {
     console.error(`Revenue fetch failed for video ${videoId}:`, err.response?.data || err.message);
+    noteError('Pendapatan video', err);
     return null;
   }
 }
@@ -139,4 +151,4 @@ async function fetchChannelDaily(accessToken, startDate, endDate) {
   }));
 }
 
-module.exports = { getAuthUrl, exchangeCodeForTokens, getAccessToken, fetchRetentionData, fetchRevenueData, fetchOwnChannel, fetchChannelDaily };
+module.exports = { getAuthUrl, exchangeCodeForTokens, getAccessToken, fetchRetentionData, fetchRevenueData, fetchOwnChannel, fetchChannelDaily, takeErrors };

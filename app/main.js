@@ -262,9 +262,10 @@
   const chName = (id) => (S.channels.find((c) => c.id === id) || {}).nama || 'Channel utama';
   const chColor = (id) => (S.channels.find((c) => c.id === id) || {})._color || 'var(--muted)';
   // Monitored channels with their YouTube Analytics connection state.
-  function analyticsChannels() {
+  // includeExtra: also list connected channels that are not monitored (only Pengaturan needs them).
+  function analyticsChannels(includeExtra = false) {
     const st = (S.oauth && S.oauth.channels) || [];
-    const ids = [...new Set([...S.channels.map((c) => c.id), ...st.map((c) => c.id)])];
+    const ids = [...new Set([...S.channels.map((c) => c.id), ...(includeExtra ? st.filter((c) => c.connected).map((c) => c.id) : [])])];
     return ids.map((id) => {
       const x = st.find((c) => c.id === id) || {};
       return { id, nama: (S.channels.find((c) => c.id === id) || {}).nama || x.nama || id, connected: !!x.connected, connected_at: x.connected_at || null };
@@ -848,9 +849,12 @@
               ${item(sc.database_url, 'Database', sc.database_url ? 'Tersambung' : 'Isi DATABASE_URL di Vercel')}
               ${item(sc.youtube_api_key, 'YouTube Data API', sc.youtube_api_key ? 'Kunci API terpasang' : 'Isi YOUTUBE_API_KEY di Vercel')}
               ${item((sc.youtube_channels || 0) >= 3, 'Channel dipantau', (sc.youtube_channels || 0) + ' channel' + ((sc.youtube_channels || 0) < 3 ? '. Tambahkan ketiga channel di kartu Channel.' : ''))}
-              ${analyticsChannels().map((c) => item(c.connected, 'Analytics: ' + esc(c.nama), c.connected ? 'Terhubung' + (c.connected_at ? ' sejak ' + new Date(c.connected_at).toLocaleDateString('id-ID', { dateStyle: 'medium' }) : '') : 'Belum terhubung: retensi, jam tonton dan pendapatan belum terbaca',
+              ${analyticsChannels(true).map((c) => item(c.connected, 'Analytics: ' + esc(c.nama), c.connected ? 'Terhubung' + (c.connected_at ? ' sejak ' + new Date(c.connected_at).toLocaleDateString('id-ID', { dateStyle: 'medium' }) : '') : 'Belum terhubung: retensi, jam tonton dan pendapatan belum terbaca',
                 c.connected ? `<button class="btn sm ghost danger" data-act="putus-analytics" data-id="${esc(c.id)}">Putuskan</button>` : `<a class="btn sm" href="/api/auth/google">Hubungkan</a>`)).join('')}
-            </div></section>
+            </div>
+            ${sc.last_summary ? `<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)"><div class="card-h" style="margin-bottom:6px"><h2>Catatan sinkronisasi terakhir</h2><p>${new Date(sc.last_summary.selesai).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })} · ${sc.last_summary.detik ?? '—'} detik · ${nf.format(sc.last_summary.newPosts || 0)} video baru, ${nf.format(sc.last_summary.updatedPosts || 0)} diperbarui, analytics ${sc.last_summary.analyticsChannels ?? 0} channel</p></div>
+              ${(sc.last_summary.errors || []).length ? `<ul style="margin:0;padding-left:18px;color:var(--warn);font-size:13px">${sc.last_summary.errors.map((e) => `<li>${esc(e)}</li>`).join('')}</ul>` : '<p class="muted" style="margin:0;font-size:13px">Tidak ada masalah.</p>'}</div>` : ''}
+          </section>
           <section class="card"><div class="card-h"><h2>Channel</h2><p>Channel yang videonya ditarik saat sinkronisasi.</p></div>
             <div class="rank">${S.channels.map((c) => `<div class="rank-row"><span></span><div class="tx"><b>${esc(c.nama)}</b><div class="mono">${esc(c.id)}</div></div><span class="muted">${nf.format(S.content.filter((x) => x._ch === c.id).length)} video</span></div>`).join('') || '<div class="empty">Belum ada channel.</div>'}</div>
             <form id="ch-form" style="display:flex;flex-direction:column;gap:10px;margin-top:14px">
@@ -1411,7 +1415,7 @@
       case 'goal': goalDialog(); break;
       case 'an-periode': S.anPeriode = +el.dataset.v; render(); break;
       case 'putus-analytics': {
-        const c = analyticsChannels().find((x) => x.id === el.dataset.id);
+        const c = analyticsChannels(true).find((x) => x.id === el.dataset.id);
         confirmDialog('Putuskan ' + c.nama + '?', 'Angka YouTube Analytics yang sudah tersimpan tetap ada, tapi tidak diperbarui lagi sampai dihubungkan ulang.', 'Putuskan', async () => {
           try { await api('/api/auth/google/' + encodeURIComponent(c.id), { method: 'DELETE' }); S.oauth = await optional(api('/api/auth/status'), 'Status YouTube Analytics'); normalize(); toast(c.nama + ' diputuskan'); render(); } catch (e) { toast(e.message, true); }
         });
