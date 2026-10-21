@@ -1,5 +1,6 @@
 const db = require('../config/db');
-const { fetchNewVideos, fetchVideosByIds, channelIds } = require('../integrations/youtube');
+const { fetchNewVideos, fetchVideosByIds } = require('../integrations/youtube');
+const { getChannelIds } = require('./channelService');
 const { fetchRetentionData, fetchRevenueData, getAccessToken } = require('../integrations/analytics');
 
 function matchEditorCode(captionText, editors) {
@@ -172,7 +173,7 @@ async function runFullScan() {
 
   // YouTube only — no TikTok/IG/FB mock
   try {
-    const ids = channelIds();
+    const ids = await getChannelIds();
     console.log(`Fetching YouTube videos (last 30 days) from ${ids.length} channel(s)...`);
     const ytVideos = [];
     for (const id of ids) ytVideos.push(...(await fetchNewVideos(id)));

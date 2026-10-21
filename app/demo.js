@@ -113,6 +113,7 @@ window.PantauDemo = (function () {
       Object.assign(e, b, { kode_identifikasi: b.kode, target_harian: +b.target_harian || 3, punya_pin: b.hapus_pin ? false : (e.punya_pin || !!b.pin) });
       return e;
     }
+    if (path === '/api/channels' && m === 'PUT') { return (b.channels || []).map((x, i) => ({ id: /UC[\w-]{22}/.test(x) ? x.match(/UC[\w-]{22}/)[0] : 'UCdemo' + String(i).padStart(18, '0'), nama: x.replace(/^.*@/, '@') })); }
     if (path === '/api/goals' && m === 'PUT') { S.goal = { ...S.goal, ...b }; return S.goal; }
     if (path === '/api/scan' && m === 'POST') { await new Promise((r) => setTimeout(r, 600)); return { message: 'Scan completed', newPosts: 0, updatedPosts: S.content.length, unmatched: 0 }; }
     throw new Error('Tidak tersedia di mode demo');

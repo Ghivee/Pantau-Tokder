@@ -1,6 +1,8 @@
 /* Pantau Tokder — catatan kerja harian tim konten cabai.
    Layout: sidebar tetap di kiri (atas di layar sempit), halaman satu kolom lebar dengan kartu seperlunya.
-   Warna: kertas hijau keabuan, tinta gelap, hijau daun sebagai aksen; merah cabai hanya untuk tanda telat/gagal. */
+   Warna terang: kertas hijau keabuan, tinta gelap, hijau daun sebagai aksen.
+   Warna gelap: abu arang netral dengan aksen putih, tanpa hijau kecuali penanda status.
+   Merah hanya untuk tanda telat/gagal. */
 :root {
   --paper: #F4F6F2;
   --surface: #FFFFFF;
@@ -35,20 +37,20 @@
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --paper: #0E1311; --surface: #151C18; --sunken: #1B2420; --ink: #E6ECE7; --ink-2: #B4C1B8; --muted: #8A988F;
-    --line: #25302A; --line-2: #33413A; --leaf: #49B07B; --leaf-ink: #08130D; --leaf-soft: #17301F;
-    --ok: #5BC48C; --ok-soft: #173023; --warn: #E3A23B; --warn-soft: #33270F; --bad: #F2796B; --bad-soft: #3A1A16;
-    --s1: #6FA8E0; --s2: #F08A4B; --s3: #A595F0; --s4: #4FC4BC; --s5: #D9AE3F;
-    --chart-grid: #1F2924; --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px -12px rgba(0, 0, 0, .5);
+    --paper: #0F1012; --surface: #17181B; --sunken: #1F2124; --ink: #ECEDEF; --ink-2: #B8BBC1; --muted: #8B8F97;
+    --line: #26282D; --line-2: #35383E; --leaf: #ECEDEF; --leaf-ink: #111214; --leaf-soft: #2A2C31;
+    --ok: #86C9A2; --ok-soft: #1D2A23; --warn: #E6AE52; --warn-soft: #30261A; --bad: #F08A7E; --bad-soft: #36201E;
+    --s1: #7EB2EE; --s2: #F2925A; --s3: #B1A3F2; --s4: #5CC6D0; --s5: #DDB64E;
+    --chart-grid: #222428; --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 10px 28px -12px rgba(0, 0, 0, .6);
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --paper: #0E1311; --surface: #151C18; --sunken: #1B2420; --ink: #E6ECE7; --ink-2: #B4C1B8; --muted: #8A988F;
-  --line: #25302A; --line-2: #33413A; --leaf: #49B07B; --leaf-ink: #08130D; --leaf-soft: #17301F;
-  --ok: #5BC48C; --ok-soft: #173023; --warn: #E3A23B; --warn-soft: #33270F; --bad: #F2796B; --bad-soft: #3A1A16;
-  --s1: #6FA8E0; --s2: #F08A4B; --s3: #A595F0; --s4: #4FC4BC; --s5: #D9AE3F;
-  --chart-grid: #1F2924; --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px -12px rgba(0, 0, 0, .5);
+  --paper: #0F1012; --surface: #17181B; --sunken: #1F2124; --ink: #ECEDEF; --ink-2: #B8BBC1; --muted: #8B8F97;
+  --line: #26282D; --line-2: #35383E; --leaf: #ECEDEF; --leaf-ink: #111214; --leaf-soft: #2A2C31;
+  --ok: #86C9A2; --ok-soft: #1D2A23; --warn: #E6AE52; --warn-soft: #30261A; --bad: #F08A7E; --bad-soft: #36201E;
+  --s1: #7EB2EE; --s2: #F2925A; --s3: #B1A3F2; --s4: #5CC6D0; --s5: #DDB64E;
+  --chart-grid: #222428; --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 10px 28px -12px rgba(0, 0, 0, .6);
   color-scheme: dark;
 }
 

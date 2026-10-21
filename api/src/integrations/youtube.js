@@ -18,9 +18,16 @@ function formatDuration(secs) {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
+const DEFAULT_CHANNELS = require('../config/channels');
+
+// YOUTUBE_CHANNEL_IDS wins; otherwise the project's own channel list; the old single
+// YOUTUBE_CHANNEL_ID is only used when that list is empty.
 function channelIds() {
-  const raw = process.env.YOUTUBE_CHANNEL_IDS || process.env.YOUTUBE_CHANNEL_ID || '';
-  return [...new Set(raw.split(/[\s,;]+/).map((s) => s.trim()).filter(Boolean))];
+  const split = (raw) => [...new Set(String(raw || '').split(/[\s,;]+/).map((s) => s.trim()).filter(Boolean))];
+  const fromEnv = split(process.env.YOUTUBE_CHANNEL_IDS);
+  if (fromEnv.length) return fromEnv;
+  if (DEFAULT_CHANNELS.length) return DEFAULT_CHANNELS.map((c) => c.id);
+  return split(process.env.YOUTUBE_CHANNEL_ID);
 }
 
 function toVideo(vid) {
