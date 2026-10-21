@@ -40,9 +40,21 @@
     {
       "src": "assets/youtube.svg",
       "use": "@vercel/static"
+    },
+    {
+      "src": "harian/**",
+      "use": "@vercel/static"
     }
   ],
   "rewrites": [
+    {
+      "source": "/harian",
+      "destination": "/harian/index.html"
+    },
+    {
+      "source": "/harian/",
+      "destination": "/harian/index.html"
+    },
     {
       "source": "/api/(.*)",
       "destination": "/api/index.js"
