@@ -672,15 +672,21 @@
         <header class="head"><div><h1>Pengaturan</h1><p>Sambungan data, sinkronisasi video dan keamanan.</p></div>
           <div class="tools"><button class="btn primary" data-act="sync">${icon('sync')}Sinkronkan sekarang</button></div></header>
         <div class="grid-2">
-          <section class="card"><div class="card-h"><h2>Sambungan</h2><p>${last ? 'Sinkronisasi terakhir ' + new Date(last.created_at || last.waktu || Date.now()).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) + ' · ' + (last.jumlah_post_baru ?? 0) + ' video baru' : 'Belum ada catatan sinkronisasi.'}</p></div>
+          <section class="card"><div class="card-h"><h2>Sambungan</h2><p>${last ? 'Sinkronisasi terakhir ' + new Date(last.waktu_scan || last.created_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) + ' · ' + (last.jumlah_post_baru ?? 0) + ' video baru' : 'Belum ada catatan sinkronisasi.'}</p></div>
             <div class="checklist">
               ${item(sc.database_url, 'Database', sc.database_url ? 'Tersambung' : 'Isi DATABASE_URL di Vercel')}
               ${item(sc.youtube_api_key, 'YouTube Data API', sc.youtube_api_key ? 'Kunci API terpasang' : 'Isi YOUTUBE_API_KEY di Vercel')}
-              ${item((sc.youtube_channels || 0) >= 3, 'Channel dipantau', (sc.youtube_channels || 0) + ' channel. Isi ketiga ID channel di YOUTUBE_CHANNEL_IDS.')}
+              ${item((sc.youtube_channels || 0) >= 3, 'Channel dipantau', (sc.youtube_channels || 0) + ' channel' + ((sc.youtube_channels || 0) < 3 ? '. Tambahkan ketiga channel di kartu Channel.' : ''))}
               ${item(S.oauth && S.oauth.connected, 'YouTube Analytics', S.oauth && S.oauth.connected ? 'Terhubung: retensi dan pendapatan asli' : 'Belum terhubung: retensi masih perkiraan', `<a class="btn sm" href="/api/auth/google">${S.oauth && S.oauth.connected ? 'Hubungkan ulang' : 'Hubungkan'}</a>`)}
             </div></section>
-          <section class="card"><div class="card-h"><h2>Channel</h2><p>Nama terbaca dari YouTube saat sinkronisasi.</p></div>
-            <div class="rank">${S.channels.map((c) => `<div class="rank-row"><span></span><div class="tx"><b>${esc(c.nama)}</b><div class="mono">${esc(c.id)}</div></div><span class="muted">${nf.format(S.content.filter((x) => x._ch === c.id).length)} video</span></div>`).join('') || '<div class="empty">Belum ada channel.</div>'}</div></section>
+          <section class="card"><div class="card-h"><h2>Channel</h2><p>Channel yang videonya ditarik saat sinkronisasi.</p></div>
+            <div class="rank">${S.channels.map((c) => `<div class="rank-row"><span></span><div class="tx"><b>${esc(c.nama)}</b><div class="mono">${esc(c.id)}</div></div><span class="muted">${nf.format(S.content.filter((x) => x._ch === c.id).length)} video</span></div>`).join('') || '<div class="empty">Belum ada channel.</div>'}</div>
+            <form id="ch-form" style="display:flex;flex-direction:column;gap:10px;margin-top:14px">
+              <label class="field"><span>Ganti daftar channel</span><textarea class="input mono" name="channels" rows="3" placeholder="@tokder&#10;https://www.youtube.com/@budidayacabe&#10;UCxxxxxxxxxxxxxxxxxxxxxx">${esc(S.channels.map((c) => c.id).join('\n'))}</textarea>
+                <small>Satu channel per baris: link channel, @handle, atau ID (UC…). Setelah disimpan, klik Sinkronkan sekarang.</small></label>
+              <div class="err" id="ch-err" role="alert" style="color:var(--bad);font-size:13px"></div>
+              <div><button class="btn">Simpan channel</button></div>
+            </form></section>
           <section class="card"><div class="card-h"><h2>Password pemilik</h2><p>Dipakai untuk masuk sebagai pemilik. Ganti dari bawaan "admin123" bila belum.</p></div>
             <div class="tools"><input class="input" type="password" id="pw-baru" placeholder="Password baru, minimal 8 karakter" autocomplete="new-password" style="max-width:300px"><button class="btn" data-act="ganti-pw">Simpan</button></div></section>
         </div>`;
@@ -772,6 +778,24 @@
 
   // ============ after render (charts, inputs) ============
   const AFTER = {
+    pengaturan() {
+      const f = $('#ch-form');
+      if (!f) return;
+      f.addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        const channels = f.channels.value.split('\n').map((x) => x.trim()).filter(Boolean);
+        const btn = $('button', f);
+        btn.disabled = true; btn.textContent = 'Memeriksa ke YouTube…';
+        try {
+          const list = await api('/api/channels', { method: 'PUT', body: { channels } });
+          S.channels = list;
+          if (S.scan) S.scan.youtube_channels = list.length;
+          normalize();
+          toast(list.length + ' channel tersimpan: ' + list.map((c) => c.nama).join(', '));
+          render();
+        } catch (e) { $('#ch-err').textContent = e.message; btn.disabled = false; btn.textContent = 'Simpan channel'; }
+      });
+    },
     ringkasan() {
       const { days, vids, team, target } = ringkasanData();
       const series = team.map((e) => ({ name: e.nama, color: e._color, values: days.map((d) => vids.filter((c) => c._day === d && c.editor_id === e.id).length) }));

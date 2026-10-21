@@ -37,18 +37,16 @@ Saat aplikasi pertama kali dibuka setelah terbit, database diperbarui otomatis. 
 
 > Link Preview dari Vercel memakai database yang sama dengan website utama. Jadi membuka link Preview juga menjalankan pembaruan database di atas.
 
-### 2. Masukkan ketiga channel di Vercel
+### 2. Masukkan ketiga channel
 
-1. Cari **ID channel** masing-masing (diawali `UC…`). Caranya: login ke channel itu, buka https://www.youtube.com/account_advanced, lalu salin **ID Channel**. Ulangi untuk ketiga channel.
-2. Buka Vercel → project **Pantau-Tokder** → **Settings → Environment Variables**.
-3. Tambahkan:
+Tidak perlu login Vercel. Lakukan dari aplikasi:
 
-| Name | Value |
-|---|---|
-| `YOUTUBE_CHANNEL_IDS` | Tiga ID dipisah koma, misal `UC1wIvd8HotnZe0KENzHj2kQ,UCxxxx,UCyyyy` |
+1. Masuk sebagai pemilik (langkah 3), lalu buka **Pengaturan**.
+2. Di kartu **Channel**, isi satu channel per baris. Bisa berupa link channel (`https://www.youtube.com/@namachannel`), @handle, atau ID channel (`UC…`).
+3. Klik **Simpan channel**. Aplikasi memeriksa ke YouTube dan menampilkan nama channel yang ditemukan.
+4. Klik **Sinkronkan sekarang**.
 
-4. Variabel yang sudah ada tetap dipakai: `DATABASE_URL`, `YOUTUBE_API_KEY`, `GOOGLE_CLIENT_ID` dan `GOOGLE_CLIENT_SECRET`. Kalau `YOUTUBE_CHANNEL_IDS` sudah diisi, `YOUTUBE_CHANNEL_ID` yang lama tidak dipakai lagi.
-5. Buka **Deployments**, klik ⋯ pada deployment terakhir, lalu **Redeploy**.
+Daftar yang disimpan di sini menggantikan `YOUTUBE_CHANNEL_ID` di Vercel. Channel yang dipantau sebelumnya (`UC1wIvd8HotnZe0KENzHj2kQ`) tidak punya video baru sejak 21 Agustus, jadi kemungkinan besar perlu diganti.
 
 ### 3. Masuk sebagai pemilik dan ganti password
 

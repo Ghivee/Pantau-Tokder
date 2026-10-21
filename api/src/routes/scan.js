@@ -2,11 +2,11 @@ const express = require('express');
 const router = express.Router();
 const scanService = require('../services/scanService');
 const db = require('../config/db');
-const { channelIds } = require('../integrations/youtube');
+const { getChannelIds } = require('../services/channelService');
 
 // GET: Check API configuration status (for debugging)
 router.get('/status', async (req, res) => {
-  const ids = channelIds();
+  const ids = await getChannelIds();
   let lastScan = null;
   try {
     const r = await db.query('SELECT * FROM scan_log ORDER BY id DESC LIMIT 1');
