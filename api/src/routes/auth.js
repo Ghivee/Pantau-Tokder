@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
 const { getAuthUrl, exchangeCodeForTokens } = require('../integrations/analytics');
+const { verifyPin } = require('../middlewares/adminAuth');
 
 // GET /api/auth/google — Redirect user to Google OAuth consent screen
 router.get('/google', (req, res) => {
@@ -109,6 +110,41 @@ router.post('/login', async (req, res) => {
     }
   } catch (err) {
     res.status(500).json({ error: 'Gagal memverifikasi password' });
+  }
+});
+
+// POST /api/auth/editor-login — Employee sign-in with their PIN
+router.post('/editor-login', async (req, res) => {
+  const { editor_id, pin } = req.body || {};
+  if (!editor_id || !pin) return res.status(400).json({ error: 'Pilih nama dan isi PIN' });
+  try {
+    const result = await db.query(
+      `SELECT id, nama, peran, pin, foto_url FROM editors WHERE id = $1 AND status = 'aktif'`,
+      [editor_id]
+    );
+    const row = result.rows[0];
+    if (!row || !row.pin) return res.status(401).json({ error: 'PIN belum diatur untuk karyawan ini. Minta pemilik mengaturnya.' });
+    if (!verifyPin(pin, row.pin)) return res.status(401).json({ error: 'PIN salah' });
+    res.json({ id: row.id, nama: row.nama, peran: row.peran || 'editor', foto_url: row.foto_url });
+  } catch (err) {
+    res.status(500).json({ error: 'Gagal memverifikasi PIN' });
+  }
+});
+
+// POST /api/auth/password — Owner changes the admin password
+router.post('/password', async (req, res) => {
+  if (!req.isAdmin) return res.status(401).json({ error: 'Hanya pemilik yang bisa mengganti password' });
+  const baru = String((req.body || {}).baru || '');
+  if (baru.length < 8) return res.status(400).json({ error: 'Password baru minimal 8 karakter' });
+  try {
+    await db.query(
+      `INSERT INTO settings (key, value, updated_at) VALUES ('admin_password', $1, NOW())
+       ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = NOW()`,
+      [baru]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Gagal menyimpan password' });
   }
 });
 
