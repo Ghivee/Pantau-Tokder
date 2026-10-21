@@ -3,18 +3,17 @@
   "builds": [
     {
       "src": "api/index.js",
-      "use": "@vercel/node"
+      "use": "@vercel/node",
+      "config": {
+        "maxDuration": 60
+      }
     },
     {
       "src": "index.html",
       "use": "@vercel/static"
     },
     {
-      "src": "dashboard.css",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "dashboard.js",
+      "src": "app/**",
       "use": "@vercel/static"
     },
     {
@@ -22,23 +21,7 @@
       "use": "@vercel/static"
     },
     {
-      "src": "assets/TikTok_dark.svg",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "assets/TikTok_light.svg",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "assets/facebook-icon.svg",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "assets/instagram-icon.svg",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "assets/youtube.svg",
+      "src": "assets/**",
       "use": "@vercel/static"
     }
   ],
