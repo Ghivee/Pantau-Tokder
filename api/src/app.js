@@ -16,7 +16,6 @@ const { ensureSchema } = require('./config/schema');
 
 const app = express();
 
-// CORS configuration - only allow our Vercel domain with credentials
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || 'https://pantautokder.vercel.app';
 app.use(cors({
   origin: ALLOWED_ORIGIN,
@@ -27,14 +26,11 @@ app.use(cors({
 
 app.use(express.json({ limit: '100kb' }));
 
-// Add new tables and columns once per cold start (additive only).
 app.use(async (req, res, next) => { await ensureSchema(); next(); });
 
-// Session-based authentication middleware
 const { identify } = require('./middlewares/sessionAuth');
 app.use(identify);
 
-// Routes
 app.use('/api/editors', editorsRouter);
 app.use('/api/content', contentRouter);
 app.use('/api/scan', scanRouter);
@@ -49,7 +45,6 @@ app.use('/api', cspReportRouter);
 
 app.use('/api', (req, res) => res.status(404).json({ error: 'Alamat API tidak ditemukan' }));
 
-// Error handler
 app.use((err, req, res, next) => {
   if (err.type === 'entity.parse.failed') return res.status(400).json({ error: 'Data yang dikirim bukan JSON yang valid' });
   if (err.type === 'entity.too.large') return res.status(413).json({ error: 'Data yang dikirim terlalu besar' });
