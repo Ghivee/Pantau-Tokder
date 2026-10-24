@@ -23,6 +23,8 @@ router.get('/', requireAnyAuth, async (req, res) => {
     const result = await db.query(query, params);
     // Revenue is for the owner only.
     if (!req.isAdmin) result.rows.forEach((r) => { delete r.revenue; });
+    // Cache 1 menit, stale-while-revalidate 5 menit
+    res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
     res.json(result.rows);
   } catch (err) {
     fail(res, err);
