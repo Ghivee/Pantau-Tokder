@@ -1,7 +1,7 @@
 // app/pages/pengaturan.js - Pengaturan page (Admin only)
 import { getState, isAdmin } from '../core/state.js';
 import { api } from '../core/api.js';
-import { icon, esc, today, addDays } from '../core/utils.js';
+import { icon, esc, today, addDays, usd } from '../core/utils.js';
 import { goalDialog, confirmDialog } from '../components/dialogs.js';
 
 export function renderPengaturan() {
@@ -62,5 +62,3 @@ export function renderPengaturan() {
     </section>
   `;
 }
-
-import { usd } from '../core/utils.js';

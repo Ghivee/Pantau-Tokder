@@ -4,7 +4,7 @@ const { fail, bad } = require('../utils/httpError');
 const metricsService = require('../services/metricsService');
 const { requireAnyAuth } = require('../middlewares/sessionAuth');
 
-router.get('/summary', requireAnyAuth, async (req, res) => {
+router.get('/summary', async (req, res) => {
   try {
     const summary = await metricsService.getSummary();
     // Cache 2 menit, stale-while-revalidate 5 menit
@@ -15,7 +15,7 @@ router.get('/summary', requireAnyAuth, async (req, res) => {
   }
 });
 
-router.get('/trend', requireAnyAuth, async (req, res) => {
+router.get('/trend', async (req, res) => {
   try {
     const trend = await metricsService.getTrend();
     // Cache 2 menit, stale-while-revalidate 5 menit

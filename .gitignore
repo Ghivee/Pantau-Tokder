@@ -10,3 +10,5 @@ api/package-lock.json
 migrations/
 reel-watch-backend/
 package-lock.json
+.vercel
+dist

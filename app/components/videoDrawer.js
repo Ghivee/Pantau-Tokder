@@ -1,10 +1,10 @@
 // app/components/videoDrawer.js - Video detail drawer
 import { getState, isAdmin, canAssign } from '../core/state.js';
 import { api } from '../core/api.js';
-import { icon, esc, fmt, durasi, usd, avatar } from '../core/utils.js';
-import { confirmDialog, catatDialog, closeOverlay } from '../components/dialogs.js';
+import { icon, esc, fmt, durasi, usd, avatar, $, toast } from '../core/utils.js';
+import { confirmDialog, catatDialog, openDialog, closeOverlay } from '../components/dialogs.js';
 import { drawRetention } from '../charts/charts.js';
-import { activeEditors, editorById } from './nav.js';
+import { activeEditors, editorById, renderNav } from './nav.js';
 
 export function videoDrawer(id) {
   const S = getState();
@@ -63,8 +63,9 @@ async function assign(ids, editorId) {
     ids.forEach((id) => { const c = getState().content.find((x) => x.id === id); if (c) { c.editor_id = editorId; c.status_identifikasi = 'matched'; } });
     getState().sel.clear();
     getState().cache.clear();
-    toast(ids.length + ' video ditetapkan ke ' + editorById(editorId).nama);
-    import('../components/nav.js').then(m => m.renderNav());
+    const edName = (editorById(editorId) || {}).nama || 'karyawan';
+    toast(ids.length + ' video ditetapkan ke ' + edName);
+    renderNav();
   } catch (e) { toast(e.message, true); }
 }
 

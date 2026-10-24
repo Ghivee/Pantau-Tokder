@@ -1,7 +1,8 @@
 // app/pages/ringkasan.js - Ringkasan page
 import { getState, isAdmin } from '../core/state.js';
 import { api } from '../core/api.js';
-import { icon, esc, fmt, idr, usd, signed, pct, cf, nf, tglPanjang, PALETTE } from '../core/utils.js';
+import { icon, esc, fmt, idr, usd, signed, pct, cf, nf, tglPanjang, addDays, avatar, gradeOf, editorCell, PALETTE } from '../core/utils.js';
+import { periodStats, daysBack } from '../core/scoring.js';
 import { drawStacked, drawSparkbars } from '../charts/charts.js';
 import { editorById, activeEditors, analyticsChannels, chName, chColor } from '../components/nav.js';
 import { confirmDialog } from '../components/dialogs.js';
@@ -10,17 +11,27 @@ export function renderRingkasan() {
   const S = getState();
   const showRev = isAdmin();
   const days = daysBack(S.periode);
+  const prevDays = days.map((x) => addDays(x, -S.periode));
   const editors = activeEditors();
   const team = editors.filter((e) => (e.peran || 'editor') === 'editor');
   const limited = editors.filter((e) => (e.peran || 'editor') === 'terbatas');
 
-  // Totals
+  // Current period totals
   let totViews = 0, totRevenue = 0, totVideo = 0, totShorts = 0, totVideoDur = 0, totShortsDur = 0;
   S.content.filter((c) => days.includes(c._day)).forEach((c) => {
     totViews += c.views;
     if (c.revenue != null) totRevenue += c.revenue;
     if (c.tipe_video === 'short') { totShorts++; totShortsDur += c.duration_secs; }
     else { totVideo++; totVideoDur += c.duration_secs; }
+  });
+
+  // Previous period totals
+  let prevTotViews = 0, prevTotRevenue = 0, prevVideoCount = 0, prevShortsCount = 0;
+  S.content.filter((c) => prevDays.includes(c._day)).forEach((c) => {
+    prevTotViews += c.views;
+    if (c.revenue != null) prevTotRevenue += c.revenue;
+    if (c.tipe_video === 'short') prevShortsCount++;
+    else prevVideoCount++;
   });
 
   // Series for stacked chart
@@ -44,7 +55,7 @@ export function renderRingkasan() {
     const m = chData.reduce((s, d) => s + d.menit_tonton, 0);
     const rev = showRev ? chData.reduce((s, d) => s + (d.revenue || 0), 0) : null;
     const sub = chData.reduce((s, d) => s + d.sub_naik - d.sub_turun, 0);
-    const prevCh = S.daily.filter((d) => d.channel_id === c.id && days.map((x) => addDays(x, -S.periode)).includes(d.tanggal));
+    const prevCh = S.daily.filter((d) => d.channel_id === c.id && prevDays.includes(d.tanggal));
     const pv = prevCh.reduce((s, d) => s + d.views, 0);
     const pm = prevCh.reduce((s, d) => s + d.menit_tonton, 0);
     const prevRev = showRev ? prevCh.reduce((s, d) => s + (d.revenue || 0), 0) : null;
@@ -54,10 +65,10 @@ export function renderRingkasan() {
   return `
     <section class="card"><div class="card-h"><h2>Ringkasan ${S.periode} hari</h2></div>
       <div class="grid-4">
-        <div class="stat"><span>Video panjang</span><b>${fmt(totVideo)}</b><div class="d">${signed(totVideo - (S.content.filter((c) => days.map((x) => addDays(x, -S.periode)).includes(c._day) && c.tipe_video !== 'short')).length)} vs periode lalu</div></div>
-        <div class="stat"><span>Shorts</span><b>${fmt(totShorts)}</b><div class="d">${signed(totShorts - (S.content.filter((c) => days.map((x) => addDays(x, -S.periode)).includes(c._day) && c.tipe_video === 'short')).length)} vs periode lalu</div></div>
-        <div class="stat"><span>Total Views</span><b>${fmt(totViews)}</b><div class="d">${pct(totViews / Math.max(1, pv) - 1)} vs periode lalu</div></div>
-        ${showRev ? `<div class="stat"><span>Pendapatan</span><b>${usd(totRevenue)}</b><div class="d">${signed(usd(totRevenue - prevRev))} vs periode lalu</div></div>` : ''}
+        <div class="stat"><span>Video panjang</span><b>${fmt(totVideo)}</b><div class="d">${signed(totVideo - prevVideoCount)} vs periode lalu</div></div>
+        <div class="stat"><span>Shorts</span><b>${fmt(totShorts)}</b><div class="d">${signed(totShorts - prevShortsCount)} vs periode lalu</div></div>
+        <div class="stat"><span>Total Views</span><b>${fmt(totViews)}</b><div class="d">${prevTotViews ? pct(totViews / Math.max(1, prevTotViews) - 1) : '—'} vs periode lalu</div></div>
+        ${showRev ? `<div class="stat"><span>Pendapatan</span><b>${usd(totRevenue)}</b><div class="d">${signed(totRevenue - prevTotRevenue, usd)} vs periode lalu</div></div>` : ''}
       </div>
       <div class="chart-wrap" id="chart-stacked" style="height:250px;margin-top:12px"></div>
     </section>
@@ -65,9 +76,9 @@ export function renderRingkasan() {
     ${chCards.map((c) => `
       <section class="card"><div class="card-h"><h2>${esc(c.nama)} ${c.connected ? '<span class="pill ok">Analytics</span>' : '<span class="pill warn">Belum sambung</span>'}</h2></div>
         <div class="grid-4">
-          <div class="stat"><span>Views</span><b>${fmt(c.v)}</b><div class="d">${pct(c.v / Math.max(1, c.pv) - 1)}</div></div>
-          <div class="stat"><span>Menit tonton</span><b>${fmt(c.m)}</b><div class="d">${pct(c.m / Math.max(1, c.pm) - 1)}</div></div>
-          ${showRev ? `<div class="stat"><span>Pendapatan</span><b>${usd(c.rev)}</b><div class="d">${signed(usd(c.rev - c.prevRev))}</div></div>` : ''}
+          <div class="stat"><span>Views</span><b>${fmt(c.v)}</b><div class="d">${c.pv ? pct(c.v / Math.max(1, c.pv) - 1) : '—'}</div></div>
+          <div class="stat"><span>Menit tonton</span><b>${fmt(c.m)}</b><div class="d">${c.pm ? pct(c.m / Math.max(1, c.pm) - 1) : '—'}</div></div>
+          ${showRev ? `<div class="stat"><span>Pendapatan</span><b>${usd(c.rev)}</b><div class="d">${c.prevRev != null ? signed(c.rev - c.prevRev, usd) : '—'}</div></div>` : ''}
           <div class="stat"><span>Sub bersih</span><b>${signed(c.sub)}</b></div>
         </div>
         <div class="chart-wrap" id="spark-${c.id}" style="height:120px;margin-top:8px"></div>
@@ -111,6 +122,3 @@ export function renderRingkasan() {
     ` : ''}
   `;
 }
-
-import { periodStats, daysBack } from '../core/scoring.js';
-import { addDays, avatar, gradeOf, editorCell } from '../core/utils.js';

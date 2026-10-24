@@ -63,6 +63,7 @@ let ready = null;
 function ensureSchema() {
   if (!ready) {
     ready = (async () => {
+      if (typeof db.isMock === 'function' && db.isMock()) return;
       for (const sql of STATEMENTS) {
         try {
           await db.query(sql);

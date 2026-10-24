@@ -1,6 +1,7 @@
 // app/core/api.js - Centralized API layer with progressive loading & stale-while-revalidate cache
-import { getState, isAdmin } from './state.js';
-import { today, addDays } from './utils.js';
+import { getState, isAdmin, clearSession } from './state.js';
+import { today, addDays, $ } from './utils.js';
+import { normalize } from './scoring.js';
 
 // Cache configuration
 const CACHE_TTL = 5 * 60 * 1000; // 5 menit
@@ -60,8 +61,8 @@ export async function api(path, opts = {}) {
     const err = new Error((data && data.error) || 'Server menjawab ' + res.status);
     err.status = res.status;
     if (res.status === 401 && getState().session && !path.includes('/api/auth/login') && !path.includes('editor-login')) {
-      import('./state.js').then(m => m.clearSession());
-      import('../components/nav.js').then(m => m.renderNav());
+      clearSession();
+      if (typeof window !== 'undefined' && typeof window.__pt_renderNav === 'function') window.__pt_renderNav();
       err.message = 'Sesi Anda tidak berlaku lagi (password atau PIN sudah berubah). Silakan masuk ulang.';
     }
     throw err;
@@ -111,19 +112,29 @@ export async function fetchSecondary(useCache = true) {
 }
 
 // FULL: Load semua data (fallback / manual refresh)
-export async function fetchAll(normalize, useCache = true) {
-  const critical = await fetchCritical(normalize, useCache);
+export async function fetchAll(normalizeFn, useCache = true) {
+  const norm = typeof normalizeFn === 'function' ? normalizeFn : normalize;
+  const critical = await fetchCritical(norm, useCache);
   const secondary = await fetchSecondary(useCache);
   return { ...critical, ...secondary };
 }
 
 let refreshing = false;
-export async function refresh(render, renderNav, fetchAll, normalize, useCache = true) {
+export async function refresh(render, renderNav, fetchAllFn, normalizeFn, useCache = true) {
   if (refreshing) return;
   refreshing = true;
   try {
-    await fetchAll(normalize, useCache);
-    if (!$('#overlay').innerHTML && !document.activeElement.matches('input, select, textarea')) render(); else renderNav();
+    const doFetch = typeof fetchAllFn === 'function' ? fetchAllFn : fetchAll;
+    const doNorm = typeof normalizeFn === 'function' ? normalizeFn : normalize;
+    await doFetch(doNorm, useCache);
+    const ov = $('#overlay');
+    if (typeof render === 'function') {
+      if ((!ov || !ov.innerHTML) && !document.activeElement?.matches?.('input, select, textarea')) render();
+      else if (typeof renderNav === 'function') renderNav();
+    } else if (typeof window !== 'undefined' && typeof window.__pt_render === 'function') {
+      if ((!ov || !ov.innerHTML) && !document.activeElement?.matches?.('input, select, textarea')) window.__pt_render();
+      else if (typeof window.__pt_renderNav === 'function') window.__pt_renderNav();
+    }
   } catch (e) {
     console.warn('Refresh failed:', e.message);
   } finally {

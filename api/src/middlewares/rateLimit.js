@@ -5,6 +5,7 @@ class RateLimitStore {
   constructor() {
     this.windows = new Map(); // key -> { count, resetTime, requests: [{time, count}] }
     this.cleanupInterval = setInterval(() => this.cleanup(), 60000);
+    if (this.cleanupInterval && this.cleanupInterval.unref) this.cleanupInterval.unref();
   }
 
   cleanup() {
