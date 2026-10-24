@@ -10,8 +10,16 @@
       "config": {
         "maxDuration": 60,
         "includeFiles": [
-          "api/**"
+          "api/**",
+          "src/**"
         ]
+      }
+    },
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
       }
     }
   ],
@@ -22,7 +30,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "/dist/$1"
+      "dest": "/index.html"
     }
   ],
   "headers": [
