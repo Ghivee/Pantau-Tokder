@@ -1,5 +1,5 @@
 const db = require('../config/db');
-const { hashPin } = require('../middlewares/adminAuth');
+const { hashPin } = require('../middlewares/sessionAuth');
 
 // Never send the PIN hash to the browser.
 const PUBLIC_COLUMNS = `id, nama, kode_identifikasi, status, created_at, peran, jadwal, target_harian, foto_url,

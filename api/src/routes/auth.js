@@ -5,7 +5,9 @@ const db = require('../config/db');
 const { getAuthUrl, exchangeCodeForTokens, fetchOwnChannel } = require('../integrations/analytics');
 const analyticsService = require('../services/analyticsService');
 const { getChannelIds, getChannelNames } = require('../services/channelService');
-const { verifyPin } = require('../middlewares/adminAuth');
+const { verifyPin, createSessionPayload, setSessionCookie, clearSessionCookie } = require('../middlewares/sessionAuth');
+const { authLimiter, editorLoginLimiter } = require('../middlewares/rateLimit');
+const { createAuditMiddleware, logAudit } = require('../utils/auditLog');
 
 // GET /api/auth/google — Redirect user to Google OAuth consent screen
 router.get('/google', (req, res) => {
@@ -53,7 +55,7 @@ router.get('/callback', async (req, res) => {
     // Pull the channel's daily numbers right away so the Analytics page fills in.
     try { await analyticsService.syncChannelDaily(channel.id, tokens.access_token); } catch (e) { console.warn('First analytics sync failed:', e.message); }
 
-    const safe = (t) => String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const safe = (t) => String(t).replace(/[&<>"']/g, (c) => ({ '&': '&', '<': '<', '>': '>', '"': '"', "'": "'" }[c]));
     return res.send(`<!doctype html><html lang="id"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Channel terhubung</title></head>
       <body style="font-family:system-ui,sans-serif;margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#F4F6F2;color:#17201B">
       <div style="max-width:440px;margin:16px;padding:28px;background:#fff;border:1px solid #E0E5DE;border-radius:14px">
@@ -94,7 +96,7 @@ router.get('/status', async (req, res) => {
 });
 
 // DELETE /api/auth/google/:channelId — owner disconnects one channel's analytics
-router.delete('/google/:channelId', async (req, res) => {
+router.delete('/google/:channelId', createAuditMiddleware('auth', 'disconnect_analytics', (req) => req.params.channelId), async (req, res) => {
   try {
     await analyticsService.removeConnection(req.params.channelId);
     res.status(204).send();
@@ -104,7 +106,7 @@ router.delete('/google/:channelId', async (req, res) => {
 });
 
 // POST /api/auth/login — Admin password verification
-router.post('/login', async (req, res) => {
+router.post('/login', authLimiter, async (req, res) => {
   const { password } = req.body;
   if (!password) {
     return res.status(400).json({ error: 'Password is required' });
@@ -115,7 +117,9 @@ router.post('/login', async (req, res) => {
     const correctPassword = result.rows.length > 0 && result.rows[0].value ? result.rows[0].value : 'admin123';
     
     if (password === correctPassword) {
-      res.json({ success: true, message: 'Login berhasil' });
+      const session = createSessionPayload({ type: 'admin', password });
+      setSessionCookie(res, session);
+      res.json({ success: true, message: 'Login berhasil', role: 'admin' });
     } else {
       res.status(401).json({ error: 'Password salah' });
     }
@@ -125,7 +129,7 @@ router.post('/login', async (req, res) => {
 });
 
 // POST /api/auth/editor-login — Employee sign-in with their PIN
-router.post('/editor-login', async (req, res) => {
+router.post('/editor-login', editorLoginLimiter, async (req, res) => {
   const { editor_id, pin } = req.body || {};
   if (!editor_id || !pin) return res.status(400).json({ error: 'Pilih nama dan isi PIN' });
   try {
@@ -136,14 +140,37 @@ router.post('/editor-login', async (req, res) => {
     const row = result.rows[0];
     if (!row || !row.pin) return res.status(401).json({ error: 'PIN belum diatur untuk karyawan ini. Minta pemilik mengaturnya.' });
     if (!verifyPin(pin, row.pin)) return res.status(401).json({ error: 'PIN salah' });
+    const session = createSessionPayload({ type: 'karyawan', id: row.id, nama: row.nama, peran: row.peran || 'editor', pin });
+    setSessionCookie(res, session);
     res.json({ id: row.id, nama: row.nama, peran: row.peran || 'editor', foto_url: row.foto_url });
   } catch (err) {
     res.status(500).json({ error: 'Gagal memverifikasi PIN' });
   }
 });
 
+// POST /api/auth/logout — Clear session cookie
+router.post('/logout', (req, res) => {
+  clearSessionCookie(res);
+  res.json({ success: true, message: 'Logout berhasil' });
+});
+
+// GET /api/auth/me — Get current session info (for frontend to restore UI state)
+router.get('/me', (req, res) => {
+  const { parseSessionCookie } = require('../middlewares/sessionAuth');
+  const session = parseSessionCookie(req);
+  if (!session) return res.json({ authenticated: false });
+  
+  if (session.type === 'admin') {
+    return res.json({ authenticated: true, type: 'admin' });
+  }
+  if (session.type === 'karyawan') {
+    return res.json({ authenticated: true, type: 'karyawan', id: session.id, nama: session.nama, peran: session.peran });
+  }
+  return res.json({ authenticated: false });
+});
+
 // POST /api/auth/password — Owner changes the admin password
-router.post('/password', async (req, res) => {
+router.post('/password', createAuditMiddleware('auth', 'password_change'), async (req, res) => {
   if (!req.isAdmin) return res.status(401).json({ error: 'Hanya pemilik yang bisa mengganti password' });
   const baru = String((req.body || {}).baru || '');
   if (baru.length < 8) return res.status(400).json({ error: 'Password baru minimal 8 karakter' });
@@ -153,6 +180,9 @@ router.post('/password', async (req, res) => {
        ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = NOW()`,
       [baru]
     );
+    // Update session cookie with new password
+    const session = createSessionPayload({ type: 'admin', password: baru });
+    setSessionCookie(res, session);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'Gagal menyimpan password' });

@@ -3,9 +3,11 @@ const router = express.Router();
 const { fail, bad } = require('../utils/httpError');
 const db = require('../config/db');
 const { getChannelIds, getChannelNames, saveChannels } = require('../services/channelService');
+const { requireAdmin, requireAnyAuth } = require('../middlewares/sessionAuth');
+const { createAuditMiddleware } = require('../utils/auditLog');
 
 // GET /api/channels — channels being monitored, with names from YouTube
-router.get('/', async (req, res) => {
+router.get('/', requireAnyAuth, async (req, res) => {
   try {
     const [ids, names, seen] = await Promise.all([
       getChannelIds(),
@@ -27,7 +29,7 @@ router.get('/', async (req, res) => {
 });
 
 // PUT /api/channels — owner replaces the monitored channels: { channels: ["UC…", "@handle", "https://youtube.com/@…"] }
-router.put('/', async (req, res) => {
+router.put('/', requireAdmin, createAuditMiddleware('channel', 'update_channels', (req, body) => JSON.stringify(body?.channels || [])), async (req, res) => {
   try {
     const inputs = Array.isArray((req.body || {}).channels) ? req.body.channels : [];
     const list = await saveChannels(inputs);
