@@ -6,7 +6,7 @@ export default defineConfig({
   root: resolve(__dirname, 'app'),
   publicDir: resolve(__dirname, 'assets'),
   build: {
-    outDir: resolve(__dirname, 'dist/app'),
+    outDir: resolve(__dirname, 'dist'),
     emptyOutDir: true,
     minify: 'esbuild',
     rollupOptions: {
