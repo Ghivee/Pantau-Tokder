@@ -5,7 +5,7 @@ const editorService = require('../services/editorService');
 const { requireAdmin, requireAnyAuth } = require('../middlewares/sessionAuth');
 const { createAuditMiddleware, getClientIp, getUserAgent, logAudit } = require('../utils/auditLog');
 
-router.get('/', requireAnyAuth, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const editors = await editorService.getAllEditors();
     // Cache 1 menit, stale-while-revalidate 5 menit

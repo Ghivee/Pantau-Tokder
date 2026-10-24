@@ -101,9 +101,17 @@ document.addEventListener('error', (ev) => {
 export const peranLabel = (p) => (p === 'terbatas' ? 'Editor terbatas' : 'Editor');
 export const thumb = (c) => (c.post_id ? `https://i.ytimg.com/vi/${encodeURIComponent(c.post_id)}/mqdefault.jpg` : '');
 export const vidCell = (c) => `<div class="vid">${thumb(c) ? `<img src="${thumb(c)}" alt="" loading="lazy">` : '<span class="ph"></span>'}<div class="tx"><b>${esc(c.judul)}</b><div>${esc(c._chNama)} · ${c.tipe_video === 'short' ? 'Shorts' : 'Video panjang'}</div></div></div>`;
-export const editorCell = (c, editorById) => { const e = editorById(c.editor_id); return e ? `<span class="ed">${avatar(e, 'xs', editorById)}${esc(e.nama)}</span>` : '<span class="pill warn">Belum dikenali</span>'; };
+export const editorCell = (c, editorById) => {
+  let e = null;
+  if (typeof editorById === 'function') {
+    e = editorById(c.editor_id);
+  } else if (typeof window !== 'undefined' && window.__pt_getEditor) {
+    e = window.__pt_getEditor(c.editor_id);
+  }
+  return e ? `<span class="ed">${avatar(e, 'xs')}${esc(e.nama)}</span>` : '<span class="pill warn">Belum dikenali</span>';
+};
 
-export function avatar(e, size = '', editorById) {
+export function avatar(e, size = '') {
   if (!e) return `<span class="ava ${size}" style="background:var(--line-2)" aria-hidden="true">?</span>`;
   const ini = esc((e.nama || '?').trim().slice(0, 1).toUpperCase());
   if (e.foto_url) return `<img class="ava ${size}" src="${esc(e.foto_url)}" alt="Foto ${esc(e.nama)}" data-ini="${ini}" data-color="${e._color}">`;
@@ -116,12 +124,16 @@ export const agoText = (t) => {
 };
 
 export function measureText(svg, text) {
-  const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-  t.textContent = text;
-  svg.append(t);
-  const w = t.getComputedTextLength();
-  t.remove();
-  return w;
+  try {
+    const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    t.textContent = text;
+    svg.append(t);
+    const w = t.getComputedTextLength() || (String(text).length * 8);
+    t.remove();
+    return w;
+  } catch (e) {
+    return String(text).length * 8;
+  }
 }
 
 export const niceStep = (max) => { const raw = max / 4; const p = Math.pow(10, Math.floor(Math.log10(raw || 1))); return [1, 2, 2.5, 5, 10].map((m) => m * p).find((x) => x >= raw) || p * 10; };

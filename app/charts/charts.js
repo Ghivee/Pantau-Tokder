@@ -1,6 +1,6 @@
 // app/charts/charts.js - Chart rendering components
 import { getState } from '../core/state.js';
-import { icon, esc, fmt, measureText, niceStep, PALETTE, BLN, HARI, tglPendek } from '../core/utils.js';
+import { icon, esc, fmt, measureText, niceStep, PALETTE, BLN, HARI, tglPendek, $ } from '../core/utils.js';
 
 export function drawStacked(box, { days, series, target, label = 'Video tayang per hari' }) {
   const W = Math.max(280, box.clientWidth), H = 230;
@@ -22,13 +22,16 @@ export function drawStacked(box, { days, series, target, label = 'Video tayang p
   days.forEach((d, i) => {
     const cx = m.l + i * bw + bw / 2;
     if (i % labelEvery === 0) html += `<text x="${cx}" y="${H - m.b + 16}" text-anchor="middle" font-size="11" fill="var(--muted)">${tglPendek(d)}</text>`;
-    let y0 = y(0);
-    series.forEach((s, si) => {
-      const v = s.values[i];
-      const y1 = y(v);
-      const h = Math.max(0, y0 - y1);
-      html += `<rect x="${m.l + i * bw + 2}" y="${y1}" width="${bw - 4}" height="${h}" fill="${s.color}" rx="2" data-tip="${esc(s.name)}: ${fmt(v)}" data-day="${esc(d)}"/>`;
-      y0 = y1;
+    let cum = 0;
+    series.forEach((s) => {
+      const v = s.values[i] || 0;
+      if (v > 0) {
+        const y0 = y(cum);
+        cum += v;
+        const y1 = y(cum);
+        const h = Math.max(0, y0 - y1);
+        html += `<rect x="${m.l + i * bw + 2}" y="${y1}" width="${bw - 4}" height="${h}" fill="${s.color}" rx="2" data-tip="${esc(s.name)}: ${fmt(v)}" data-day="${esc(d)}"/>`;
+      }
     });
   });
   if (target) html += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(target)}" y2="${y(target)}" stroke="var(--accent)" stroke-dasharray="4,4" stroke-width="2"/><text x="${W - m.r - 6}" y="${y(target) - 6}" text-anchor="end" fill="var(--accent)" font-size="11">Target ${fmt(target)}</text>`;

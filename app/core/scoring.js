@@ -1,6 +1,6 @@
 // app/core/scoring.js - Scoring logic (moved from main.js)
 import { getState } from './state.js';
-import { TOL, TUGAS, targetOf, slotsOf, gradeOf, median, sum, topikOf, toMin, addDays, today, WIB } from './utils.js';
+import { TOL, TUGAS, targetOf, slotsOf, gradeOf, median, sum, topikOf, toMin, addDays, today, nowJam, PALETTE, WIB } from './utils.js';
 
 export function slotFor(e, jam) {
   const slots = slotsOf(e);
@@ -102,6 +102,3 @@ export function normalize() {
   Object.entries(grouped).forEach(([k, v]) => { S.medians[k] = median(v); });
   if (!S.day) S.day = today();
 }
-
-import { PALETTE } from './utils.js';
-import { nowJam } from './utils.js';

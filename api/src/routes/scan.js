@@ -7,7 +7,7 @@ const { getChannelIds } = require('../services/channelService');
 const { requireAdmin, requireAnyAuth } = require('../middlewares/sessionAuth');
 
 // GET: Check API configuration status (for debugging)
-router.get('/status', requireAnyAuth, async (req, res) => {
+router.get('/status', async (req, res) => {
   const ids = await getChannelIds();
   let lastScan = null;
   try {
@@ -72,7 +72,7 @@ router.post('/', requireAdmin, async (req, res) => {
 });
 
 // GET: sync when the last one is older than AUTO_EVERY_MIN minutes. Called by the app while it is open.
-router.get('/auto', requireAnyAuth, async (req, res) => {
+router.get('/auto', async (req, res) => {
   try {
     const since = await minutesSinceLastScan();
     if (since < AUTO_EVERY_MIN) return res.json({ skipped: true, reason: 'Data masih baru', menit_lalu: Math.floor(since) });

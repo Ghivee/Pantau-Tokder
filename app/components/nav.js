@@ -1,6 +1,6 @@
 // app/components/nav.js - Navigation rendering
 import { getState, isAdmin, me, canLog, canAssign } from '../core/state.js';
-import { icon, esc, tglPanjang, fmt, idr, signed, usd, PALETTE } from '../core/utils.js';
+import { icon, esc, tglPanjang, fmt, idr, signed, usd, PALETTE, $, thumb } from '../core/utils.js';
 
 export const ROUTES = [
   { hash: 'ringkasan', label: 'Ringkasan', icon: icon('home'), admin: false },
@@ -55,6 +55,9 @@ export function peranLabel(p) {
 export function editorById(id) {
   return getState().editors.find((e) => e.id === +id) || null;
 }
+if (typeof window !== 'undefined') {
+  window.__pt_getEditor = editorById;
+}
 
 export function activeEditors() {
   return getState().editors.filter((e) => e.status !== 'nonaktif');
@@ -78,8 +81,8 @@ export function analyticsChannels() {
   });
 }
 
-export function editorCell(c, editorById) {
-  const e = editorById(c.editor_id);
+export function editorCell(c, fn) {
+  const e = typeof fn === 'function' ? fn(c.editor_id) : editorById(c.editor_id);
   return e ? `<span class="ed">${avatar(e, 'xs')}${esc(e.nama)}</span>` : '<span class="pill warn">Belum dikenali</span>';
 }
 

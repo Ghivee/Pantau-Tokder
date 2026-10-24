@@ -1,6 +1,6 @@
 // app/pages/harian.js - Harian page
 import { getState, isAdmin, me, canLog, canAssign } from '../core/state.js';
-import { icon, esc, fmt, pct, tglPanjang, avatar, editorCell, vidCell } from '../core/utils.js';
+import { icon, esc, fmt, pct, tglPanjang, avatar, editorCell, vidCell, today, addDays, usd, gradeOf } from '../core/utils.js';
 import { dayStats, periodStats, daysBack } from '../core/scoring.js';
 import { drawStacked } from '../charts/charts.js';
 import { confirmDialog } from '../components/dialogs.js';
@@ -95,5 +95,3 @@ export function renderHarian() {
     </section>
   `;
 }
-
-import { today, addDays, usd } from '../core/utils.js';

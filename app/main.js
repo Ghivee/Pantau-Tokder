@@ -1,8 +1,9 @@
 // app/main.js - Entry point (modular)
+import './styles.css';
 import { getState, setSession, clearSession, isAdmin, me, canLog, canAssign } from './core/state.js';
 import { api, fetchCritical, fetchSecondary, fetchAll, refresh, autoSync, initIntervals, clearApiCache } from './core/api.js';
 import { normalize, dayStats, periodStats, daysBack } from './core/scoring.js';
-import { icon, esc, fmt, idr, usd, signed, pct, cf, nf, durasi, tglPanjang, today, addDays, nowJam, toast, peranLabel, TUGAS, TUGAS_LAIN, topikOf } from './core/utils.js';
+import { icon, esc, fmt, idr, usd, signed, pct, cf, nf, durasi, tglPanjang, today, addDays, nowJam, toast, peranLabel, TUGAS, TUGAS_LAIN, topikOf, $, $$ } from './core/utils.js';
 import { renderNav, ROUTES, setCurrentRoute, getCurrentRoute, editorById, activeEditors, chName, chColor, analyticsChannels, editorCell, vidCell, avatar } from './components/nav.js';
 import { loginDialog, catatDialog, editorDialog, goalDialog, confirmDialog, openDialog, closeOverlay } from './components/dialogs.js';
 import { videoDrawer } from './components/videoDrawer.js';
@@ -33,6 +34,8 @@ window.videoDrawer = videoDrawer;
 window.assign = assign;
 window.exportCsv = exportCsv;
 window.kontenRows = kontenRows;
+window.__pt_render = () => render();
+window.__pt_renderNav = () => renderNav();
 
 // Session management
 function readSession() {
@@ -290,12 +293,6 @@ window.addEventListener('hashchange', () => { closeOverlay(); render(); window.s
 let lastW = innerWidth, rt;
 window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { if (Math.abs(innerWidth - lastW) > 40) { lastW = innerWidth; if (!$('#overlay').innerHTML) render(); } }, 200); });
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => renderNav());
-
-// Initialize intervals
-initIntervals(
-  () => refresh(render, renderNav, fetchAll, normalize),
-  (force) => autoSync(force, renderNav, api, () => refresh(render, renderNav, fetchAll, normalize))
-);
 
 // Start
 load();

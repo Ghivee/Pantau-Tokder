@@ -11,7 +11,7 @@ const LIST_COLUMNS = `id, post_id, platform, url, judul, tanggal_upload, editor_
   duration_secs, channel_id, channel_nama, revenue, views, likes, comments, stats_at,
   (retention_data IS NOT NULL) AS punya_retensi`;
 
-router.get('/', requireAnyAuth, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { editor_id, platform, status } = req.query;
     let query = `SELECT ${LIST_COLUMNS} FROM content WHERE 1=1`;
@@ -32,7 +32,7 @@ router.get('/', requireAnyAuth, async (req, res) => {
 });
 
 // One video with its retention curve
-router.get('/:id', requireAnyAuth, async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
     if (!/^\d+$/.test(req.params.id)) throw bad(400, 'ID video tidak valid');
     const r = await db.query(`SELECT ${LIST_COLUMNS}, retention_data, retention_source FROM content WHERE id = $1`, [req.params.id]);

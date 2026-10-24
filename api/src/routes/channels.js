@@ -7,7 +7,7 @@ const { requireAdmin, requireAnyAuth } = require('../middlewares/sessionAuth');
 const { createAuditMiddleware } = require('../utils/auditLog');
 
 // GET /api/channels — channels being monitored, with names from YouTube
-router.get('/', requireAnyAuth, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const [ids, names, seen] = await Promise.all([
       getChannelIds(),

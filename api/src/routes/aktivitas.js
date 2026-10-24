@@ -14,7 +14,7 @@ function todayWib(offsetDays = 0) {
 }
 
 // GET /api/aktivitas?dari=YYYY-MM-DD&sampai=YYYY-MM-DD&editor_id=1
-router.get('/', requireAnyAuth, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const dari = req.query.dari || todayWib(30);
     const sampai = req.query.sampai || todayWib(0);
@@ -40,7 +40,7 @@ router.get('/', requireAnyAuth, async (req, res) => {
   }
 });
 
-router.get('/jenis', requireAnyAuth, (req, res) => res.json(TUGAS));
+router.get('/jenis', (req, res) => res.json(TUGAS));
 
 router.post('/', requireAnyAuth, userMutationLimiter, createAuditMiddleware('aktivitas', 'create', (req, body) => body?.id, (req) => req.body), async (req, res) => {
   try {

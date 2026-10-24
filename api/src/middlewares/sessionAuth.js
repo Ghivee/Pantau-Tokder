@@ -43,40 +43,49 @@ function setSessionCookie(res, session) {
   const isProd = process.env.NODE_ENV === 'production';
   const cookieValue = encodeURIComponent(JSON.stringify(session));
   const maxAge = 60 * 60 * 24 * 30; // 30 days
-  res.setHeader('Set-Cookie', `${SESSION_COOKIE_NAME}=${cookieValue}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${maxAge}${isProd ? '' : ''}`);
+  const sec = isProd ? '; Secure' : '';
+  res.setHeader('Set-Cookie', `${SESSION_COOKIE_NAME}=${cookieValue}; HttpOnly${sec}; SameSite=Lax; Path=/; Max-Age=${maxAge}`);
 }
 
 function clearSessionCookie(res) {
-  res.setHeader('Set-Cookie', `${SESSION_COOKIE_NAME}=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0`);
+  const isProd = process.env.NODE_ENV === 'production';
+  const sec = isProd ? '; Secure' : '';
+  res.setHeader('Set-Cookie', `${SESSION_COOKIE_NAME}=; HttpOnly${sec}; SameSite=Lax; Path=/; Max-Age=0`);
 }
 
-async function identify(req) {
+async function identify(req, res, next) {
   req.isAdmin = false;
   req.editor = null;
   req.sessionPayload = null;
 
-  const session = parseSessionCookie(req);
-  if (!session) return;
+  try {
+    const session = parseSessionCookie(req);
+    if (!session) return next ? next() : undefined;
 
-  req.sessionPayload = session;
+    req.sessionPayload = session;
 
-  if (session.type === 'admin') {
-    const correctPassword = await adminPassword();
-    if (session.password === correctPassword) {
-      req.isAdmin = true;
+    if (session.type === 'admin') {
+      const correctPassword = await adminPassword();
+      if (session.password === correctPassword) {
+        req.isAdmin = true;
+      }
+      return next ? next() : undefined;
     }
-    return;
-  }
 
-  if (session.type === 'karyawan' && session.id) {
-    const r = await db.query(`SELECT id, nama, peran, pin FROM editors WHERE id = $1 AND status = 'aktif'`, [session.id]);
-    if (r.rows.length) {
-      const { id, nama, peran, pin } = r.rows[0];
-      if (session.pin && verifyPin(session.pin, pin)) {
-        req.editor = { id, nama, peran: peran || 'editor' };
+    if (session.type === 'karyawan' && session.id) {
+      const r = await db.query(`SELECT id, nama, peran, pin FROM editors WHERE id = $1 AND status = 'aktif'`, [session.id]);
+      if (r.rows.length) {
+        const { id, nama, peran, pin } = r.rows[0];
+        if (session.pin && verifyPin(session.pin, pin)) {
+          req.editor = { id, nama, peran: peran || 'editor' };
+        }
       }
     }
+  } catch (err) {
+    console.error('Session identification error:', err.message);
   }
+
+  if (next) next();
 }
 
 function requireAdmin(req, res, next) {

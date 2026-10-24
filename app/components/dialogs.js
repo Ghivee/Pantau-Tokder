@@ -1,8 +1,8 @@
 // app/components/dialogs.js - Dialog/overlay management
-import { getState, isAdmin, me, canAssign } from '../core/state.js';
-import { api } from '../core/api.js';
-import { icon, esc, toast, today, addDays, TUGAS, TUGAS_LAIN, peranLabel } from '../core/utils.js';
-import { activeEditors, editorById } from './nav.js';
+import { getState, isAdmin, me, canAssign, setSession } from '../core/state.js';
+import { api, fetchAll } from '../core/api.js';
+import { icon, esc, toast, today, addDays, nowJam, TUGAS, TUGAS_LAIN, peranLabel, $, $$ } from '../core/utils.js';
+import { activeEditors, editorById, renderNav } from './nav.js';
 
 export function loginDialog() {
   const S = getState();
@@ -42,15 +42,15 @@ export function loginDialog() {
       try {
         if (f.get('password')) {
           await api('/api/auth/login', { method: 'POST', body: { password: f.get('password') } });
-          import('../core/state.js').then(m => m.setSession({ type: 'admin' }));
+          setSession({ type: 'admin' });
         } else {
           const r = await api('/api/auth/editor-login', { method: 'POST', body: { editor_id: +f.get('editor'), pin: f.get('pin') } });
-          import('../core/state.js').then(m => m.setSession({ type: 'karyawan', id: r.id, nama: r.nama }));
+          setSession({ type: 'karyawan', id: r.id, nama: r.nama });
         }
         closeOverlay();
         toast('Berhasil masuk');
-        import('./nav.js').then(m => m.renderNav());
-        import('../core/api.js').then(m => m.fetchAll());
+        renderNav();
+        fetchAll();
       } catch (e) { $('#login-err', d).textContent = e.message; }
     });
   }
@@ -98,7 +98,7 @@ export function catatDialog(editorId) {
         await api('/api/aktivitas', { method: 'POST', body: { editor_id: editorId, tanggal, jam, tugas, detail, jumlah, channel_id } });
         closeOverlay();
         toast('Aktivitas dicatat');
-        import('../core/api.js').then(m => m.fetchAll());
+        fetchAll();
       } catch (e) { $('#catat-err', d).textContent = e.message; }
     });
   });
@@ -137,7 +137,7 @@ export function editorDialog(editorId) {
         else await api('/api/editors', { method: 'POST', body });
         closeOverlay();
         toast(editing ? 'Karyawan diperbarui' : 'Karyawan ditambahkan');
-        import('../core/api.js').then(m => m.fetchAll());
+        fetchAll();
       } catch (e) { $('#ed-err', d).textContent = e.message; }
     });
   });
@@ -167,7 +167,7 @@ export function goalDialog() {
         await api('/api/goals', { method: 'PUT', body: { bulan, target_omset: target, tercapai } });
         closeOverlay();
         toast('Target disimpan');
-        import('../core/api.js').then(m => m.fetchAll());
+        fetchAll();
       } catch (e) { $('#goal-err', d).textContent = e.message; }
     });
   });
@@ -188,5 +188,3 @@ export function openDialog(html, onMount) {
 }
 
 export const closeOverlay = () => { $('#overlay').innerHTML = ''; };
-
-import { nowJam } from '../core/utils.js';
