@@ -8,6 +8,8 @@ const { createAuditMiddleware, getClientIp, getUserAgent, logAudit } = require('
 router.get('/', requireAnyAuth, async (req, res) => {
   try {
     const editors = await editorService.getAllEditors();
+    // Cache 1 menit, stale-while-revalidate 5 menit
+    res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
     res.json(editors);
   } catch (err) {
     fail(res, err);

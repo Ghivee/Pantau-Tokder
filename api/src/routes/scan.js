@@ -14,6 +14,8 @@ router.get('/status', requireAnyAuth, async (req, res) => {
     const r = await db.query('SELECT * FROM scan_log ORDER BY id DESC LIMIT 1');
     lastScan = r.rows[0] || null;
   } catch (e) { /* scan_log may not exist yet */ }
+  // Cache 1 menit, stale-while-revalidate 5 menit
+  res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
   res.json({
     youtube_api_key: !!process.env.YOUTUBE_API_KEY,
     youtube_channels: ids.length,

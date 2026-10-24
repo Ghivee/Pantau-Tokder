@@ -32,6 +32,8 @@ router.get('/', requireAnyAuth, async (req, res) => {
     }
     sql += ' ORDER BY tanggal, jam';
     const result = await db.query(sql, params);
+    // Cache 2 menit, stale-while-revalidate 5 menit
+    res.setHeader('Cache-Control', 'public, max-age=120, stale-while-revalidate=300');
     res.json(result.rows);
   } catch (err) {
     fail(res, err);
