@@ -4,9 +4,10 @@ import { resolve } from 'path';
 
 export default defineConfig({
   root: resolve(__dirname, 'app'),
-  publicDir: resolve(__dirname, 'assets'),
+  publicDir: false,
   build: {
-    outDir: resolve(__dirname, 'dist'),
+    assetsDir: '',
+
     emptyOutDir: true,
     minify: 'esbuild',
     rollupOptions: {
