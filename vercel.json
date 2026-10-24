@@ -5,11 +5,16 @@
   "installCommand": "npm install",
   "framework": "vite",
   "outputDirectory": "dist",
-  "functions": {
-    "api/index.js": {
-      "maxDuration": 60
+  "builds": [
+    {
+      "src": "api/index.js",
+      "use": "@vercel/node",
+      "config": {
+        "maxDuration": 60,
+        "includeFiles": ["api/**", "package.json", "package-lock.json"]
+      }
     }
-  },
+  ],
   "rewrites": [
     {
       "source": "/api/(.*)",
