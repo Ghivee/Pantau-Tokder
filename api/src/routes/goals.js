@@ -18,7 +18,8 @@ router.get('/', requireAnyAuth, async (req, res) => {
         [bulan]
       );
     }
-    
+    // Cache 5 menit, stale-while-revalidate 10 menit
+    res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
     res.json(result.rows[0]);
   } catch (err) {
     fail(res, err);

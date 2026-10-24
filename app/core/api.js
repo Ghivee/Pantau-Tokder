@@ -1,6 +1,40 @@
-// app/core/api.js - Centralized API layer
+// app/core/api.js - Centralized API layer with progressive loading & stale-while-revalidate cache
 import { getState, isAdmin } from './state.js';
 import { today, addDays } from './utils.js';
+
+// Cache configuration
+const CACHE_TTL = 5 * 60 * 1000; // 5 menit
+const CACHE_PREFIX = 'pt_cache_';
+
+function getCache(key) {
+  try {
+    const item = localStorage.getItem(CACHE_PREFIX + key);
+    if (!item) return null;
+    const { data, timestamp } = JSON.parse(item);
+    if (Date.now() - timestamp < CACHE_TTL) return data;
+  } catch (e) {}
+  return null;
+}
+
+function setCache(key, data) {
+  try {
+    localStorage.setItem(CACHE_PREFIX + key, JSON.stringify({ data, timestamp: Date.now() }));
+  } catch (e) {}
+}
+
+async function cachedFetch(key, fetcher, useCache = true) {
+  if (useCache) {
+    const cached = getCache(key);
+    if (cached) {
+      // Stale-while-revalidate: fetch fresh in background
+      fetcher().then(fresh => setCache(key, fresh)).catch(() => {});
+      return cached;
+    }
+  }
+  const fresh = await fetcher();
+  setCache(key, fresh);
+  return fresh;
+}
 
 export async function api(path, opts = {}) {
   const ctl = new AbortController();
@@ -38,29 +72,57 @@ export async function api(path, opts = {}) {
 
 export const optional = (p, label) => p.catch((e) => { getState().warnings.push(label + ': ' + e.message); return null; });
 
-export async function fetchAll(normalize) {
+// CRITICAL: Data minimal untuk render halaman (editors + content)
+export async function fetchCritical(normalize, useCache = true) {
   const S = getState();
   S.warnings = [];
-  const [editors, content, aktivitas, channels, scan, oauth, goal, daily] = await Promise.all([
-    api('/api/editors'),
-    api('/api/content'),
-    optional(api('/api/aktivitas?dari=' + addDays(today(), -60) + '&sampai=' + today()), 'Aktivitas'),
-    optional(api('/api/channels'), 'Daftar channel'),
-    optional(api('/api/scan/status'), 'Status sinkronisasi'),
-    optional(api('/api/auth/status'), 'Status YouTube Analytics'),
-    isAdmin() ? optional(api('/api/goals'), 'Target omzet') : Promise.resolve(S.goal),
-    optional(api('/api/analytics?dari=' + addDays(today(), -190) + '&sampai=' + today()), 'YouTube Analytics'),
+  
+  const [editors, content] = await Promise.all([
+    cachedFetch('editors', () => api('/api/editors'), useCache),
+    cachedFetch('content', () => api('/api/content'), useCache),
   ]);
-  Object.assign(S, { editors, content, aktivitas: aktivitas || [], channels: channels || [], scan, oauth, goal, daily: daily || [], error: null, loadedAt: Date.now() });
+  
+  Object.assign(S, { editors, content, error: null, loadedAt: Date.now() });
   normalize();
+  return { editors, content };
+}
+
+// SECONDARY: Data tambahan (load di background setelah render)
+export async function fetchSecondary(useCache = true) {
+  const S = getState();
+  const analyticsDays = new URLSearchParams(location.search).get('analyticsDays') || '30';
+  
+  const [aktivitas, channels, scan, oauth, goal, daily] = await Promise.all([
+    cachedFetch('aktivitas', () => optional(api('/api/aktivitas?dari=' + addDays(today(), -30) + '&sampai=' + today()), 'Aktivitas'), useCache),
+    cachedFetch('channels', () => optional(api('/api/channels'), 'Daftar channel'), useCache),
+    cachedFetch('scan', () => optional(api('/api/scan/status'), 'Status sinkronisasi'), useCache),
+    cachedFetch('oauth', () => optional(api('/api/auth/status'), 'Status YouTube Analytics'), useCache),
+    isAdmin() ? cachedFetch('goal', () => optional(api('/api/goals'), 'Target omzet'), useCache) : Promise.resolve(S.goal),
+    cachedFetch('daily', () => optional(api('/api/analytics?dari=' + addDays(today(), -analyticsDays) + '&sampai=' + today()), 'YouTube Analytics'), useCache),
+  ]);
+  
+  Object.assign(S, { 
+    aktivitas: aktivitas || [], 
+    channels: channels || [], 
+    scan, oauth, goal, 
+    daily: daily || [] 
+  });
+  return { aktivitas, channels, scan, oauth, goal, daily };
+}
+
+// FULL: Load semua data (fallback / manual refresh)
+export async function fetchAll(normalize, useCache = true) {
+  const critical = await fetchCritical(normalize, useCache);
+  const secondary = await fetchSecondary(useCache);
+  return { ...critical, ...secondary };
 }
 
 let refreshing = false;
-export async function refresh(render, renderNav, fetchAll, normalize) {
+export async function refresh(render, renderNav, fetchAll, normalize, useCache = true) {
   if (refreshing) return;
   refreshing = true;
   try {
-    await fetchAll(normalize);
+    await fetchAll(normalize, useCache);
     if (!$('#overlay').innerHTML && !document.activeElement.matches('input, select, textarea')) render(); else renderNav();
   } catch (e) {
     console.warn('Refresh failed:', e.message);
@@ -94,4 +156,16 @@ export function initIntervals(refresh, autoSync) {
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible' && getState().loadedAt && Date.now() - getState().loadedAt > 2 * 60000) refresh().then(() => autoSync());
   });
+}
+
+// Clear cache (dipanggil saat mutate data)
+export function clearApiCache(keys) {
+  if (!keys) {
+    // Clear all pt_cache_*
+    Object.keys(localStorage).forEach(k => { if (k.startsWith(CACHE_PREFIX)) localStorage.removeItem(k); });
+  } else if (Array.isArray(keys)) {
+    keys.forEach(k => localStorage.removeItem(CACHE_PREFIX + k));
+  } else {
+    localStorage.removeItem(CACHE_PREFIX + keys);
+  }
 }

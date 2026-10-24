@@ -1,6 +1,6 @@
 // app/main.js - Entry point (modular)
 import { getState, setSession, clearSession, isAdmin, me, canLog, canAssign } from './core/state.js';
-import { api, fetchAll, refresh, autoSync, initIntervals } from './core/api.js';
+import { api, fetchCritical, fetchSecondary, fetchAll, refresh, autoSync, initIntervals, clearApiCache } from './core/api.js';
 import { normalize, dayStats, periodStats, daysBack } from './core/scoring.js';
 import { icon, esc, fmt, idr, usd, signed, pct, cf, nf, durasi, tglPanjang, today, addDays, nowJam, toast, peranLabel, TUGAS, TUGAS_LAIN, topikOf } from './core/utils.js';
 import { renderNav, ROUTES, setCurrentRoute, getCurrentRoute, editorById, activeEditors, chName, chColor, analyticsChannels, editorCell, vidCell, avatar } from './components/nav.js';
@@ -68,7 +68,7 @@ try { const t = localStorage.getItem('pt_theme'); if (t === 'light' || t === 'da
 const initialSession = readSession();
 if (initialSession) setSession(initialSession);
 
-// Main load function
+// Main load function - Progressive loading: critical first, secondary background
 async function load() {
   // Try to restore session from server cookie if not in localStorage
   if (!getState().session) {
@@ -80,14 +80,29 @@ async function load() {
       }
     } catch (e) {}
   }
+  
+  // 1. CRITICAL: Load editors + content first (cached), render IMMEDIATELY
   try {
-    await fetchAll(normalize);
+    await fetchCritical(normalize, true); // use cache
+    render(); // Render SEGERA dengan data critical
   } catch (e) {
     console.error(e);
     getState().error = e.message;
+    render();
+    return;
   }
-  render();
-  autoSync(false);
+  
+  // 2. SECONDARY: Load remaining data in background (non-blocking)
+  fetchSecondary(true).then(() => {
+    if (!$('#overlay').innerHTML) render(); // Re-render dengan data lengkap
+    autoSync(false);
+  }).catch(e => console.warn('Secondary load failed:', e.message));
+  
+  // 3. Init intervals (use fetchCritical for periodic refresh)
+  initIntervals(
+    () => refresh(render, renderNav, fetchCritical, normalize, true),
+    (force) => autoSync(force, renderNav, api, () => refresh(render, renderNav, fetchCritical, normalize, true))
+  );
 }
 
 // Render function

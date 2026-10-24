@@ -2,8 +2,8 @@
 import { getState, isAdmin } from '../core/state.js';
 import { api } from '../core/api.js';
 import { icon, esc, fmt, avatar, peranLabel } from '../core/utils.js';
-import { editorDialog } from '../components/dialogs.js';
-import { editorById, activeEditors, confirmDialog } from '../components/nav.js';
+import { editorDialog, confirmDialog } from '../components/dialogs.js';
+import { editorById, activeEditors } from '../components/nav.js';
 
 export function renderKaryawan() {
   const S = getState();

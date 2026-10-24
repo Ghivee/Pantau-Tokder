@@ -18,6 +18,8 @@ router.get('/', requireAnyAuth, async (req, res) => {
       ),
     ]);
     const byId = Object.fromEntries(seen.rows.map((r) => [r.channel_id, r]));
+    // Cache 5 menit, stale-while-revalidate 10 menit (channel list jarang berubah)
+    res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
     res.json(ids.map((id) => ({
       id,
       nama: names[id] || (byId[id] && byId[id].nama) || id,
