@@ -4,6 +4,7 @@
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "framework": "vite",
+  "outputDirectory": "dist",
   "builds": [
     {
       "src": "api/index.js",
@@ -11,18 +12,6 @@
       "config": {
         "maxDuration": 60
       }
-    },
-    {
-      "src": "dist/**",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "tokderlogo.png",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "assets/**",
-      "use": "@vercel/static"
     }
   ],
   "rewrites": [
