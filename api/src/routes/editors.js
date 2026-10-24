@@ -2,8 +2,10 @@ const express = require('express');
 const router = express.Router();
 const { fail, bad } = require('../utils/httpError');
 const editorService = require('../services/editorService');
+const { requireAdmin, requireAnyAuth } = require('../middlewares/sessionAuth');
+const { createAuditMiddleware, getClientIp, getUserAgent, logAudit } = require('../utils/auditLog');
 
-router.get('/', async (req, res) => {
+router.get('/', requireAnyAuth, async (req, res) => {
   try {
     const editors = await editorService.getAllEditors();
     res.json(editors);
@@ -33,7 +35,7 @@ function validate(body) {
   return { nama, kode, extra: b };
 }
 
-router.post('/', async (req, res) => {
+router.post('/', requireAdmin, createAuditMiddleware('editor', 'create', (req, body) => body?.id), async (req, res) => {
   try {
     const { nama, kode, extra } = validate(req.body);
     const editor = await editorService.addEditor(nama, kode, extra);
@@ -43,7 +45,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', requireAdmin, createAuditMiddleware('editor', 'update', (req) => req.params.id, (req) => req.body), async (req, res) => {
   try {
     const { id } = req.params;
     if (!/^\d+$/.test(id)) throw bad(400, 'ID karyawan tidak valid');
@@ -56,7 +58,7 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireAdmin, createAuditMiddleware('editor', 'delete', (req) => req.params.id), async (req, res) => {
   try {
     const { id } = req.params;
     await editorService.deleteEditor(id);

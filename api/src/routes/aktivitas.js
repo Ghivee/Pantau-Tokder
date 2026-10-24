@@ -2,6 +2,9 @@ const express = require('express');
 const router = express.Router();
 const { fail, bad } = require('../utils/httpError');
 const db = require('../config/db');
+const { requireAnyAuth, requireRole } = require('../middlewares/sessionAuth');
+const { createAuditMiddleware } = require('../utils/auditLog');
+const { userMutationLimiter } = require('../middlewares/rateLimit');
 
 const TUGAS = ['Riset harga cabai', 'Buat thumbnail', 'Cek SEO & tag', 'Balas komentar', 'Edit video', 'Lainnya'];
 
@@ -11,7 +14,7 @@ function todayWib(offsetDays = 0) {
 }
 
 // GET /api/aktivitas?dari=YYYY-MM-DD&sampai=YYYY-MM-DD&editor_id=1
-router.get('/', async (req, res) => {
+router.get('/', requireAnyAuth, async (req, res) => {
   try {
     const dari = req.query.dari || todayWib(30);
     const sampai = req.query.sampai || todayWib(0);
@@ -22,6 +25,11 @@ router.get('/', async (req, res) => {
       params.push(req.query.editor_id);
       sql += ` AND editor_id = $3`;
     }
+    // Non-admin users can only see their own activities
+    if (!req.isAdmin && req.editor) {
+      params.push(req.editor.id);
+      sql += ` AND editor_id = $${params.length}`;
+    }
     sql += ' ORDER BY tanggal, jam';
     const result = await db.query(sql, params);
     res.json(result.rows);
@@ -30,12 +38,13 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.get('/jenis', (req, res) => res.json(TUGAS));
+router.get('/jenis', requireAnyAuth, (req, res) => res.json(TUGAS));
 
-router.post('/', async (req, res) => {
+router.post('/', requireAnyAuth, userMutationLimiter, createAuditMiddleware('aktivitas', 'create', (req, body) => body?.id, (req) => req.body), async (req, res) => {
   try {
     const b = req.body || {};
-    const editorId = req.isAdmin ? Number(b.editor_id) : req.editor && req.editor.id;
+    // Admin can log for anyone, editors can only log for themselves
+    const editorId = req.isAdmin ? Number(b.editor_id) : (req.editor && req.editor.id);
     const tanggal = String(b.tanggal || todayWib());
     const jam = String(b.jam || '');
     const tugas = String(b.tugas || '').trim().slice(0, 60);
@@ -45,6 +54,7 @@ router.post('/', async (req, res) => {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(tanggal)) return res.status(400).json({ error: 'Format tanggal harus YYYY-MM-DD' });
     if (!/^\d{2}:\d{2}$/.test(jam)) return res.status(400).json({ error: 'Format jam harus HH:MM' });
     if (!tugas) return res.status(400).json({ error: 'Jenis tugas wajib diisi' });
+    // Editors can only log for last 2 days
     if (!req.isAdmin && tanggal < todayWib(2)) {
       return res.status(403).json({ error: 'Karyawan hanya bisa mencatat aktivitas 2 hari terakhir' });
     }
@@ -61,7 +71,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireAnyAuth, userMutationLimiter, createAuditMiddleware('aktivitas', 'delete', (req) => req.params.id), async (req, res) => {
   try {
     const row = await db.query('SELECT editor_id, created_at FROM aktivitas WHERE id = $1', [req.params.id]);
     if (!row.rows.length) return res.status(404).json({ error: 'Aktivitas tidak ditemukan' });

@@ -2,10 +2,10 @@ const express = require('express');
 const router = express.Router();
 const { fail, bad } = require('../utils/httpError');
 const db = require('../config/db');
-const { identify } = require('../middlewares/adminAuth');
+const { requireAnyAuth } = require('../middlewares/sessionAuth');
 
 // GET /api/analytics?dari=YYYY-MM-DD&sampai=YYYY-MM-DD — daily channel numbers from YouTube Analytics
-router.get('/', async (req, res) => {
+router.get('/', requireAnyAuth, async (req, res) => {
   try {
     const wib = (n) => new Date(Date.now() + 7 * 3600 * 1000 - n * 86400000).toISOString().slice(0, 10);
     const dari = /^\d{4}-\d{2}-\d{2}$/.test(req.query.dari || '') ? req.query.dari : wib(95);
@@ -16,7 +16,6 @@ router.get('/', async (req, res) => {
        FROM channel_daily WHERE tanggal BETWEEN $1 AND $2 ORDER BY tanggal`,
       [dari, sampai]
     );
-    await identify(req).catch(() => {});
     if (!req.isAdmin) result.rows.forEach((r) => { delete r.revenue; });
     res.json(result.rows);
   } catch (err) {

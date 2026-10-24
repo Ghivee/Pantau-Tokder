@@ -1,13 +1,15 @@
 const db = require('../config/db');
 const { getAccessToken, fetchOwnChannel, fetchChannelDaily } = require('../integrations/analytics');
+const { encrypt, decrypt } = require('../utils/encryption');
 
 const PREFIX = 'google_refresh_token:';
 
 async function saveConnection(channel, refreshToken) {
+  const encrypted = encrypt(refreshToken);
   await db.query(
     `INSERT INTO settings (key, value, updated_at) VALUES ($1, $2, NOW())
      ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = NOW()`,
-    [PREFIX + channel.id, refreshToken]
+    [PREFIX + channel.id, encrypted]
   );
   await db.query(
     `INSERT INTO settings (key, value, updated_at) VALUES ($1, $2, NOW())
@@ -28,7 +30,7 @@ async function migrateLegacyToken() {
     const access = await getAccessToken(r.rows[0].value);
     const ch = await fetchOwnChannel(access);
     if (ch) {
-      await saveConnection(ch, r.rows[0].value);
+      await saveConnection(ch, r.rows[0].value); // saveConnection will encrypt
       await db.query(`DELETE FROM settings WHERE key = 'google_refresh_token'`);
     }
   } catch (e) {
@@ -53,7 +55,8 @@ async function accessTokens() {
   const out = {};
   for (const row of r.rows) {
     try {
-      out[row.key.slice(PREFIX.length)] = await getAccessToken(row.value);
+      const decrypted = decrypt(row.value);
+      out[row.key.slice(PREFIX.length)] = await getAccessToken(decrypted);
     } catch (e) {
       console.warn(`Analytics token for ${row.key} failed:`, e.response?.data?.error || e.message);
     }
