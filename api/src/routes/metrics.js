@@ -2,8 +2,9 @@ const express = require('express');
 const router = express.Router();
 const { fail, bad } = require('../utils/httpError');
 const metricsService = require('../services/metricsService');
+const { requireAnyAuth } = require('../middlewares/sessionAuth');
 
-router.get('/summary', async (req, res) => {
+router.get('/summary', requireAnyAuth, async (req, res) => {
   try {
     const summary = await metricsService.getSummary();
     res.json(summary);
@@ -12,7 +13,7 @@ router.get('/summary', async (req, res) => {
   }
 });
 
-router.get('/trend', async (req, res) => {
+router.get('/trend', requireAnyAuth, async (req, res) => {
   try {
     const trend = await metricsService.getTrend();
     res.json(trend);

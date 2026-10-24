@@ -2,9 +2,10 @@ const express = require('express');
 const router = express.Router();
 const { fail, bad } = require('../utils/httpError');
 const db = require('../config/db');
+const { requireAdmin, requireAnyAuth } = require('../middlewares/sessionAuth');
 
 // Dapatkan goal bulan ini
-router.get('/', async (req, res) => {
+router.get('/', requireAnyAuth, async (req, res) => {
   try {
     const bulan = req.query.bulan || new Date().toISOString().slice(0, 7); // Format YYYY-MM
     
@@ -24,8 +25,8 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Update goal bulan ini
-router.put('/', async (req, res) => {
+// Update goal bulan ini (admin only)
+router.put('/', requireAdmin, async (req, res) => {
   try {
     const { bulan, target_omset, tercapai } = req.body || {};
     if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(String(bulan || ''))) throw bad(400, 'Bulan harus berformat YYYY-MM');
