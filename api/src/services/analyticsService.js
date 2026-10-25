@@ -1,6 +1,6 @@
 const db = require('../config/db');
 const { getAccessToken, fetchOwnChannel, fetchChannelDaily } = require('../integrations/analytics');
-const { encrypt, decrypt } = require('../utils/encryption');
+const { encrypt, decrypt, isEncrypted } = require('../utils/encryption');
 
 const PREFIX = 'google_refresh_token:';
 
@@ -51,18 +51,31 @@ async function listConnections() {
 // channel id → fresh access token, for every connected channel
 async function accessTokens() {
   await migrateLegacyToken();
+  failures.length = 0;
+  const names = Object.fromEntries((await listConnections()).map((c) => [c.channel_id, c.nama]));
   const r = await db.query('SELECT key, value FROM settings WHERE key LIKE $1', [PREFIX + '%']);
   const out = {};
   for (const row of r.rows) {
+    const id = row.key.slice(PREFIX.length);
     try {
-      const decrypted = decrypt(row.value);
-      out[row.key.slice(PREFIX.length)] = await getAccessToken(decrypted);
+      const token = decrypt(row.value);
+      out[id] = await getAccessToken(token);
+      // Tokens saved before encryption existed are encrypted on first use.
+      if (!isEncrypted(row.value) && isEncrypted(encrypt(token))) {
+        await db.query('UPDATE settings SET value = $1 WHERE key = $2', [encrypt(token), row.key]);
+      }
     } catch (e) {
-      console.warn(`Analytics token for ${row.key} failed:`, e.response?.data?.error || e.message);
+      const msg = e.response?.data?.error_description || e.response?.data?.error || e.message;
+      console.warn(`Analytics token for ${row.key} failed:`, msg);
+      failures.push(`Analytics ${names[id] || id}: ${msg}`);
     }
   }
   return out;
 }
+
+// Problems from the last accessTokens() call, for the sync notes in Pengaturan.
+const failures = [];
+const takeTokenErrors = () => failures.splice(0, failures.length);
 
 function wibDate(offsetDays) {
   return new Date(Date.now() + 7 * 3600 * 1000 - offsetDays * 86400000).toISOString().slice(0, 10);
@@ -87,4 +100,4 @@ async function syncChannelDaily(channelId, accessToken, days = 95) {
   return rows.length;
 }
 
-module.exports = { saveConnection, removeConnection, listConnections, accessTokens, syncChannelDaily, migrateLegacyToken };
+module.exports = { saveConnection, removeConnection, listConnections, accessTokens, takeTokenErrors, syncChannelDaily, migrateLegacyToken };

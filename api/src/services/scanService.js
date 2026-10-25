@@ -2,7 +2,7 @@ const db = require('../config/db');
 const { fetchNewVideos, fetchVideosByIds } = require('../integrations/youtube');
 const { getChannelIds } = require('./channelService');
 const analyticsService = require('./analyticsService');
-const { fetchRetentionData, fetchRevenueData } = require('../integrations/analytics');
+const { fetchRetentionData, fetchRevenueData, takeErrors } = require('../integrations/analytics');
 
 function matchEditorCode(captionText, editors) {
   if (!captionText) return null;
@@ -105,6 +105,7 @@ const TIME_BUDGET_MS = 45000;
 
 async function runFullScan() {
   const startedAt = Date.now();
+  takeErrors();
   console.log('=== Starting full scan (YouTube only) ===');
 
   const editorsRes = await db.query('SELECT * FROM editors WHERE status = $1', ['aktif']);
@@ -214,7 +215,18 @@ async function runFullScan() {
     console.error('scan_log write error:', e.message);
   }
 
+  errors.push(...analyticsService.takeTokenErrors(), ...takeErrors());
   const summary = { newPosts, updatedPosts, unmatched, analyticsChannels: Object.keys(tokens).length, analyticsDays, errors: errors.length > 0 ? errors : undefined };
+  // Kept for the Pengaturan page, so problems are visible without opening server logs.
+  try {
+    await db.query(
+      `INSERT INTO settings (key, value, updated_at) VALUES ('last_scan_summary', $1, NOW())
+       ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = NOW()`,
+      [JSON.stringify({ ...summary, selesai: new Date().toISOString(), detik: Math.round((Date.now() - startedAt) / 1000) })]
+    );
+  } catch (e) {
+    console.error('last_scan_summary write error:', e.message);
+  }
   console.log('=== Scan complete ===', summary);
   return summary;
 }
