@@ -1,7 +1,6 @@
 // app/components/nav.js - Navigation rendering
 import { getState, isAdmin, me, canLog, canAssign } from '../core/state.js';
 import { icon, esc, tglPanjang, fmt, idr, signed, usd, PALETTE, $, thumb } from '../core/utils.js';
-
 export const ROUTES = [
   { hash: 'ringkasan', label: 'Ringkasan', icon: icon('home'), admin: false },
   { hash: 'harian', label: 'Harian', icon: icon('day'), admin: false },
@@ -31,7 +30,7 @@ export function renderNav() {
   
   nav.innerHTML = ROUTES.filter((r) => !r.admin || isAdmin()).map((r, i) =>
     (r.admin && !ROUTES.slice(0, ROUTES.indexOf(r)).some((x) => x.admin) ? '<div class="nav-label">Pemilik</div>' : '') +
-    `<a class="nav-item ${r.hash === currentRoute?.hash ? 'active' : ''}" href="#${r.hash}">${r.icon}<span>${r.label}</span></a>`
+    `<a class="nav-a${r.hash === currentRoute?.hash ? ' active' : ''}" href="#${r.hash}" ${r.hash === currentRoute?.hash ? 'aria-current="page"' : ''}>${r.icon}<span>${r.label}</span></a>`
   ).join('');
 
   const foot = $('#side-foot');
