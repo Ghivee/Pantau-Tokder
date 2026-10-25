@@ -15,12 +15,18 @@ router.get('/status', async (req, res) => {
     const r = await db.query('SELECT * FROM scan_log ORDER BY id DESC LIMIT 1');
     lastScan = r.rows[0] || null;
   } catch (e) { /* scan_log may not exist yet */ }
+  let summary = null;
+  try {
+    const r = await db.query(`SELECT value FROM settings WHERE key = 'last_scan_summary'`);
+    summary = r.rows[0] ? JSON.parse(r.rows[0].value) : null;
+  } catch (e) { /* not written yet */ }
   res.json({
     youtube_api_key: !!process.env.YOUTUBE_API_KEY,
     youtube_channels: ids.length,
     database_url: !!process.env.DATABASE_URL,
     google_oauth_client: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
     last_scan: lastScan,
+    last_summary: summary,
   });
 });
 
