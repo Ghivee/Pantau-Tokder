@@ -201,6 +201,7 @@ Topik ditebak dari kata di judul, misalnya "harga", "thrips", "pupuk" atau "sema
 - Permintaan dari website lain ditolak (CORS dan pemeriksaan asal permintaan). Menyambungkan dan memutus YouTube Analytics hanya bisa dilakukan pemilik.
 - Jika Environment Variable `CRON_SECRET` diisi, Vercel Cron bisa sinkron kapan saja. Tanpa itu, sinkron harian tetap jalan, tapi dibatasi paling cepat 15 menit sekali seperti permintaan lain.
 - Kalau database tidak bisa dihubungi, aplikasi menampilkan error dan tidak pernah beralih ke data contoh.
+- Token YouTube Analytics disimpan terenkripsi. Kuncinya tetap (dari `ENCRYPTION_KEY` bila diisi, kalau tidak dari `GOOGLE_CLIENT_SECRET`), jadi tidak hilang saat server Vercel mulai ulang. Kalau di Pengaturan → Catatan sinkronisasi muncul "kunci enkripsi berubah", hubungkan ulang channel itu sekali.
 - `/api/scan/status` sekarang hanya menjawab "ada/tidak". Potongan kunci API tidak lagi ditampilkan.
 - Pendapatan hanya dikirim server ke pemilik yang sudah masuk.
 - Semua isian diperiksa di server: kode karyawan, jadwal, PIN, tanggal, jam, angka target. Pesan kesalahannya dalam bahasa Indonesia, dan kalau database tidak bisa dihubungi, aplikasi mengatakan itu dengan jelas.
@@ -210,8 +211,7 @@ Topik ditebak dari kata di judul, misalnya "harga", "thrips", "pupuk" atau "sema
 ```
 app/index.html      kerangka halaman
 app/styles.css      tampilan (warna, huruf, tata letak, mode gelap)
-app/main.js         titik masuk, navigasi, aksi tombol
-app/pages/*.js      isi tiap menu (presensi.js untuk Presensi)
+app/main.js         seluruh tampilan: menu, halaman, grafik, skor, presensi
 api/src/...         server: sinkronisasi YouTube, karyawan, aktivitas, presensi, akses
 api/test/*.cjs      tes otomatis (jalankan: npm test)
 ```
