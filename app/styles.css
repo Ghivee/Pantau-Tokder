@@ -104,8 +104,9 @@ a { color: inherit; }
 .page { max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 22px; }
 .notice { max-width: 1240px; margin: 0 auto 18px; padding: 8px 8px 8px 14px; border-radius: var(--r); background: var(--warn-soft); color: var(--warn); font-size: 13px; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
 .notice b { font-weight: 650; }
-.fresh { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 7px; }
-.fresh .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); flex: none; }
+.fresh { font-size: 12px; line-height: 16px; color: var(--muted); display: flex; align-items: flex-start; gap: 7px; }
+/* Centred on the first text line, also when the text wraps. */
+.fresh .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); flex: none; margin-top: 4.5px; }
 @media (prefers-reduced-motion: no-preference) { .fresh .dot.live { animation: pulse 1s ease-in-out infinite; } }
 
 .head { display: flex; flex-wrap: wrap; gap: 14px 20px; align-items: flex-end; justify-content: space-between; }
@@ -151,8 +152,8 @@ textarea.input { height: auto; min-height: 76px; padding: 8px 11px; resize: vert
 .card-h { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 12px; margin-bottom: 14px; }
 .card-h h2 { margin: 0; font-size: 15px; font-weight: 650; letter-spacing: -.005em; }
 .card-h p { margin: 2px 0 0; color: var(--muted); font-size: 12.5px; flex-basis: 100%; }
-.grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 16px; align-items: start; }
-.grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 16px; align-items: start; }
+.grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 16px; align-items: stretch; }
+.grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 16px; align-items: stretch; }
 .span-all { grid-column: 1 / -1; }
 
 .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 178px), 1fr)); border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); overflow: hidden; }
@@ -184,8 +185,12 @@ a.kpi:hover { background: var(--sunken); }
 /* ---------- daily ---------- */
 .daynav { display: flex; align-items: center; gap: 6px; }
 .daynav .input { width: 158px; }
-.people { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 540px), 1fr)); gap: 16px; align-items: start; }
+.people { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 540px), 1fr)); gap: 16px; align-items: stretch; }
 .person { display: flex; flex-direction: column; gap: 18px; }
+/* Cards side by side share their five rows, so score, checks, ruler and history line up across people. */
+@supports (grid-template-rows: subgrid) {
+  .people > .person { display: grid; grid-row: span 5; grid-template-rows: subgrid; row-gap: 18px; align-content: start; }
+}
 .person-top { display: flex; align-items: center; gap: 14px; }
 .person-top .t { min-width: 0; flex: 1; }
 .person-top h2 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -.01em; }
@@ -229,6 +234,8 @@ a.kpi:hover { background: var(--sunken); }
 .tl .what b { font-weight: 650; }
 .tl .what div { color: var(--muted); font-size: 12.5px; overflow-wrap: anywhere; }
 .tl .res { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+/* A small button is taller than a text line: pull it up so its centre sits on the first line. */
+.tl .res-btn { margin-top: -5px; }
 .empty { padding: 22px 8px; text-align: center; color: var(--muted); font-size: 13px; }
 .empty b { display: block; color: var(--ink-2); font-weight: 650; margin-bottom: 2px; }
 
@@ -296,7 +303,7 @@ table.t { width: 100%; border-collapse: collapse; }
 .kv dt { color: var(--muted); }
 .kv dd { margin: 0; display: flex; flex-wrap: wrap; gap: 4px; }
 .slot { font-family: var(--mono); font-size: 12px; padding: 0 6px; border: 1px solid var(--line-2); border-radius: 5px; }
-.member-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.member-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: auto; }
 
 /* ---------- settings ---------- */
 .checklist { display: flex; flex-direction: column; }
@@ -403,6 +410,8 @@ table.t { width: 100%; border-collapse: collapse; }
   .card-h { margin-bottom: 10px; }
 
   .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* An odd last tile fills its row instead of leaving an empty half. */
+  .kpis > :last-child:nth-child(odd) { grid-column: 1 / -1; }
   .kpi { padding: 12px 14px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
   .kpi:nth-child(2n), .kpi:last-child { border-right: 0; }
   .kpi:last-child:nth-child(odd) { grid-column: 1 / -1; border-bottom: 0; }
@@ -419,8 +428,9 @@ table.t { width: 100%; border-collapse: collapse; }
   .check .v { font-size: 15px; }
   .strip { gap: 2px; }
   .strip button { height: 28px; font-size: 10.5px; border-radius: 5px; }
-  .tl { grid-template-columns: 44px 14px minmax(0, 1fr); }
-  .tl .res { grid-column: 3; align-items: flex-start; text-align: left; margin-top: 4px; }
+  .tl { grid-template-columns: 44px 14px minmax(0, 1fr) auto; }
+  /* Status pills go under the text; the delete button stays at the right of its own line. */
+  .tl .res:not(.res-btn) { grid-column: 3 / 5; align-items: flex-start; text-align: left; margin-top: 4px; }
 
   .table-wrap { margin: 0 -14px; padding: 0 14px; }
   .t.stack thead { display: none; }

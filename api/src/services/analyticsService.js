@@ -48,6 +48,23 @@ async function listConnections() {
   return r.rows.map((row) => ({ channel_id: row.key.slice(PREFIX.length), nama: row.nama, updated_at: row.updated_at }));
 }
 
+// Google access tokens last an hour; reuse one for 50 minutes instead of asking Google on every request.
+const tokenCache = new Map();
+async function cachedAccessToken(key, refreshToken) {
+  const hit = tokenCache.get(key);
+  if (hit && hit.refresh === refreshToken && hit.until > Date.now()) return hit.token;
+  const token = await getAccessToken(refreshToken);
+  tokenCache.set(key, { token, refresh: refreshToken, until: Date.now() + 50 * 60 * 1000 });
+  return token;
+}
+
+// Access token for one channel, or null when it is not connected. Throws when the saved token is unusable.
+async function accessTokenFor(channelId) {
+  const r = await db.query('SELECT key, value FROM settings WHERE key = $1', [PREFIX + channelId]);
+  if (!r.rows.length) return null;
+  return cachedAccessToken(r.rows[0].key, decrypt(r.rows[0].value));
+}
+
 // channel id → fresh access token, for every connected channel
 async function accessTokens() {
   await migrateLegacyToken();
@@ -59,7 +76,7 @@ async function accessTokens() {
     const id = row.key.slice(PREFIX.length);
     try {
       const token = decrypt(row.value);
-      out[id] = await getAccessToken(token);
+      out[id] = await cachedAccessToken(row.key, token);
       // Tokens saved before encryption existed are encrypted on first use.
       if (!isEncrypted(row.value) && isEncrypted(encrypt(token))) {
         await db.query('UPDATE settings SET value = $1 WHERE key = $2', [encrypt(token), row.key]);
@@ -100,4 +117,4 @@ async function syncChannelDaily(channelId, accessToken, days = 95) {
   return rows.length;
 }
 
-module.exports = { saveConnection, removeConnection, listConnections, accessTokens, takeTokenErrors, syncChannelDaily, migrateLegacyToken };
+module.exports = { saveConnection, removeConnection, listConnections, accessTokens, accessTokenFor, takeTokenErrors, syncChannelDaily, migrateLegacyToken };

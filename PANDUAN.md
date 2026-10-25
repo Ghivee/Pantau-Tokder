@@ -122,7 +122,7 @@ Setelah ketiganya tersambung, menu **Analytics** menampilkan:
 - grafik views harian per channel;
 - kartu dan tabel perbandingan tiap channel.
 
-Grafik retensi di detail video juga terisi untuk ketiga channel.
+Grafik retensi di detail video juga terisi untuk ketiga channel. Kalau sebuah video belum punya retensi saat detailnya dibuka, aplikasi langsung menanyakannya ke YouTube Analytics (paling sering 6 jam sekali per video) dan menuliskan alasannya bila kosong: channel belum tersambung, YouTube belum mengeluarkan angkanya (biasanya 2–3 hari setelah tayang atau penonton masih sedikit), atau pesan penolakan dari YouTube. Retensi di atas 100% berarti bagian video itu ditonton ulang (umum di Shorts).
 
 Sambungan lama (satu channel) dipindahkan otomatis ke channel yang benar. Sambungan bisa diputus per channel di Pengaturan.
 
@@ -205,6 +205,13 @@ Topik ditebak dari kata di judul, misalnya "harga", "thrips", "pupuk" atau "sema
 - `/api/scan/status` sekarang hanya menjawab "ada/tidak". Potongan kunci API tidak lagi ditampilkan.
 - Pendapatan hanya dikirim server ke pemilik yang sudah masuk.
 - Semua isian diperiksa di server: kode karyawan, jadwal, PIN, tanggal, jam, angka target. Pesan kesalahannya dalam bahasa Indonesia, dan kalau database tidak bisa dihubungi, aplikasi mengatakan itu dengan jelas.
+
+## Kecepatan
+
+- Semua data untuk semua menu dimuat dalam **satu** permintaan (`/api/bootstrap`) saat website dibuka. Pindah menu sesudahnya tidak menunggu internet (sekitar 10–30 milidetik).
+- Server API berjalan di Singapura (`"regions": ["sin1"]` di `vercel.json`), dekat dengan pengguna dan database. Untuk memastikan setelah deploy: header `x-vercel-id` di jawaban `/api/...` harus mengandung `sin1::sin1`.
+- File tampilan (JS/CSS) disimpan browser selama setahun; tiap rilis memakai nama file baru, jadi tidak pernah basi.
+- Pembaruan struktur database hanya berjalan sekali per versi, bukan di setiap server mulai.
 
 ## Struktur file
 

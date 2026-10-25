@@ -41,17 +41,13 @@ async function getAccessToken(refreshToken) {
   return res.data.access_token;
 }
 
-/**
- * Fetch audience retention data for a specific video.
- * Returns an array of { percent_duration, retention } points.
- * Returns null if not available.
- */
-async function fetchRetentionData(videoId, accessToken) {
-  if (!accessToken) return null;
-
+// Audience retention straight from YouTube Analytics: [] when YouTube has no curve for the video yet.
+// Errors are thrown with Google's own message so the app can show the real reason.
+async function retentionCurve(videoId, accessToken) {
   try {
     const response = await axios.get('https://youtubeanalytics.googleapis.com/v2/reports', {
       headers: { Authorization: `Bearer ${accessToken}` },
+      timeout: 15000,
       params: {
         ids: 'channel==MINE',
         startDate: '2020-01-01',
@@ -59,20 +55,26 @@ async function fetchRetentionData(videoId, accessToken) {
         metrics: 'audienceWatchRatio',
         dimensions: 'elapsedVideoTimeRatio',
         filters: `video==${videoId}`,
-        sort: 'elapsedVideoTimeRatio'
-      }
+        sort: 'elapsedVideoTimeRatio',
+      },
     });
-
-    const rows = response.data.rows || [];
-    if (rows.length === 0) return null;
-
-    // Convert to our format: percent_duration (0-100), retention (0-100)
-    return rows.map(row => ({
+    return (response.data.rows || []).map((row) => ({
       percent_duration: Math.round(row[0] * 100),
-      retention: Math.round(row[1] * 100 * 10) / 10  // keep 1 decimal
+      retention: Math.round(row[1] * 100 * 10) / 10,
     }));
   } catch (err) {
-    console.error(`Analytics fetch failed for video ${videoId}:`, err.response?.data || err.message);
+    throw new Error(err.response?.data?.error?.message || err.message);
+  }
+}
+
+// For the sync: the curve, or null when there is none or YouTube refused (the reason goes to the sync notes).
+async function fetchRetentionData(videoId, accessToken) {
+  if (!accessToken) return null;
+  try {
+    const curve = await retentionCurve(videoId, accessToken);
+    return curve.length ? curve : null;
+  } catch (err) {
+    console.error(`Analytics fetch failed for video ${videoId}:`, err.message);
     noteError('Retensi', err);
     return null;
   }
@@ -151,4 +153,4 @@ async function fetchChannelDaily(accessToken, startDate, endDate) {
   }));
 }
 
-module.exports = { getAuthUrl, exchangeCodeForTokens, getAccessToken, fetchRetentionData, fetchRevenueData, fetchOwnChannel, fetchChannelDaily, takeErrors };
+module.exports = { retentionCurve, getAuthUrl, exchangeCodeForTokens, getAccessToken, fetchRetentionData, fetchRevenueData, fetchOwnChannel, fetchChannelDaily, takeErrors };
