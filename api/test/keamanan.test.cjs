@@ -25,3 +25,16 @@ test('client IP headers are trusted only on Vercel', () => {
   assert.equal(clientIp(req), '5.6.7.8');
   if (was === undefined) delete process.env.VERCEL; else process.env.VERCEL = was;
 });
+
+test('token encryption key is stable and wrong keys are reported', () => {
+  const { encrypt, decrypt, keyFrom, isEncrypted } = require('../src/utils/encryption');
+  const k1 = keyFrom({ GOOGLE_CLIENT_SECRET: 'abc' });
+  assert.deepEqual(k1, keyFrom({ GOOGLE_CLIENT_SECRET: 'abc' }));
+  const c = encrypt('1//refresh-token', k1);
+  assert.equal(isEncrypted(c), true);
+  assert.equal(decrypt(c, keyFrom({ GOOGLE_CLIENT_SECRET: 'abc' })), '1//refresh-token');
+  assert.throws(() => decrypt(c, keyFrom({ GOOGLE_CLIENT_SECRET: 'lain' })), /Hubungkan ulang/);
+  assert.equal(decrypt('1//plain-old-token', k1), '1//plain-old-token');
+  assert.equal(keyFrom({ ENCRYPTION_KEY: 'a'.repeat(64) }).length, 32);
+  assert.equal(keyFrom({ ENCRYPTION_KEY: 'pendek' }).length, 32);
+});
