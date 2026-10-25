@@ -2,23 +2,14 @@ const express = require('express');
 const router = express.Router();
 const { fail, bad } = require('../utils/httpError');
 const db = require('../config/db');
+const dataService = require('../services/dataService');
 const { requireAdmin, requireAnyAuth } = require('../middlewares/sessionAuth');
 
-// Dapatkan goal bulan ini
-router.get('/', requireAnyAuth, async (req, res) => {
+// Goal for a month (default: this month in WIB); created empty the first time.
+router.get('/', async (req, res) => {
   try {
-    const bulan = req.query.bulan || new Date().toISOString().slice(0, 7); // Format YYYY-MM
-    
-    let result = await db.query('SELECT * FROM affiliate_goals WHERE bulan = $1', [bulan]);
-    
-    if (result.rows.length === 0) {
-      // Jika belum ada, buat otomatis
-      result = await db.query(
-        'INSERT INTO affiliate_goals (bulan, target_omset, tercapai) VALUES ($1, 0, 0) RETURNING *',
-        [bulan]
-      );
-    }
-    res.json(result.rows[0]);
+    const bulan = /^\d{4}-\d{2}$/.test(req.query.bulan || '') ? req.query.bulan : undefined;
+    res.json(await dataService.goal(bulan));
   } catch (err) {
     fail(res, err);
   }
