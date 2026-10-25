@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { fail, bad } = require('../utils/httpError');
 const db = require('../config/db');
+const dataService = require('../services/dataService');
 const { requireAnyAuth, requireRole } = require('../middlewares/sessionAuth');
 const { createAuditMiddleware } = require('../utils/auditLog');
 const { userMutationLimiter } = require('../middlewares/rateLimit');
@@ -19,17 +20,8 @@ router.get('/', async (req, res) => {
     const dari = req.query.dari || todayWib(30);
     const sampai = req.query.sampai || todayWib(0);
     if (![dari, sampai].every((d) => /^\d{4}-\d{2}-\d{2}$/.test(d))) return res.status(400).json({ error: 'Format tanggal harus YYYY-MM-DD' });
-    const params = [dari, sampai];
-    let sql = `SELECT id, editor_id, to_char(tanggal, 'YYYY-MM-DD') AS tanggal, jam, tugas, detail, jumlah, channel_id, created_at
-               FROM aktivitas WHERE tanggal BETWEEN $1 AND $2`;
-    if (req.query.editor_id && /^\d+$/.test(req.query.editor_id)) {
-      params.push(req.query.editor_id);
-      sql += ` AND editor_id = $3`;
-    }
-    // Everyone signed in sees the whole team's log: the Harian page scores every person from it.
-    sql += ' ORDER BY tanggal, jam';
-    const result = await db.query(sql, params);
-    res.json(result.rows);
+    const editorId = /^\d+$/.test(req.query.editor_id || '') ? req.query.editor_id : null;
+    res.json(await dataService.aktivitas({ dari, sampai, editorId }));
   } catch (err) {
     fail(res, err);
   }

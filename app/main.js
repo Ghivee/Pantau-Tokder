@@ -140,31 +140,28 @@ import './styles.css';
   // Secondary data may fail on its own; the page still shows what loaded and says what did not.
   const optional = (p, label) => p.catch((e) => { S.warnings.push(label + ': ' + e.message); return null; });
 
+  // One request brings everything every page needs, so switching pages never waits for the network.
+  const BAGIAN = { aktivitas: 'Aktivitas', channels: 'Daftar channel', scan: 'Status sinkronisasi', oauth: 'Status YouTube Analytics', goal: 'Target omzet', daily: 'YouTube Analytics', presensi: 'Presensi' };
   async function fetchAll() {
-    S.warnings = [];
-    const [editors, content, aktivitas, channels, scan, oauth, goal, daily] = await Promise.all([
-      api('/api/editors'),
-      api('/api/content'),
-      optional(api('/api/aktivitas?dari=' + addDays(today(), -60) + '&sampai=' + today()), 'Aktivitas'),
-      optional(api('/api/channels'), 'Daftar channel'),
-      optional(api('/api/scan/status'), 'Status sinkronisasi'),
-      optional(api('/api/auth/status'), 'Status YouTube Analytics'),
-      isAdmin() ? optional(api('/api/goals'), 'Target omzet') : Promise.resolve(S.goal),
-      optional(api('/api/analytics?dari=' + addDays(today(), -190) + '&sampai=' + today()), 'YouTube Analytics'),
-    ]);
-    Object.assign(S, { editors, content, aktivitas: aktivitas || [], channels: channels || [], scan, oauth, goal, daily: daily || [], error: null, loadedAt: Date.now() });
+    const b = await api('/api/bootstrap');
+    applySession(b.me);
+    S.warnings = Object.keys(b.gagal || {}).map((k) => (BAGIAN[k] || k) + ': ' + b.gagal[k]);
+    Object.assign(S, {
+      editors: b.editors, content: b.content, aktivitas: b.aktivitas || [], channels: b.channels || [], scan: b.scan, oauth: b.oauth,
+      goal: b.goal, daily: b.daily || [], presensi: b.presensi || (b.gagal && b.gagal.presensi ? { error: b.gagal.presensi } : null),
+      error: null, loadedAt: Date.now(),
+    });
     normalize();
   }
+  const applySession = (who) => saveSession(!who || !who.authenticated ? null : who.type === 'admin' ? { type: 'admin' } : { type: 'karyawan', id: who.id, nama: who.nama });
 
   async function load() {
     S.error = null;
     try {
-      const who = await api('/api/auth/me');
-      saveSession(!who.authenticated ? null : who.type === 'admin' ? { type: 'admin' } : { type: 'karyawan', id: who.id, nama: who.nama });
-      if (S.session) await fetchAll();
+      await fetchAll();
     } catch (e) {
-      console.error(e);
-      S.error = e.message;
+      // 401 means signed out: the sign-in screen is shown, not an error.
+      if (e.status === 401) saveSession(null); else { console.error(e); S.error = e.message; }
     }
     render();
     if (S.session) autoSync();
@@ -429,16 +426,24 @@ import './styles.css';
     }).join('')}</svg>`;
   }
 
+  // Share of viewers still watching at each point of the video (YouTube audienceWatchRatio).
+  // Shorts that loop go above 100%, so the scale follows the data instead of clipping it.
   function drawRetention(box, data) {
-    const W = Math.max(260, box.clientWidth), H = 170, m = { t: 8, r: 8, b: 22, l: 34 };
+    const pts = [...data].sort((a, b) => a.percent_duration - b.percent_duration);
+    const top = Math.max(100, Math.ceil(Math.max(...pts.map((d) => d.retention)) / 25) * 25);
+    const W = Math.max(260, box.clientWidth), H = 170, m = { t: 8, r: 8, b: 22, l: 40 };
     const iw = W - m.l - m.r, ih = H - m.t - m.b;
-    const x = (p) => m.l + (p / 100) * iw, y = (v) => m.t + ih - (Math.min(v, 120) / 120) * ih;
+    const x = (p) => m.l + (p / 100) * iw, y = (v) => m.t + ih - (v / top) * ih;
+    const step = top > 200 ? 50 : 25;
     let html = '';
-    [0, 25, 50, 75, 100].forEach((t) => { html += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(t)}" y2="${y(t)}" stroke="var(--chart-grid)"/><text x="${m.l - 6}" y="${y(t)}" dy="0.32em" text-anchor="end">${t}%</text>`; });
+    for (let t = 0; t <= top; t += step) html += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(t)}" y2="${y(t)}" stroke="var(--chart-grid)"/><text x="${m.l - 6}" y="${y(t)}" dy="0.32em" text-anchor="end">${t}%</text>`;
     [0, 50, 100].forEach((t) => { html += `<text x="${x(t)}" y="${H - 5}" text-anchor="${t === 0 ? 'start' : t === 100 ? 'end' : 'middle'}">${t === 0 ? 'Awal' : t === 100 ? 'Akhir' : 'Tengah'}</text>`; });
-    const pts = data.map((d) => `${x(d.percent_duration)},${y(d.retention)}`).join(' ');
-    html += `<polyline points="${pts}" fill="none" stroke="var(--leaf)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
-    box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="Grafik retensi penonton">${html}</svg>`;
+    const line = pts.map((d) => `${x(d.percent_duration)},${y(d.retention)}`).join(' ');
+    html += `<polygon points="${x(pts[0].percent_duration)},${y(0)} ${line} ${x(pts[pts.length - 1].percent_duration)},${y(0)}" fill="var(--leaf)" opacity=".12"/>`;
+    html += `<polyline points="${line}" fill="none" stroke="var(--leaf)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    const at = (p) => pts.reduce((a, b) => (Math.abs(b.percent_duration - p) < Math.abs(a.percent_duration - p) ? b : a)).retention;
+    box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="Grafik retensi penonton">${html}</svg>
+      <div class="muted" style="font-size:12.5px;margin-top:6px">Masih menonton di tengah video <b>${nf.format(Math.round(at(50)))}%</b>, di akhir <b>${nf.format(Math.round(at(100)))}%</b>.${top > 100 ? ' Di atas 100% berarti bagian itu ditonton ulang.' : ''}</div>`;
   }
 
   // Day ruler: schedule slots, uploads (on time / late) and other tasks on one 24-hour line.
@@ -1068,7 +1073,7 @@ import './styles.css';
             <div class="res">${it.v._tepat == null ? '<span class="pill">tanpa jadwal</span>' : it.v._tepat ? `<span class="pill ok">tepat ${it.v._slot}</span>` : `<span class="pill bad">telat ${it.v._late} mnt</span>`}</div></div>` : `
           <div class="tl"><span class="time">${esc(it.jam)}</span><span class="dot task"></span>
             <div class="what"><b>${esc(it.a.tugas)}</b>${it.a.jumlah > 1 ? ' · ' + nf.format(it.a.jumlah) : ''}<div>${esc(it.a.detail || '')}</div></div>
-            <div class="res">${canDel(it.a) ? `<button class="btn sm ghost" data-act="hapus-aktivitas" data-id="${it.a.id}" aria-label="Hapus aktivitas">${icon('x')}</button>` : ''}</div></div>`).join('')
+            <div class="res res-btn">${canDel(it.a) ? `<button class="btn sm ghost" data-act="hapus-aktivitas" data-id="${it.a.id}" aria-label="Hapus aktivitas">${icon('x')}</button>` : ''}</div></div>`).join('')
           : `<div class="empty"><b>Belum ada catatan</b>${S.day === today() ? 'Video yang tayang muncul setelah sinkronisasi; tugas lain dicatat lewat tombol Catat.' : 'Tidak ada video atau tugas tercatat di hari ini.'}</div>`}</div>
       </div>
     </section>`;
@@ -1528,8 +1533,16 @@ import './styles.css';
       if (!box.isConnected) return;
       let ret = full.retention_data;
       if (typeof ret === 'string') { try { ret = JSON.parse(ret); } catch (e) { ret = null; } }
-      if (Array.isArray(ret) && ret.length) drawRetention(box, ret);
-      else box.innerHTML = `<div class="empty"><b>Belum ada data retensi</b>${connected ? 'YouTube biasanya baru mengeluarkan angka retensi 2–3 hari setelah video tayang. Akan terisi otomatis.' : esc(c._chNama) + ' belum tersambung ke YouTube Analytics. Hubungkan di Pengaturan.'}</div>`;
+      if (Array.isArray(ret) && ret.length) { drawRetention(box, ret); return; }
+      // The server asked YouTube just now when nothing was stored; it says why there is no curve.
+      const why = {
+        tidak_tersambung: esc(c._chNama) + ' belum tersambung ke YouTube Analytics. ' + (isAdmin() ? 'Hubungkan di Pengaturan.' : 'Minta pemilik menghubungkannya di Pengaturan.'),
+        error: esc(full.retensi_pesan || 'YouTube Analytics tidak bisa dihubungi.'),
+        belum_ada: c._age < 3
+          ? 'YouTube biasanya baru mengeluarkan retensi 2–3 hari setelah video tayang. Dicek ulang otomatis.'
+          : 'YouTube belum punya kurva retensi untuk video ini, biasanya karena penontonnya masih sedikit. Dicek ulang paling lama 6 jam sekali.',
+      }[full.retensi_status] || (connected ? 'Belum ada data dari YouTube Analytics.' : esc(c._chNama) + ' belum tersambung ke YouTube Analytics.');
+      box.innerHTML = `<div class="empty"><b>${full.retensi_status === 'error' ? 'Retensi tidak bisa diambil' : 'Belum ada data retensi'}</b>${why}</div>`;
     }).catch((e) => { if (box.isConnected) box.innerHTML = `<div class="empty"><b>Retensi gagal dimuat</b>${esc(e.message)}</div>`; });
     const s = $('#dr-assign');
     if (s) s.addEventListener('change', () => { if (s.value) { closeOverlay(); assign([c.id], +s.value); } });

@@ -15,6 +15,8 @@ const cspReportRouter = require('./routes/cspReport');
 const { ensureSchema } = require('./config/schema');
 const { identify, requireAnyAuth } = require('./middlewares/sessionAuth');
 const db = require('./config/db');
+const dataService = require('./services/dataService');
+const { clientIp } = require('./utils/clientIp');
 
 const app = express();
 app.set('trust proxy', false);
@@ -88,6 +90,16 @@ app.get('/api/auth/karyawan', async (req, res, next) => {
   try {
     const r = await db.query(`SELECT id, nama FROM editors WHERE status = 'aktif' AND pin IS NOT NULL AND pin <> '' ORDER BY nama`);
     res.json(r.rows);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Everything a page needs in one request (see dataService.bootstrap), plus who is signed in.
+app.get('/api/bootstrap', async (req, res, next) => {
+  try {
+    const me = req.isAdmin ? { authenticated: true, type: 'admin' } : { authenticated: true, type: 'karyawan', ...req.editor };
+    res.json({ me, ...(await dataService.bootstrap({ isAdmin: req.isAdmin, editor: req.editor, ip: clientIp(req) })) });
   } catch (err) {
     next(err);
   }
