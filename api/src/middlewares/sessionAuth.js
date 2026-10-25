@@ -1,7 +1,10 @@
 const crypto = require('crypto');
 const db = require('../config/db');
+const { bad } = require('../utils/httpError');
 
 const SESSION_COOKIE_NAME = 'pt_session';
+const SESSION_DAYS = 30;
+const HASH_FORMAT = /^[0-9a-f]{16}:[0-9a-f]{64}$/;
 
 function hashPin(pin) {
   const salt = crypto.randomBytes(8).toString('hex');
@@ -10,119 +13,139 @@ function hashPin(pin) {
 }
 
 function verifyPin(pin, stored) {
-  if (!pin || !stored || !stored.includes(':')) return false;
+  if (!pin || !stored || !HASH_FORMAT.test(stored)) return false;
   const [salt, hash] = stored.split(':');
-  const test = crypto.scryptSync(String(pin), salt, 32).toString('hex');
-  return crypto.timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(test, 'hex'));
+  const test = crypto.scryptSync(String(pin), salt, 32);
+  return crypto.timingSafeEqual(Buffer.from(hash, 'hex'), test);
 }
 
-async function adminPassword() {
-  const result = await db.query(`SELECT value FROM settings WHERE key = 'admin_password'`);
-  return result.rows.length > 0 && result.rows[0].value ? result.rows[0].value : 'admin123';
+function sameText(a, b) {
+  const x = crypto.createHash('sha256').update(String(a)).digest();
+  const y = crypto.createHash('sha256').update(String(b)).digest();
+  return crypto.timingSafeEqual(x, y);
 }
 
-function createSessionPayload(user) {
-  if (user.type === 'admin') {
-    return { type: 'admin', password: user.password, iat: Date.now() };
+async function saveAdminPassword(password) {
+  await db.query(
+    `INSERT INTO settings (key, value, updated_at) VALUES ('admin_password', $1, NOW())
+     ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = NOW()`,
+    [hashPin(password)]
+  );
+}
+
+// Checks the owner password. There is no built-in default: the first password comes from the
+// ADMIN_PASSWORD environment variable, after that it is stored hashed in the database.
+// A password saved in plain text by older versions is upgraded to a hash on the first sign-in.
+async function verifyAdminPassword(password) {
+  if (!password) return false;
+  const r = await db.query(`SELECT value FROM settings WHERE key = 'admin_password'`);
+  const stored = r.rows[0] && r.rows[0].value;
+  if (stored) {
+    if (HASH_FORMAT.test(stored)) return verifyPin(password, stored);
+    if (!sameText(password, stored)) return false;
+    await saveAdminPassword(password);
+    return true;
   }
-  return { type: 'karyawan', id: user.id, nama: user.nama, peran: user.peran, pin: user.pin, iat: Date.now() };
+  const fromEnv = process.env.ADMIN_PASSWORD;
+  if (!fromEnv) throw bad(503, 'Password pemilik belum diatur. Isi ADMIN_PASSWORD di Environment Variables Vercel, lalu masuk dengan password itu.');
+  if (!sameText(password, fromEnv)) return false;
+  await saveAdminPassword(password);
+  return true;
 }
 
-function parseSessionCookie(req) {
-  const cookieHeader = req.headers.cookie || '';
-  const match = cookieHeader.match(new RegExp(`(^|;\\s*)${SESSION_COOKIE_NAME}=([^;]+)`));
-  if (!match) return null;
-  try {
-    return JSON.parse(decodeURIComponent(match[2]));
-  } catch {
-    return null;
-  }
+const tokenHash = (token) => crypto.createHash('sha256').update(token).digest('hex');
+
+function readToken(req) {
+  const m = (req.headers.cookie || '').match(new RegExp(`(?:^|;\\s*)${SESSION_COOKIE_NAME}=([A-Za-z0-9_-]{43})(?:;|$)`));
+  return m ? m[1] : null;
 }
 
-function setSessionCookie(res, session) {
-  const isProd = process.env.NODE_ENV === 'production';
-  const cookieValue = encodeURIComponent(JSON.stringify(session));
-  const maxAge = 60 * 60 * 24 * 30; // 30 days
-  const sec = isProd ? '; Secure' : '';
-  res.setHeader('Set-Cookie', `${SESSION_COOKIE_NAME}=${cookieValue}; HttpOnly${sec}; SameSite=Lax; Path=/; Max-Age=${maxAge}`);
+function writeCookie(res, value, maxAge) {
+  const secure = process.env.VERCEL || process.env.NODE_ENV === 'production' ? '; Secure' : '';
+  res.append('Set-Cookie', `${SESSION_COOKIE_NAME}=${value}; HttpOnly${secure}; SameSite=Lax; Path=/; Max-Age=${maxAge}`);
 }
 
-function clearSessionCookie(res) {
-  const isProd = process.env.NODE_ENV === 'production';
-  const sec = isProd ? '; Secure' : '';
-  res.setHeader('Set-Cookie', `${SESSION_COOKIE_NAME}=; HttpOnly${sec}; SameSite=Lax; Path=/; Max-Age=0`);
+// Starts a session: the browser gets a random token, the database keeps only its hash.
+async function startSession(res, { tipe, editorId = null }) {
+  const token = crypto.randomBytes(32).toString('base64url');
+  await db.query(
+    `INSERT INTO sesi (token_hash, tipe, editor_id, expires_at) VALUES ($1, $2, $3, NOW() + INTERVAL '${SESSION_DAYS} days')`,
+    [tokenHash(token), tipe, editorId]
+  );
+  db.query(`DELETE FROM sesi WHERE expires_at < NOW()`).catch(() => {});
+  writeCookie(res, token, SESSION_DAYS * 86400);
 }
 
+async function endSession(req, res) {
+  const token = readToken(req);
+  if (token) await db.query(`DELETE FROM sesi WHERE token_hash = $1`, [tokenHash(token)]);
+  writeCookie(res, '', 0);
+}
+
+const revokeAdminSessions = () => db.query(`DELETE FROM sesi WHERE tipe = 'admin'`);
+const revokeEditorSessions = (editorId) => db.query(`DELETE FROM sesi WHERE editor_id = $1`, [editorId]);
+
+// Works out who is calling from the session cookie. Employees who were deactivated or
+// removed lose access straight away.
 async function identify(req, res, next) {
   req.isAdmin = false;
   req.editor = null;
-  req.sessionPayload = null;
-
   try {
-    const session = parseSessionCookie(req);
-    if (!session) return next ? next() : undefined;
-
-    req.sessionPayload = session;
-
-    if (session.type === 'admin') {
-      const correctPassword = await adminPassword();
-      if (session.password === correctPassword) {
-        req.isAdmin = true;
-      }
-      return next ? next() : undefined;
-    }
-
-    if (session.type === 'karyawan' && session.id) {
-      const r = await db.query(`SELECT id, nama, peran, pin FROM editors WHERE id = $1 AND status = 'aktif'`, [session.id]);
-      if (r.rows.length) {
-        const { id, nama, peran, pin } = r.rows[0];
-        if (session.pin && verifyPin(session.pin, pin)) {
-          req.editor = { id, nama, peran: peran || 'editor' };
-        }
+    const token = readToken(req);
+    if (token) {
+      const r = await db.query(
+        `SELECT s.tipe, e.id, e.nama, e.peran, e.status FROM sesi s LEFT JOIN editors e ON e.id = s.editor_id
+         WHERE s.token_hash = $1 AND s.expires_at > NOW()`,
+        [tokenHash(token)]
+      );
+      const row = r.rows[0];
+      if (row && row.tipe === 'admin') req.isAdmin = true;
+      if (row && row.tipe === 'karyawan' && row.id && row.status === 'aktif') {
+        req.editor = { id: row.id, nama: row.nama, peran: row.peran || 'editor' };
       }
     }
   } catch (err) {
-    console.error('Session identification error:', err.message);
+    return next(err);
   }
-
-  if (next) next();
+  next();
 }
 
 function requireAdmin(req, res, next) {
   if (req.isAdmin) return next();
-  return res.status(403).json({ error: 'Hanya pemilik yang bisa mengakses' });
+  return res.status(req.editor ? 403 : 401).json({ error: 'Hanya pemilik yang bisa melakukan ini' });
 }
 
 function requireEditor(req, res, next) {
   if (req.editor) return next();
-  return res.status(403).json({ error: 'Akses ditolak untuk akun ini' });
+  return res.status(403).json({ error: 'Hanya karyawan yang bisa melakukan ini' });
 }
 
 function requireAnyAuth(req, res, next) {
   if (req.isAdmin || req.editor) return next();
-  return res.status(401).json({ error: 'Unauthorized: Sesi tidak valid' });
+  return res.status(401).json({ error: 'Silakan masuk terlebih dahulu' });
 }
 
 function requireRole(...allowedRoles) {
   return (req, res, next) => {
     if (req.isAdmin) return next();
     if (req.editor && allowedRoles.includes(req.editor.peran)) return next();
-    return res.status(403).json({ error: 'Peran tidak memiliki izin' });
+    return res.status(req.editor ? 403 : 401).json({ error: 'Peran Anda tidak punya izin untuk ini' });
   };
 }
 
 module.exports = {
   hashPin,
   verifyPin,
-  adminPassword,
+  verifyAdminPassword,
+  saveAdminPassword,
+  startSession,
+  endSession,
+  revokeAdminSessions,
+  revokeEditorSessions,
   identify,
   requireAdmin,
   requireEditor,
   requireAnyAuth,
   requireRole,
-  createSessionPayload,
-  setSessionCookie,
-  clearSessionCookie,
-  parseSessionCookie,
   SESSION_COOKIE_NAME,
 };

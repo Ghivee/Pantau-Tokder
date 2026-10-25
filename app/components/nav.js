@@ -7,6 +7,7 @@ export const ROUTES = [
   { hash: 'konten', label: 'Konten', icon: icon('video'), admin: false },
   { hash: 'aktivitas', label: 'Aktivitas', icon: icon('chart'), admin: false },
   { hash: 'analytics', label: 'Analytics', icon: icon('chart'), admin: false },
+  { hash: 'presensi', label: 'Presensi', icon: icon('pin'), admin: false },
   { hash: 'karyawan', label: 'Karyawan', icon: icon('team'), admin: true },
   { hash: 'pengaturan', label: 'Pengaturan', icon: icon('gear'), admin: true },
 ];

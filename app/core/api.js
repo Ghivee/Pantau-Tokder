@@ -62,8 +62,9 @@ export async function api(path, opts = {}) {
     err.status = res.status;
     if (res.status === 401 && getState().session && !path.includes('/api/auth/login') && !path.includes('editor-login')) {
       clearSession();
-      if (typeof window !== 'undefined' && typeof window.__pt_renderNav === 'function') window.__pt_renderNav();
-      err.message = 'Sesi Anda tidak berlaku lagi (password atau PIN sudah berubah). Silakan masuk ulang.';
+      clearApiCache();
+      if (typeof window !== 'undefined' && typeof window.__pt_render === 'function') window.__pt_render();
+      err.message = 'Sesi Anda tidak berlaku lagi (keluar, password atau PIN sudah berubah). Silakan masuk ulang.';
     }
     throw err;
   }

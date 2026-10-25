@@ -18,7 +18,10 @@ Pantau Tokder memantau kerja harian tim konten di tiga channel: **Tokder**, **Bu
 | Belum dikenali | Video tanpa kode karyawan, untuk ditetapkan manual | Pemilik dan Editor |
 | Karyawan | Kode, peran, jadwal, target, PIN | Diubah oleh Pemilik |
 | Pendapatan | Pendapatan iklan per karyawan/channel/video, target omzet afiliasi | Pemilik |
+| Presensi | Absen masuk/pulang dengan cek Wi-Fi kantor + GPS; pemilik melihat rekap, percobaan yang ditolak, dan mengatur aturannya | Karyawan absen; rekap & aturan Pemilik |
 | Pengaturan | Status sambungan, sinkronisasi, channel, password | Pemilik |
+
+Semua menu hanya bisa dibuka setelah **masuk** (pemilik atau karyawan). Sebelum masuk, website hanya menampilkan tombol Masuk.
 
 Semua angka berasal dari data asli: YouTube Data API, YouTube Analytics, dan catatan karyawan. Tidak ada data contoh atau perkiraan. Kalau sebuah angka belum tersedia, aplikasi menampilkan "—" atau "Belum ada data" beserta alasannya. Kalau server tidak bisa dihubungi, muncul pesan error dengan tombol **Coba lagi**.
 
@@ -54,10 +57,12 @@ Untuk menambah atau mengganti channel nanti, tidak perlu login Vercel. Buka **Pe
 
 ### 3. Masuk sebagai pemilik dan ganti password
 
-1. Klik **Masuk → Pemilik**. Password bawaannya `admin123`.
-2. Langsung buka **Pengaturan → Password pemilik** dan ganti dengan password minimal 8 karakter.
+Tidak ada lagi password bawaan `admin123`.
 
-Password bawaan itu diketahui siapa pun yang membaca kode. Selama belum diganti, siapa saja bisa masuk sebagai pemilik.
+- **Kalau password pemilik sudah pernah diganti** lewat Pengaturan, password itu tetap berlaku. Saat pertama kali masuk setelah versi ini terbit, password otomatis disimpan ulang dalam bentuk hash.
+- **Kalau belum pernah diganti** (selama ini masuk dengan `admin123`), isi dulu Environment Variable `ADMIN_PASSWORD` di Vercel (**Settings → Environment Variables**) dengan password baru minimal 8 karakter, lalu Redeploy. Setelah itu masuk dengan password tersebut. Tanpa langkah ini, login pemilik menampilkan pesan "Password pemilik belum diatur".
+
+Setelah masuk, password bisa diganti di **Pengaturan → Password pemilik**. Mengganti password otomatis mengeluarkan pemilik dari semua perangkat lain.
 
 ### 4. Atur karyawan
 
@@ -134,6 +139,32 @@ Sambungan lama (satu channel) dipindahkan otomatis ke channel yang benar. Sambun
 
 Karyawan hanya bisa mencatat untuk hari ini dan 2 hari ke belakang. Catatan sendiri bisa dihapus dalam 24 jam. Pemilik bisa mencatat dan menghapus untuk siapa pun.
 
+### 9. Presensi (absen masuk dan pulang)
+
+Absen hanya diterima kalau **semua** syarat ini terpenuhi. Semuanya diperiksa di server, bukan di HP:
+
+1. **Wi-Fi kantor.** IP publik internet karyawan harus sama dengan IP Wi-Fi kantor yang didaftarkan pemilik. Ini lapisan utama, karena aplikasi lokasi palsu (Fake GPS) tidak bisa memalsukan jaringan. Data seluler dan VPN otomatis ditolak.
+2. **Akurasi GPS.** Akurasi yang terlalu besar (melebihi batas, bawaannya 50 m) ditolak. Akurasi 0 m yang tidak wajar juga ditolak, karena sering dikirim aplikasi lokasi palsu.
+3. **Lokasi baru.** Lokasi lama dari cache, atau jam HP yang beda lebih dari 5 menit dari jam server, ditolak.
+4. **Radius kantor.** Posisi harus di dalam radius kantor (bawaannya 100 m).
+5. **Tidak melompat.** Kalau posisi berpindah lebih cepat dari 150 km/jam dibanding lokasi sebelumnya, absen ditolak. Ini tanda lokasi diganti-ganti.
+
+Satu karyawan hanya bisa absen masuk sekali dan absen pulang sekali per hari. Absen pulang harus setelah absen masuk. Setiap percobaan yang ditolak dicatat beserta alasan, IP, akurasi dan jaraknya, sehingga pemilik bisa melihat siapa yang mencoba curang.
+
+**Pengaturan awal oleh pemilik** (sekali saja, di menu **Presensi → Aturan presensi**):
+
+1. Datang ke kantor, sambungkan laptop/HP ke **Wi-Fi kantor**, masuk sebagai pemilik.
+2. Klik **Pakai lokasi saya sekarang** untuk mengisi koordinat kantor.
+3. Klik **Tambahkan IP saya** untuk mendaftarkan IP Wi-Fi kantor.
+4. Atur radius, akurasi maksimal, jam masuk, toleransi telat dan jam pulang, lalu klik **Simpan aturan**.
+
+Catatan:
+
+- IP Wi-Fi kantor harus **IP statis** dari penyedia internet. Kalau IP kantor berubah-ubah, minta IP statis ke ISP, atau perbarui IP di aturan presensi setiap kali berubah. Rentang IP seperti `203.0.113.0/24` juga bisa dipakai.
+- Pada jaringan IPv6, tombol **Tambahkan IP saya** otomatis mendaftarkan seluruh jaringan kantor (`…::/64`), karena tiap HP mendapat alamat berbeda.
+
+**Karyawan:** buka menu **Presensi**, pastikan tersambung ke Wi-Fi kantor dan GPS menyala, lalu klik **Absen masuk** atau **Absen pulang**. Izinkan akses lokasi saat browser memintanya. Kalau ditolak, alasannya muncul di layar dan di daftar "Percobaan yang ditolak".
+
 ---
 
 ## Cara skor dihitung (0–100 per hari)
@@ -161,8 +192,13 @@ Topik ditebak dari kata di judul, misalnya "harga", "thrips", "pupuk" atau "sema
 
 ## Keamanan
 
-- Halaman bisa **dilihat** tanpa masuk, sama seperti versi sebelumnya. Mencatat, menetapkan dan mengubah data perlu PIN atau password pemilik. Untuk mengunci seluruh website, aktifkan **Vercel → Settings → Deployment Protection**.
-- PIN disimpan dalam bentuk hash, bukan teks asli.
+- Semua data hanya bisa dilihat setelah masuk. Karyawan hanya melihat aktivitas dan presensinya sendiri.
+- Sesi login memakai token acak di cookie HttpOnly. Password dan PIN tidak pernah disimpan di cookie atau di browser. Keluar, ganti password, ganti PIN atau menonaktifkan karyawan langsung mencabut sesinya.
+- Password pemilik dan PIN disimpan dalam bentuk hash, bukan teks asli.
+- Salah password atau PIN berulang kali (8 kali untuk pemilik, 6 kali per karyawan) memblokir percobaan selama 15 menit.
+- Permintaan dari website lain ditolak (CORS dan pemeriksaan asal permintaan). Menyambungkan dan memutus YouTube Analytics hanya bisa dilakukan pemilik.
+- Jika Environment Variable `CRON_SECRET` diisi, Vercel Cron bisa sinkron kapan saja. Tanpa itu, sinkron harian tetap jalan, tapi dibatasi paling cepat 15 menit sekali seperti permintaan lain.
+- Kalau database tidak bisa dihubungi, aplikasi menampilkan error dan tidak pernah beralih ke data contoh.
 - `/api/scan/status` sekarang hanya menjawab "ada/tidak". Potongan kunci API tidak lagi ditampilkan.
 - Pendapatan hanya dikirim server ke pemilik yang sudah masuk.
 - Semua isian diperiksa di server: kode karyawan, jadwal, PIN, tanggal, jam, angka target. Pesan kesalahannya dalam bahasa Indonesia, dan kalau database tidak bisa dihubungi, aplikasi mengatakan itu dengan jelas.
@@ -170,8 +206,10 @@ Topik ditebak dari kata di judul, misalnya "harga", "thrips", "pupuk" atau "sema
 ## Struktur file
 
 ```
-index.html          kerangka halaman
+app/index.html      kerangka halaman
 app/styles.css      tampilan (warna, huruf, tata letak, mode gelap)
-app/main.js         logika halaman, skor, grafik
-api/src/...         server: sinkronisasi YouTube, karyawan, aktivitas, akses
+app/main.js         titik masuk, navigasi, aksi tombol
+app/pages/*.js      isi tiap menu (presensi.js untuk Presensi)
+api/src/...         server: sinkronisasi YouTube, karyawan, aktivitas, presensi, akses
+api/test/*.cjs      tes otomatis (jalankan: npm test)
 ```

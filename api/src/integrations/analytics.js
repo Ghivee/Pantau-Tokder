@@ -1,13 +1,13 @@
 const axios = require('axios');
 
-function getAuthUrl(redirectUri) {
+function getAuthUrl(redirectUri, state) {
   const scopes = [
     'https://www.googleapis.com/auth/yt-analytics.readonly',
     'https://www.googleapis.com/auth/youtube.readonly',
     'https://www.googleapis.com/auth/yt-analytics-monetary.readonly'
   ].join(' ');
   
-  return `https://accounts.google.com/o/oauth2/v2/auth?client_id=${process.env.GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scopes)}&access_type=offline&prompt=${encodeURIComponent('consent select_account')}`;
+  return `https://accounts.google.com/o/oauth2/v2/auth?client_id=${process.env.GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scopes)}&access_type=offline&prompt=${encodeURIComponent('consent select_account')}&state=${encodeURIComponent(state)}`;
 }
 
 async function exchangeCodeForTokens(code, redirectUri) {
