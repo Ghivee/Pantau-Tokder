@@ -17,8 +17,6 @@ router.get('/', async (req, res) => {
       [dari, sampai]
     );
     if (!req.isAdmin) result.rows.forEach((r) => { delete r.revenue; });
-    // Cache 5 menit, stale-while-revalidate 10 menit
-    res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
     res.json(result.rows);
   } catch (err) {
     fail(res, err);

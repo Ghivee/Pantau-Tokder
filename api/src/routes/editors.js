@@ -2,14 +2,12 @@ const express = require('express');
 const router = express.Router();
 const { fail, bad } = require('../utils/httpError');
 const editorService = require('../services/editorService');
-const { requireAdmin, requireAnyAuth } = require('../middlewares/sessionAuth');
+const { requireAdmin, revokeEditorSessions } = require('../middlewares/sessionAuth');
 const { createAuditMiddleware, getClientIp, getUserAgent, logAudit } = require('../utils/auditLog');
 
 router.get('/', async (req, res) => {
   try {
     const editors = await editorService.getAllEditors();
-    // Cache 1 menit, stale-while-revalidate 5 menit
-    res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
     res.json(editors);
   } catch (err) {
     fail(res, err);
@@ -47,13 +45,15 @@ router.post('/', requireAdmin, createAuditMiddleware('editor', 'create', (req, b
   }
 });
 
-router.put('/:id', requireAdmin, createAuditMiddleware('editor', 'update', (req) => req.params.id, (req) => req.body), async (req, res) => {
+router.put('/:id', requireAdmin, createAuditMiddleware('editor', 'update', (req) => req.params.id, (req) => ({ ...req.body, pin: req.body && req.body.pin ? '(diubah)' : undefined })), async (req, res) => {
   try {
     const { id } = req.params;
     if (!/^\d+$/.test(id)) throw bad(400, 'ID karyawan tidak valid');
     const { nama, kode, extra } = validate(req.body);
     const editor = await editorService.updateEditor(id, nama, kode, extra);
     if (!editor) throw bad(404, 'Karyawan tidak ditemukan');
+    // A new or removed PIN signs the employee out everywhere.
+    if (extra.pin || extra.hapus_pin) await revokeEditorSessions(id);
     res.json(editor);
   } catch (err) {
     fail(res, err);

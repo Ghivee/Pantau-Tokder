@@ -1,7 +1,9 @@
 const db = require('../config/db');
+const { clientIp } = require('./clientIp');
 
-async function ensureAuditTable() {
-  await db.query(`
+let auditReady = null;
+function ensureAuditTable() {
+  if (!auditReady) auditReady = db.query(`
     CREATE TABLE IF NOT EXISTS audit_logs (
       id BIGSERIAL PRIMARY KEY,
       actor_type TEXT NOT NULL, -- 'admin' | 'editor'
@@ -19,7 +21,8 @@ async function ensureAuditTable() {
     CREATE INDEX IF NOT EXISTS idx_audit_logs_actor ON audit_logs (actor_type, actor_id);
     CREATE INDEX IF NOT EXISTS idx_audit_logs_target ON audit_logs (target_type, target_id);
     CREATE INDEX IF NOT EXISTS idx_audit_logs_created ON audit_logs (created_at DESC);
-  `);
+  `).catch((e) => { auditReady = null; throw e; });
+  return auditReady;
 }
 
 async function logAudit({ actorType, actorId, actorNama, ip, userAgent, action, targetType, targetId, before, after }) {
@@ -47,12 +50,7 @@ async function logAudit({ actorType, actorId, actorNama, ip, userAgent, action, 
   }
 }
 
-function getClientIp(req) {
-  return req.headers['x-forwarded-for']?.split(',')[0]?.trim() 
-    || req.headers['x-real-ip'] 
-    || req.socket?.remoteAddress 
-    || 'unknown';
-}
+const getClientIp = (req) => clientIp(req);
 
 function getUserAgent(req) {
   return req.headers['user-agent'] || 'unknown';
