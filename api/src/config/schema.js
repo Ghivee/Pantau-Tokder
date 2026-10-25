@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const db = require('./db');
 
 // Additive, idempotent changes only: new tables and columns, never drops.
@@ -91,6 +92,9 @@ const STATEMENTS = [
     user_agent VARCHAR(300)
   )`,
   `CREATE INDEX IF NOT EXISTS presensi_ditolak_waktu_idx ON presensi_ditolak (waktu DESC)`,
+  // When retention was last asked from YouTube for a video that had none, so opening it does not ask again every time.
+  `ALTER TABLE content ADD COLUMN IF NOT EXISTS retention_cek TIMESTAMP`,
+  `CREATE INDEX IF NOT EXISTS content_channel_idx ON content (channel_id)`,
 ];
 
 const CONNECTION_CODES = ['ECONNREFUSED', 'ENOTFOUND', 'ETIMEDOUT', '57P01', '53300'];
@@ -107,15 +111,28 @@ const ONE_TIME = [
 
 let ready = null;
 
+// Fingerprint of everything above. A cold start that finds it already stored skips all statements
+// (one query instead of dozens, some of them heavy), so the first request after a deploy stays fast.
+const VERSION = crypto.createHash('sha1').update(JSON.stringify([STATEMENTS, ONE_TIME])).digest('hex').slice(0, 12);
+
 function ensureSchema() {
   if (!ready) {
     ready = (async () => {
+      try {
+        const v = await db.query(`SELECT value FROM settings WHERE key = 'schema_versi'`);
+        if (v.rows[0] && v.rows[0].value === VERSION) return;
+      } catch (e) {
+        if (CONNECTION_CODES.includes(e.code)) { ready = null; return; }
+        // settings does not exist yet: run everything below.
+      }
+      let failed = false;
       for (const sql of STATEMENTS) {
         try {
           await db.query(sql);
         } catch (e) {
           // Database unreachable: try again on the next request instead of never.
           if (CONNECTION_CODES.includes(e.code)) { ready = null; return; }
+          failed = true;
           console.error('Schema update skipped:', e.message);
         }
       }
@@ -126,9 +143,16 @@ function ensureSchema() {
           await db.query(step.sql);
           await db.query(`INSERT INTO settings (key, value, updated_at) VALUES ($1, 'selesai', NOW()) ON CONFLICT (key) DO NOTHING`, [step.key]);
         } catch (e) {
+          failed = true;
           console.error('One-time step skipped:', step.key, e.message);
         }
       }
+      // Only a fully applied schema is remembered; otherwise the next cold start tries again.
+      if (!failed) await db.query(
+        `INSERT INTO settings (key, value, updated_at) VALUES ('schema_versi', $1, NOW())
+         ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = NOW()`,
+        [VERSION]
+      ).catch((e) => console.error('Schema version not saved:', e.message));
     })();
   }
   return ready;

@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const { fail } = require('../utils/httpError');
 const db = require('../config/db');
+const dataService = require('../services/dataService');
 const { getAuthUrl, exchangeCodeForTokens, fetchOwnChannel } = require('../integrations/analytics');
 const analyticsService = require('../services/analyticsService');
 const { getChannelIds, getChannelNames } = require('../services/channelService');
@@ -82,17 +83,7 @@ router.get('/callback', async (req, res) => {
 // GET /api/auth/status — which monitored channels have YouTube Analytics connected
 router.get('/status', async (req, res) => {
   try {
-    await analyticsService.migrateLegacyToken();
-    const [connections, ids, names] = await Promise.all([analyticsService.listConnections(), getChannelIds(), getChannelNames()]);
-    const byId = Object.fromEntries(connections.map((c) => [c.channel_id, c]));
-    const all = [...new Set([...ids, ...connections.map((c) => c.channel_id)])];
-    const channels = all.map((id) => ({
-      id,
-      nama: names[id] || (byId[id] && byId[id].nama) || id,
-      connected: !!byId[id],
-      connected_at: byId[id] ? byId[id].updated_at : null,
-    }));
-    res.json({ connected: connections.length > 0, channels });
+    res.json(await dataService.oauthStatus());
   } catch (err) {
     fail(res, err, 'Tidak dapat memeriksa status YouTube Analytics');
   }

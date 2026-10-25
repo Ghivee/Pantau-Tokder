@@ -2,41 +2,64 @@ const express = require('express');
 const router = express.Router();
 const { fail, bad } = require('../utils/httpError');
 const db = require('../config/db');
+const analyticsService = require('../services/analyticsService');
+const { retentionCurve } = require('../integrations/analytics');
 const { requireAnyAuth, requireRole } = require('../middlewares/sessionAuth');
 const { createAuditMiddleware } = require('../utils/auditLog');
 const { checkIdempotency } = require('../middlewares/rateLimit');
 
-// List without the retention curves (they are large); latest numbers are stored on each row.
-const LIST_COLUMNS = `id, post_id, platform, url, judul, tanggal_upload, editor_id, status_identifikasi, tipe_video,
-  duration_secs, channel_id, channel_nama, revenue, views, likes, comments, stats_at,
-  (retention_data IS NOT NULL) AS punya_retensi`;
+const { content: listContent, LIST_COLUMNS } = require('../services/dataService');
 
 router.get('/', async (req, res) => {
   try {
     const { editor_id, platform, status } = req.query;
-    let query = `SELECT ${LIST_COLUMNS} FROM content WHERE 1=1`;
-    const params = [];
-    if (editor_id && editor_id !== 'all') { params.push(editor_id); query += ` AND editor_id = $${params.length}`; }
-    if (platform && platform !== 'all') { params.push(platform); query += ` AND platform = $${params.length}`; }
-    if (status) { params.push(status); query += ` AND status_identifikasi = $${params.length}`; }
-    query += ' ORDER BY tanggal_upload DESC';
-    const result = await db.query(query, params);
-    // Revenue is for the owner only.
-    if (!req.isAdmin) result.rows.forEach((r) => { delete r.revenue; });
-    res.json(result.rows);
+    res.json(await listContent({ isAdmin: req.isAdmin, editorId: editor_id, platform, status }));
   } catch (err) {
     fail(res, err);
   }
 });
 
-// One video with its retention curve
+// One video with its retention curve. When none is stored yet, it is asked from YouTube Analytics
+// right away (at most every 6 hours per video) and the answer says why a curve is missing.
 router.get('/:id', async (req, res) => {
   try {
     if (!/^\d+$/.test(req.params.id)) throw bad(400, 'ID video tidak valid');
-    const r = await db.query(`SELECT ${LIST_COLUMNS}, retention_data, retention_source FROM content WHERE id = $1`, [req.params.id]);
+    const r = await db.query(
+      `SELECT ${LIST_COLUMNS}, retention_data, retention_source,
+         (retention_cek IS NOT NULL AND retention_cek > NOW() - INTERVAL '6 hours') AS baru_dicek
+       FROM content WHERE id = $1`,
+      [req.params.id]
+    );
     if (!r.rows.length) throw bad(404, 'Video tidak ditemukan');
-    if (!req.isAdmin) delete r.rows[0].revenue;
-    res.json(r.rows[0]);
+    const v = r.rows[0];
+    if (!req.isAdmin) delete v.revenue;
+    v.retensi_status = v.retention_data ? 'ada' : 'belum_ada';
+    if (!v.retention_data && v.channel_id && !v.baru_dicek) {
+      let token = null;
+      try {
+        token = await analyticsService.accessTokenFor(v.channel_id);
+      } catch (e) {
+        v.retensi_status = 'error';
+        v.retensi_pesan = e.message;
+      }
+      if (!token && v.retensi_status !== 'error') v.retensi_status = 'tidak_tersambung';
+      if (token) {
+        try {
+          const curve = await retentionCurve(v.post_id, token);
+          await db.query(
+            `UPDATE content SET retention_cek = NOW(), retention_data = COALESCE($1, retention_data),
+               retention_source = CASE WHEN $1::jsonb IS NULL THEN retention_source ELSE 'youtube' END WHERE id = $2`,
+            [curve.length ? JSON.stringify(curve) : null, v.id]
+          );
+          if (curve.length) { v.retention_data = curve; v.retention_source = 'youtube'; v.retensi_status = 'ada'; }
+        } catch (e) {
+          v.retensi_status = 'error';
+          v.retensi_pesan = 'YouTube Analytics menolak: ' + e.message;
+        }
+      }
+    }
+    delete v.baru_dicek;
+    res.json(v);
   } catch (err) {
     fail(res, err);
   }

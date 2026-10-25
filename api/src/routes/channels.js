@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { fail, bad } = require('../utils/httpError');
 const db = require('../config/db');
+const dataService = require('../services/dataService');
 const { getChannelIds, getChannelNames, saveChannels } = require('../services/channelService');
 const { requireAdmin, requireAnyAuth } = require('../middlewares/sessionAuth');
 const { createAuditMiddleware } = require('../utils/auditLog');
@@ -9,20 +10,7 @@ const { createAuditMiddleware } = require('../utils/auditLog');
 // GET /api/channels — channels being monitored, with names from YouTube
 router.get('/', async (req, res) => {
   try {
-    const [ids, names, seen] = await Promise.all([
-      getChannelIds(),
-      getChannelNames(),
-      db.query(
-        `SELECT channel_id, MAX(channel_nama) AS nama, COUNT(*)::int AS jumlah_video
-         FROM content WHERE channel_id IS NOT NULL GROUP BY channel_id`
-      ),
-    ]);
-    const byId = Object.fromEntries(seen.rows.map((r) => [r.channel_id, r]));
-    res.json(ids.map((id) => ({
-      id,
-      nama: names[id] || (byId[id] && byId[id].nama) || id,
-      jumlah_video: (byId[id] && byId[id].jumlah_video) || 0,
-    })));
+    res.json(await dataService.channels());
   } catch (err) {
     fail(res, err);
   }

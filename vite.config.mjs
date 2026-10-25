@@ -30,7 +30,8 @@ export default defineConfig({
   plugins: [
     legacy({
       targets: ['defaults', 'not IE 11'],
-      modernPolyfills: true
+      // Modern browsers need no polyfills; old ones still get the legacy bundle.
+      modernPolyfills: false
     })
   ]
 });
