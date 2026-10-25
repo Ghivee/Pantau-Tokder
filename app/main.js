@@ -4,7 +4,7 @@ import { getState, setSession, clearSession, isAdmin, me, canLog, canAssign } fr
 import { api, fetchCritical, fetchSecondary, fetchAll, refresh, autoSync, initIntervals, clearApiCache } from './core/api.js';
 import { normalize, dayStats, periodStats, daysBack } from './core/scoring.js';
 import { icon, esc, fmt, idr, usd, signed, pct, cf, nf, durasi, tglPanjang, today, addDays, nowJam, toast, peranLabel, TUGAS, TUGAS_LAIN, topikOf, $, $$ } from './core/utils.js';
-import { renderNav, ROUTES, setCurrentRoute, getCurrentRoute, editorById, activeEditors, chName, chColor, analyticsChannels, editorCell, vidCell, avatar } from './components/nav.js';
+import { renderNav, ROUTES, setCurrentRoute, getCurrentRoute, routeFromPath, isKnownRoute, navigate, editorById, activeEditors, chName, chColor, analyticsChannels, editorCell, vidCell, avatar } from './components/nav.js';
 import { loginDialog, catatDialog, editorDialog, goalDialog, confirmDialog, openDialog, closeOverlay } from './components/dialogs.js';
 import { videoDrawer } from './components/videoDrawer.js';
 import { drawStacked, drawSparkbars, drawRetention } from './charts/charts.js';
@@ -38,6 +38,9 @@ window.kontenRows = kontenRows;
 window.__pt_render = () => render();
 window.__pt_renderNav = () => renderNav();
 
+// Old links used #route (e.g. /#presensi or /#harian/3); move them to the real path once.
+if (/^#[a-z]/.test(location.hash)) history.replaceState(null, '', '/' + location.hash.slice(1));
+
 // Who is signed in is decided by the server (HttpOnly cookie); nothing about it is kept in localStorage.
 try { localStorage.removeItem('pt_session'); localStorage.removeItem('adminToken'); } catch (e) {}
 window.__pt_reload = async () => { clearApiCache(); getState().presensi = null; await load(); };
@@ -46,6 +49,7 @@ window.__pt_reload = async () => { clearApiCache(); getState().presensi = null; 
 try { const t = localStorage.getItem('pt_theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) {}
 
 let intervalsStarted = false;
+let lastRendered = null;
 const syncNow = (force) => autoSync(force, renderNav, api, () => refresh(render, renderNav, fetchCritical, normalize, true));
 
 // Main load function - Progressive loading: critical first, secondary background
@@ -94,7 +98,10 @@ async function load() {
 // Render function
 function render() {
   const S = getState();
-  const route = setCurrentRoute((location.hash || '#ringkasan').slice(1));
+  const wanted = routeFromPath();
+  if (!isKnownRoute(wanted)) history.replaceState(null, '', '/');
+  const route = setCurrentRoute(wanted);
+  document.title = (route.hash === 'ringkasan' ? '' : route.label + ' · ') + 'Pantau Tokder';
   
   renderNav();
   
@@ -130,12 +137,12 @@ function render() {
     default: page.innerHTML = renderRingkasan();
   }
   
-  // Initialize charts after DOM update
+  // Initialize charts after DOM update (Analytics draws its own in the switch above)
   if (route.hash === 'ringkasan') initRingkasanCharts();
-  if (route.hash === 'analytics') initAnalyticsCharts();
-  
-  // Scroll to top on route change
-  window.scrollTo({ top: 0 });
+
+  // Back to the top only when the page changes, not on the periodic data refresh.
+  if (lastRendered !== route.hash) window.scrollTo({ top: 0 });
+  lastRendered = route.hash;
 }
 
 // Initialize konten page listeners
@@ -202,6 +209,14 @@ function initAnalyticsCharts() {
 
 // Event delegation for all actions
 document.addEventListener('click', async (ev) => {
+  // In-app links change the page without reloading; /api/... links (Google sign-in) still navigate.
+  const a = ev.target.closest('a[href^="/"]');
+  if (a && !a.target && !a.hasAttribute('download') && ev.button === 0 && !ev.metaKey && !ev.ctrlKey && !ev.shiftKey && !ev.altKey && !a.getAttribute('href').startsWith('/api/')) {
+    ev.preventDefault();
+    closeOverlay();
+    navigate(a.getAttribute('href'));
+    return;
+  }
   const el = ev.target.closest('[data-act]');
   if (!el) return;
   const act = el.dataset.act;
@@ -226,7 +241,7 @@ document.addEventListener('click', async (ev) => {
     case 'hari': { const d = addDays(S.day, +el.dataset.v); if (d <= today()) { S.day = d; render(); } break; }
     case 'hari-ini': S.day = today(); render(); break;
     case 'ke-hari': S.day = el.dataset.v; render(); break;
-    case 'lihat-orang': ev.preventDefault(); location.hash = '#harian/' + el.dataset.id; break;
+    case 'lihat-orang': ev.preventDefault(); navigate('/harian/' + el.dataset.id); break;
     case 'catat': catatDialog(+el.dataset.id || null); break;
     case 'hapus-aktivitas':
       confirmDialog('Hapus aktivitas?', 'Catatan ini akan dihapus dan skor dihitung ulang.', 'Hapus', async () => {
@@ -284,7 +299,8 @@ document.addEventListener('click', async (ev) => {
 });
 
 document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && $('#overlay').innerHTML) closeOverlay(); });
-window.addEventListener('hashchange', () => { closeOverlay(); render(); window.scrollTo({ top: 0 }); });
+window.addEventListener('popstate', () => { closeOverlay(); render(); });
+window.addEventListener('hashchange', () => { if (/^#[a-z]/.test(location.hash)) { closeOverlay(); navigate('/' + location.hash.slice(1), true); } });
 let lastW = innerWidth, rt;
 window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { if (Math.abs(innerWidth - lastW) > 40) { lastW = innerWidth; if (!$('#overlay').innerHTML) render(); } }, 200); });
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => renderNav());

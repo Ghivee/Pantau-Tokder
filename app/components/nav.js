@@ -23,6 +23,17 @@ export function setCurrentRoute(hash) {
   return currentRoute;
 }
 
+// Pages live at real paths (/presensi, /harian/3); "/" is Ringkasan.
+export const pathOf = (hash) => (hash === 'ringkasan' ? '/' : '/' + hash);
+export const routeFromPath = () => location.pathname.replace(/^\/+/, '').split('/')[0] || 'ringkasan';
+export const isKnownRoute = (hash) => ROUTES.some((r) => r.hash === hash);
+
+export function navigate(path, replace = false) {
+  if (location.pathname + location.search !== path) history[replace ? 'replaceState' : 'pushState'](null, '', path);
+  if (typeof window.__pt_render === 'function') window.__pt_render();
+  window.scrollTo({ top: 0 });
+}
+
 export function renderNav() {
   const S = getState();
   const who = me(editorById);
@@ -31,7 +42,7 @@ export function renderNav() {
   
   nav.innerHTML = ROUTES.filter((r) => !r.admin || isAdmin()).map((r, i) =>
     (r.admin && !ROUTES.slice(0, ROUTES.indexOf(r)).some((x) => x.admin) ? '<div class="nav-label">Pemilik</div>' : '') +
-    `<a class="nav-a${r.hash === currentRoute?.hash ? ' active' : ''}" href="#${r.hash}" ${r.hash === currentRoute?.hash ? 'aria-current="page"' : ''}>${r.icon}<span>${r.label}</span></a>`
+    `<a class="nav-a${r.hash === currentRoute?.hash ? ' active' : ''}" href="${pathOf(r.hash)}" ${r.hash === currentRoute?.hash ? 'aria-current="page"' : ''}>${r.icon}<span>${r.label}</span></a>`
   ).join('');
 
   const foot = $('#side-foot');

@@ -23,6 +23,8 @@ Pantau Tokder memantau kerja harian tim konten di tiga channel: **Tokder**, **Bu
 
 Semua menu hanya bisa dibuka setelah **masuk** (pemilik atau karyawan). Sebelum masuk, website hanya menampilkan tombol Masuk.
 
+Setiap menu punya alamatnya sendiri tanpa tanda `#`, misalnya `pantautokder.vercel.app/presensi`, `/harian` atau `/pengaturan`. Alamat lama yang memakai `#` (misalnya `/#presensi`) otomatis dialihkan ke alamat baru, jadi bookmark lama tetap jalan.
+
 Semua angka berasal dari data asli: YouTube Data API, YouTube Analytics, dan catatan karyawan. Tidak ada data contoh atau perkiraan. Kalau sebuah angka belum tersedia, aplikasi menampilkan "—" atau "Belum ada data" beserta alasannya. Kalau server tidak bisa dihubungi, muncul pesan error dengan tombol **Coba lagi**.
 
 ---
