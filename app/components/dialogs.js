@@ -4,9 +4,11 @@ import { api, fetchAll } from '../core/api.js';
 import { icon, esc, toast, today, addDays, nowJam, TUGAS, TUGAS_LAIN, peranLabel, $, $$ } from '../core/utils.js';
 import { activeEditors, editorById, renderNav } from './nav.js';
 
-export function loginDialog() {
+export async function loginDialog() {
   const S = getState();
-  const eds = activeEditors();
+  // Before signing in only the names of employees who can sign in are available.
+  let eds = [];
+  try { eds = await api('/api/auth/karyawan'); } catch (e) { toast(e.message, true); }
   const tabs = { karyawan: 'Karyawan', admin: 'Pemilik' };
   
   function renderTab(tab) {
@@ -18,7 +20,7 @@ export function loginDialog() {
       </div>
       <form id="login-form" class="dialog-form" style="display:flex;flex-direction:column;gap:12px">
         ${tab === 'karyawan' ? `
-          <label class="field"><span>Nama</span><select class="input" name="editor" required>${eds.map((e) => `<option value="${e.id}">${esc(e.nama)}</option>`).join('')}</select></label>
+          <label class="field"><span>Nama</span><select class="input" name="editor" required>${eds.map((e) => `<option value="${e.id}">${esc(e.nama)}</option>`).join('') || '<option value="">Belum ada karyawan dengan PIN</option>'}</select></label>
           <label class="field"><span>PIN</span><input class="input" name="pin" type="password" inputmode="numeric" autocomplete="current-password" required><small>PIN diberikan pemilik. Belum punya? Minta pemilik mengaturnya di menu Karyawan.</small></label>`
         : `<label class="field"><span>Password pemilik</span><input class="input" name="password" type="password" autocomplete="current-password" required></label>`}
         <div class="err" id="login-err" role="alert"></div>
@@ -27,13 +29,17 @@ export function loginDialog() {
     `;
   }
   
-  openDialog(renderTab('karyawan'), (d) => {
+  // d is the .dialog element itself; switching tabs re-renders it, so listeners are bound again.
+  function mount(d) {
     $$('[data-tab]', d).forEach((b) => b.addEventListener('click', () => {
-      d.querySelector('.dialog').innerHTML = renderTab(b.dataset.tab);
-      setupForm(d);
+      d.innerHTML = renderTab(b.dataset.tab);
+      mount(d);
+      const first = $('input, select', d);
+      if (first) first.focus();
     }));
     setupForm(d);
-  });
+  }
+  openDialog(renderTab('karyawan'), mount);
   
   function setupForm(d) {
     $('#login-form', d).addEventListener('submit', async (ev) => {
@@ -49,8 +55,7 @@ export function loginDialog() {
         }
         closeOverlay();
         toast('Berhasil masuk');
-        renderNav();
-        fetchAll();
+        if (window.__pt_reload) window.__pt_reload();
       } catch (e) { $('#login-err', d).textContent = e.message; }
     });
   }

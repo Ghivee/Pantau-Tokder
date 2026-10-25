@@ -105,7 +105,7 @@ export function exportCsv() {
   const head = ['Tanggal', 'Jam (WIB)', 'Channel', 'Pembuat', 'Judul', 'Jenis', 'Views', 'Like', 'Komentar', 'Durasi (detik)', 'URL'];
   const csvEscape = (v) => {
     let s = String(v ?? '');
-    if (/^[=+\-@]/.test(s)) s = "'" + s;
+    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
     return '"' + s.replace(/"/g, '""') + '"';
   };
   const csv = [head, ...rows.map((c) => [c._day, c._jam, c._chNama, (editorById(c.editor_id) || {}).nama || '', c.judul, c.tipe_video, c.views, c.likes, c.comments, c.duration_secs, c.url])].map((r) => r.map(csvEscape).join(',')).join('\n');

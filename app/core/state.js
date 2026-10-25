@@ -23,6 +23,7 @@ export const S = {
   cache: new Map(),
   connected: new Set(),
   medians: {},
+  presensi: null,
 };
 
 export function getState() {
@@ -35,6 +36,7 @@ export function setSession(session) {
 
 export function clearSession() {
   S.session = null;
+  S.presensi = null;
 }
 
 export function isAdmin() {

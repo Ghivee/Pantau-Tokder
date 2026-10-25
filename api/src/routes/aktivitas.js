@@ -32,8 +32,6 @@ router.get('/', async (req, res) => {
     }
     sql += ' ORDER BY tanggal, jam';
     const result = await db.query(sql, params);
-    // Cache 2 menit, stale-while-revalidate 5 menit
-    res.setHeader('Cache-Control', 'public, max-age=120, stale-while-revalidate=300');
     res.json(result.rows);
   } catch (err) {
     fail(res, err);
@@ -56,6 +54,7 @@ router.post('/', requireAnyAuth, userMutationLimiter, createAuditMiddleware('akt
     if (!/^\d{4}-\d{2}-\d{2}$/.test(tanggal)) return res.status(400).json({ error: 'Format tanggal harus YYYY-MM-DD' });
     if (!/^\d{2}:\d{2}$/.test(jam)) return res.status(400).json({ error: 'Format jam harus HH:MM' });
     if (!tugas) return res.status(400).json({ error: 'Jenis tugas wajib diisi' });
+    if (tanggal > todayWib()) return res.status(400).json({ error: 'Tanggal tidak boleh di masa depan' });
     // Editors can only log for last 2 days
     if (!req.isAdmin && tanggal < todayWib(2)) {
       return res.status(403).json({ error: 'Karyawan hanya bisa mencatat aktivitas 2 hari terakhir' });
@@ -65,7 +64,7 @@ router.post('/', requireAnyAuth, userMutationLimiter, createAuditMiddleware('akt
       `INSERT INTO aktivitas (editor_id, tanggal, jam, tugas, detail, jumlah, channel_id)
        VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING id, editor_id, to_char(tanggal, 'YYYY-MM-DD') AS tanggal, jam, tugas, detail, jumlah, channel_id, created_at`,
-      [editorId, tanggal, jam, tugas, String(b.detail || '').slice(0, 300), jumlah, b.channel_id || null]
+      [editorId, tanggal, jam, tugas, String(b.detail || '').slice(0, 300), jumlah, b.channel_id ? String(b.channel_id).slice(0, 40) : null]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
