@@ -32,7 +32,7 @@ function page(res, status, title, body) {
     </div></body></html>`);
 }
 
-const back = '<p style="margin-top:18px"><a href="/#pengaturan">Kembali ke Pengaturan</a></p>';
+const back = '<p style="margin-top:18px"><a href="/pengaturan">Kembali ke Pengaturan</a></p>';
 
 // GET /api/auth/google — owner starts connecting a channel to YouTube Analytics
 router.get('/google', requireAdmin, (req, res) => {
@@ -71,7 +71,7 @@ router.get('/callback', async (req, res) => {
       <p style="margin:0 0 18px;color:#44524A;line-height:1.5">YouTube Analytics untuk channel ini sudah tersambung. Untuk channel lain, klik tombol di bawah lalu pilih channel tersebut di layar Google.</p>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <a href="/api/auth/google" style="padding:10px 16px;border-radius:9px;border:1px solid #C9D1C7;color:#17201B;text-decoration:none;font-weight:600">Hubungkan channel lain</a>
-        <a href="/#analytics" style="padding:10px 16px;border-radius:9px;background:#1E6B45;color:#fff;text-decoration:none;font-weight:600">Lihat Analytics</a>
+        <a href="/analytics" style="padding:10px 16px;border-radius:9px;background:#1E6B45;color:#fff;text-decoration:none;font-weight:600">Lihat Analytics</a>
       </div>`);
   } catch (err) {
     console.error('OAuth callback error:', err);
