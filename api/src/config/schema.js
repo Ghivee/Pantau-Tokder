@@ -46,7 +46,54 @@ const STATEMENTS = [
     updated_at TIMESTAMP DEFAULT NOW(),
     PRIMARY KEY (channel_id, tanggal)
   )`,
+  // Login sessions: the cookie holds only a random token; its hash lives here so it can be revoked.
+  `CREATE TABLE IF NOT EXISTS sesi (
+    token_hash CHAR(64) PRIMARY KEY,
+    tipe VARCHAR(10) NOT NULL,
+    editor_id INTEGER REFERENCES editors(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT NOW(),
+    expires_at TIMESTAMP NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS sesi_editor_idx ON sesi (editor_id)`,
+  // Failed sign-ins counted in the database, so the limit holds across serverless instances.
+  `CREATE TABLE IF NOT EXISTS login_gagal (
+    kunci VARCHAR(120) NOT NULL,
+    waktu TIMESTAMP DEFAULT NOW()
+  )`,
+  `CREATE INDEX IF NOT EXISTS login_gagal_kunci_idx ON login_gagal (kunci, waktu)`,
+  `CREATE TABLE IF NOT EXISTS presensi (
+    id SERIAL PRIMARY KEY,
+    editor_id INTEGER NOT NULL REFERENCES editors(id) ON DELETE CASCADE,
+    tanggal DATE NOT NULL,
+    jenis VARCHAR(10) NOT NULL,
+    waktu TIMESTAMP DEFAULT NOW(),
+    lat DOUBLE PRECISION,
+    lng DOUBLE PRECISION,
+    akurasi DOUBLE PRECISION,
+    jarak DOUBLE PRECISION,
+    ip VARCHAR(64),
+    telat_menit INTEGER,
+    UNIQUE (editor_id, tanggal, jenis)
+  )`,
+  `CREATE INDEX IF NOT EXISTS presensi_tanggal_idx ON presensi (tanggal)`,
+  // Every refused attempt is kept so the owner can spot someone trying to cheat.
+  `CREATE TABLE IF NOT EXISTS presensi_ditolak (
+    id SERIAL PRIMARY KEY,
+    editor_id INTEGER REFERENCES editors(id) ON DELETE CASCADE,
+    jenis VARCHAR(10),
+    waktu TIMESTAMP DEFAULT NOW(),
+    alasan TEXT,
+    lat DOUBLE PRECISION,
+    lng DOUBLE PRECISION,
+    akurasi DOUBLE PRECISION,
+    jarak DOUBLE PRECISION,
+    ip VARCHAR(64),
+    user_agent VARCHAR(300)
+  )`,
+  `CREATE INDEX IF NOT EXISTS presensi_ditolak_waktu_idx ON presensi_ditolak (waktu DESC)`,
 ];
+
+const CONNECTION_CODES = ['ECONNREFUSED', 'ENOTFOUND', 'ETIMEDOUT', '57P01', '53300'];
 
 // One-time: the old sync stored made-up retention curves and average view durations when
 // YouTube Analytics was not connected. They cannot be told apart from real ones, so all are
@@ -63,11 +110,12 @@ let ready = null;
 function ensureSchema() {
   if (!ready) {
     ready = (async () => {
-      if (typeof db.isMock === 'function' && db.isMock()) return;
       for (const sql of STATEMENTS) {
         try {
           await db.query(sql);
         } catch (e) {
+          // Database unreachable: try again on the next request instead of never.
+          if (CONNECTION_CODES.includes(e.code)) { ready = null; return; }
           console.error('Schema update skipped:', e.message);
         }
       }

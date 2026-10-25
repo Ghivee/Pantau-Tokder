@@ -4,18 +4,17 @@ const { fail, bad } = require('../utils/httpError');
 const scanService = require('../services/scanService');
 const db = require('../config/db');
 const { getChannelIds } = require('../services/channelService');
-const { requireAdmin, requireAnyAuth } = require('../middlewares/sessionAuth');
+const { requireAdmin } = require('../middlewares/sessionAuth');
 
 // GET: Check API configuration status (for debugging)
 router.get('/status', async (req, res) => {
-  const ids = await getChannelIds();
+  let ids;
+  try { ids = await getChannelIds(); } catch (err) { return fail(res, err); }
   let lastScan = null;
   try {
     const r = await db.query('SELECT * FROM scan_log ORDER BY id DESC LIMIT 1');
     lastScan = r.rows[0] || null;
   } catch (e) { /* scan_log may not exist yet */ }
-  // Cache 1 menit, stale-while-revalidate 5 menit
-  res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
   res.json({
     youtube_api_key: !!process.env.YOUTUBE_API_KEY,
     youtube_channels: ids.length,
@@ -83,10 +82,12 @@ router.get('/auto', async (req, res) => {
   }
 });
 
-// GET: Cron endpoint (Vercel Cron hits this daily)
+// GET: Cron endpoint (Vercel Cron hits this daily; open without login but throttled)
 router.get('/cron', async (req, res) => {
   try {
-    const fromCron = req.headers['user-agent'] === 'vercel-cron/1.0' || req.headers['authorization'] === `Bearer ${process.env.CRON_SECRET}`;
+    // Vercel Cron sends "Authorization: Bearer <CRON_SECRET>". Anyone else is held to the normal pace.
+    const secret = process.env.CRON_SECRET;
+    const fromCron = !!secret && req.headers['authorization'] === `Bearer ${secret}`;
     if (!fromCron && (await minutesSinceLastScan()) < AUTO_EVERY_MIN) return res.json({ skipped: true, reason: 'Data masih baru' });
     await runLocked(res, 'Cron triggered scan started');
   } catch (err) {

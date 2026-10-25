@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const { clientIp } = require('../utils/clientIp');
 
 // Simple in-memory store with sliding window (for serverless, use Vercel KV/Upstash Redis in production)
 class RateLimitStore {
@@ -51,7 +52,7 @@ function createRateLimiter(options = {}) {
   const {
     windowMs = 15 * 60 * 1000, // 15 minutes default
     maxRequests = 100, // 100 requests per window
-    keyGenerator = (req) => req.ip || req.headers['x-forwarded-for'] || 'unknown',
+    keyGenerator = (req) => clientIp(req),
     message = 'Terlalu banyak permintaan, coba lagi nanti',
     statusCode = 429,
     skipSuccessfulRequests = false,
@@ -60,11 +61,6 @@ function createRateLimiter(options = {}) {
   } = options;
 
   return async function rateLimiter(req, res, next) {
-    // Skip for cron/internal requests
-    const isCron = req.headers['user-agent'] === 'vercel-cron/1.0' || 
-                   req.headers['authorization'] === `Bearer ${process.env.CRON_SECRET}`;
-    if (isCron) return next();
-
     const key = `rl:${keyGenerator(req)}`;
     const result = store.increment(key, windowMs, maxRequests);
 
@@ -97,14 +93,14 @@ function createRateLimiter(options = {}) {
 const authLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000, // 15 minutes
   maxRequests: 10, // 10 attempts per 15 min per IP
-  keyGenerator: (req) => `auth:${req.ip || req.headers['x-forwarded-for'] || 'unknown'}`,
+  keyGenerator: (req) => `auth:${clientIp(req)}`,
   message: 'Terlalu banyak percobaan login. Coba lagi dalam 15 menit.'
 });
 
 const editorLoginLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000,
   maxRequests: 20,
-  keyGenerator: (req) => `editor-login:${req.ip || req.headers['x-forwarded-for'] || 'unknown'}`,
+  keyGenerator: (req) => `editor-login:${clientIp(req)}`,
   message: 'Terlalu banyak percobaan login karyawan. Coba lagi dalam 15 menit.'
 });
 
@@ -113,7 +109,7 @@ const userMutationLimiter = createRateLimiter({
   windowMs: 60 * 1000, // 1 minute
   maxRequests: 30, // 30 mutations per minute per user
   keyGenerator: (req) => {
-    const userId = req.editor?.id || req.isAdmin ? 'admin' : req.ip;
+    const userId = req.isAdmin ? 'admin' : req.editor ? 'editor:' + req.editor.id : clientIp(req);
     return `mutation:${userId}:${req.method}:${req.path}`;
   },
   message: 'Terlalu banyak aksi mutasi. Tunggu sebentar.'
@@ -154,7 +150,7 @@ setInterval(() => {
   for (const [key, val] of idempotencyStore.entries()) {
     if (val.expires < now) idempotencyStore.delete(key);
   }
-}, 3600000); // Every hour
+}, 3600000).unref(); // Every hour
 
 module.exports = {
   createRateLimiter,

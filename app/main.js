@@ -16,6 +16,7 @@ import { renderAnalytics } from './pages/analytics.js';
 import { renderKaryawan } from './pages/karyawan.js';
 import { renderPengaturan } from './pages/pengaturan.js';
 import { kontenRows, exportCsv } from './pages/konten.js';
+import { renderPresensi, loadPresensi, absen, lokasiSaya, ipSaya, initPresensiForm } from './pages/presensi.js';
 import { assign } from './components/videoDrawer.js';
 
 // Make functions globally available for inline handlers
@@ -37,51 +38,34 @@ window.kontenRows = kontenRows;
 window.__pt_render = () => render();
 window.__pt_renderNav = () => renderNav();
 
-// Session management
-function readSession() {
-  try {
-    const s = JSON.parse(localStorage.getItem('pt_session') || 'null');
-    const old = localStorage.getItem('adminToken');
-    if (old) { try { localStorage.removeItem('adminToken'); } catch (e) {} return null; }
-    if (s && (s.password || s.pin)) { try { localStorage.removeItem('pt_session'); } catch (e) {} return null; }
-    if (s) return s;
-  } catch (e) {}
-  return null;
-}
-
-function saveSession(s) {
-  const S = getState();
-  S.session = s;
-  try {
-    if (s) {
-      const safe = { type: s.type };
-      if (s.type === 'karyawan') { safe.type = 'karyawan'; safe.id = s.id; safe.nama = s.nama; }
-      localStorage.setItem('pt_session', JSON.stringify(safe));
-    } else {
-      localStorage.removeItem('pt_session');
-    }
-    localStorage.removeItem('adminToken');
-  } catch (e) {}
-}
+// Who is signed in is decided by the server (HttpOnly cookie); nothing about it is kept in localStorage.
+try { localStorage.removeItem('pt_session'); localStorage.removeItem('adminToken'); } catch (e) {}
+window.__pt_reload = async () => { clearApiCache(); getState().presensi = null; await load(); };
 
 // Theme
 try { const t = localStorage.getItem('pt_theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) {}
 
-// Load initial session
-const initialSession = readSession();
-if (initialSession) setSession(initialSession);
+let intervalsStarted = false;
+const syncNow = (force) => autoSync(force, renderNav, api, () => refresh(render, renderNav, fetchCritical, normalize, true));
 
 // Main load function - Progressive loading: critical first, secondary background
 async function load() {
-  // Try to restore session from server cookie if not in localStorage
+  let who;
+  try {
+    who = await api('/api/auth/me');
+  } catch (e) {
+    getState().error = e.message;
+    render();
+    return;
+  }
+  clearSession();
+  if (who.authenticated) setSession(who.type === 'admin' ? { type: 'admin' } : { type: 'karyawan', id: who.id, nama: who.nama });
   if (!getState().session) {
-    try {
-      const meSession = await fetch('/api/auth/me', { credentials: 'include' }).then(r => r.json()).catch(() => null);
-      if (meSession && meSession.authenticated) {
-        if (meSession.type === 'admin') setSession({ type: 'admin' });
-        else if (meSession.type === 'karyawan') setSession({ type: 'karyawan', id: meSession.id, nama: meSession.nama });
-      }
-    } catch (e) {}
+    // Signed out: drop data cached for whoever used this browser before.
+    clearApiCache();
+    getState().error = null;
+    render();
+    return;
   }
   
   // 1. CRITICAL: Load editors + content first (cached), render IMMEDIATELY
@@ -98,14 +82,13 @@ async function load() {
   // 2. SECONDARY: Load remaining data in background (non-blocking)
   fetchSecondary(true).then(() => {
     if (!$('#overlay').innerHTML) render(); // Re-render dengan data lengkap
-    autoSync(false);
+    syncNow(false);
   }).catch(e => console.warn('Secondary load failed:', e.message));
   
-  // 3. Init intervals (use fetchCritical for periodic refresh)
-  initIntervals(
-    () => refresh(render, renderNav, fetchCritical, normalize, true),
-    (force) => autoSync(force, renderNav, api, () => refresh(render, renderNav, fetchCritical, normalize, true))
-  );
+  // 3. Init intervals once (use fetchCritical for periodic refresh)
+  if (intervalsStarted) return;
+  intervalsStarted = true;
+  initIntervals(() => refresh(render, renderNav, fetchCritical, normalize, true), syncNow);
 }
 
 // Render function
@@ -124,6 +107,12 @@ function render() {
     notice.innerHTML = '';
   }
   
+  if (!S.session && !S.error) {
+    notice.innerHTML = '';
+    page.innerHTML = `<section class="card"><div class="empty"><b>Masuk untuk melihat data</b><br>Data tim, konten dan presensi hanya untuk pemilik dan karyawan.<br><br><button class="btn primary" data-act="login">${icon('out')} Masuk</button></div></section>`;
+    return;
+  }
+
   if (S.error) {
     page.innerHTML = `<div class="card"><div class="empty"><b>Gagal memuat data</b><br>${esc(S.error)}<br><button class="btn primary" data-act="retry">${icon('sync')} Coba lagi</button></div></div>`;
     return;
@@ -137,6 +126,7 @@ function render() {
     case 'analytics': page.innerHTML = renderAnalytics(); initAnalyticsCharts(); break;
     case 'karyawan': page.innerHTML = renderKaryawan(); break;
     case 'pengaturan': page.innerHTML = renderPengaturan(); break;
+    case 'presensi': page.innerHTML = renderPresensi(); initPresensiForm(); break;
     default: page.innerHTML = renderRingkasan();
   }
   
@@ -166,6 +156,9 @@ function initKontenListeners() {
   $$('[data-assign]').forEach((s) => s.addEventListener('change', () => { if (s.value) { closeOverlay(); assign([+s.dataset.assign], +s.value); } }));
 }
 
+// One value per day (0 when YouTube Analytics has no row for it), aligned with `days`.
+const viewsPerDay = (channelId, days) => days.map((d) => { const r = getState().daily.find((x) => x.channel_id === channelId && x.tanggal === d); return r ? +r.views || 0 : 0; });
+
 // Initialize ringkasan charts
 function initRingkasanCharts() {
   const S = getState();
@@ -182,8 +175,7 @@ function initRingkasanCharts() {
   analyticsChannels().forEach((c) => {
     const box = $('#spark-' + c.id);
     if (box) {
-      const chData = S.daily.filter((d) => d.channel_id === c.id && days.includes(d.tanggal));
-      drawSparkbars(box, { days, values: chData.map((d) => d.views), color: c.connected ? 'var(--s1)' : 'var(--muted)', label: c.nama });
+      drawSparkbars(box, { days, values: viewsPerDay(c.id, days), color: c.connected ? 'var(--s1)' : 'var(--muted)', label: c.nama });
     }
   });
 }
@@ -203,8 +195,7 @@ function initAnalyticsCharts() {
   chans.forEach((c) => {
     const box = $('#spark-' + c.id);
     if (box) {
-      const chData = S.daily.filter((d) => d.channel_id === c.id && days.includes(d.tanggal));
-      drawSparkbars(box, { days, values: chData.map((d) => d.views), color: 'var(--s1)', label: c.nama });
+      drawSparkbars(box, { days, values: viewsPerDay(c.id, days), color: 'var(--s1)', label: c.nama });
     }
   });
 }
@@ -220,8 +211,8 @@ document.addEventListener('click', async (ev) => {
   switch (act) {
     case 'login': loginDialog(); break;
     case 'logout': 
-      try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }); } catch (e) {}
-      clearSession(); toast('Anda sudah keluar'); await load(); break;
+      try { await api('/api/auth/logout', { method: 'POST' }); } catch (e) {}
+      clearSession(); clearApiCache(); toast('Anda sudah keluar'); await load(); break;
     case 'retry': S.error = null; $('#page').innerHTML = '<div class="skeleton" style="height:320px"></div>'; await load(); break;
     case 'theme': {
       const cur = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
@@ -256,6 +247,10 @@ document.addEventListener('click', async (ev) => {
       break;
     }
     case 'goal': goalDialog(); break;
+    case 'absen': await absen(el); break;
+    case 'presensi-lokasi-saya': await lokasiSaya(); break;
+    case 'presensi-ip-saya': ipSaya(el); break;
+    case 'presensi-muat': S.presensi = null; render(); break;
     case 'an-periode': S.anPeriode = +el.dataset.v; render(); break;
     case 'putus-analytics': {
       const c = analyticsChannels().find((x) => x.id === el.dataset.id);
@@ -271,7 +266,7 @@ document.addEventListener('click', async (ev) => {
     }
     case 'ganti-pw': {
       const v = $('#pw-baru').value;
-      try { await api('/api/auth/password', { method: 'POST', body: { baru: v } }); saveSession({ type: 'admin' }); toast('Password tersimpan'); $('#pw-baru').value = ''; } catch (e) { toast(e.message, true); }
+      try { await api('/api/auth/password', { method: 'POST', body: { baru: v } }); toast('Password tersimpan. Perangkat lain yang masuk sebagai pemilik sudah dikeluarkan.'); $('#pw-baru').value = ''; } catch (e) { toast(e.message, true); }
       break;
     }
     case 'edit-channels': {
