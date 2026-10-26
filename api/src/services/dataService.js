@@ -64,7 +64,10 @@ async function aktivitas({ dari = wib(30), sampai = wib(0), editorId } = {}) {
 async function goal(bulan = wib().slice(0, 7)) {
   let r = await db.query('SELECT * FROM affiliate_goals WHERE bulan = $1', [bulan]);
   if (!r.rows.length) r = await db.query('INSERT INTO affiliate_goals (bulan, target_omset, tercapai) VALUES ($1, 0, 0) ON CONFLICT DO NOTHING RETURNING *', [bulan]);
-  return r.rows[0] || { bulan, target_omset: 0, tercapai: 0 };
+  const g = r.rows[0] || { bulan, target_omset: 0, tercapai: 0 };
+  const imp = await db.query(`SELECT value FROM settings WHERE key = 'afiliasi_impor'`);
+  try { g.impor = imp.rows[0] ? JSON.parse(imp.rows[0].value) : null; } catch (e) { g.impor = null; }
+  return g;
 }
 
 async function scanStatus() {

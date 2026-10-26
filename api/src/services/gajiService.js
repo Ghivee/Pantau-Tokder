@@ -24,7 +24,7 @@ async function getConfig() {
   const r = await db.query('SELECT value FROM settings WHERE key = $1', [CONFIG_KEY]);
   let saved = {};
   try { saved = r.rows[0] ? JSON.parse(r.rows[0].value) : {}; } catch (e) { saved = {}; }
-  return { ...DEFAULTS, ...saved };
+  return { ...DEFAULTS, ...saved, tersimpan: !!r.rows[0] };
 }
 
 function validasiConfig(b = {}) {

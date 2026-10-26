@@ -5,6 +5,9 @@ const { fail, bad } = require('../utils/httpError');
 const gaji = require('../services/gajiService');
 const { requireAdmin } = require('../middlewares/sessionAuth');
 const { createAuditMiddleware } = require('../utils/auditLog');
+const push = require('../services/pushService');
+const BLN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+const namaBulan = (b) => BLN[+b.slice(5, 7) - 1] + ' ' + b.slice(0, 4);
 
 const bulanIni = () => gaji.tglWib(Date.now()).slice(0, 7);
 const idOf = (v) => { const n = Number(v); if (!Number.isInteger(n) || n <= 0) throw bad(400, 'Karyawan tidak valid'); return n; };
@@ -113,7 +116,9 @@ router.post('/final', requireAdmin, createAuditMiddleware('settings', 'gaji_fina
     const b = req.body || {};
     const bulan = bulanOf(b.bulan);
     const ids = Array.isArray(b.editor_ids) && b.editor_ids.length ? b.editor_ids.map(idOf) : null;
-    res.json({ final: await gaji.finalkan(bulan, ids) });
+    const final = await gaji.finalkan(bulan, ids);
+    await Promise.all(final.map((id) => push.kirim({ editorId: id }, { title: `Slip gaji ${namaBulan(bulan)} sudah final`, body: 'Buka menu Gaji untuk melihat rinciannya.', url: '/gaji', tag: 'gaji-' + bulan })));
+    res.json({ final });
   } catch (err) {
     fail(res, err);
   }
@@ -131,7 +136,13 @@ router.delete('/final', requireAdmin, createAuditMiddleware('settings', 'gaji_bu
 router.put('/dibayar', requireAdmin, createAuditMiddleware('settings', 'gaji_dibayar', (req) => req.body && req.body.bulan, null, (req) => req.body), async (req, res) => {
   try {
     const b = req.body || {};
-    res.json(await gaji.tandaiDibayar(bulanOf(b.bulan), idOf(b.editor_id), b.dibayar !== false));
+    const bulan = bulanOf(b.bulan), id = idOf(b.editor_id);
+    const r = await gaji.tandaiDibayar(bulan, id, b.dibayar !== false);
+    if (r.dibayar_at) {
+      const t = await db.query('SELECT total::float AS total FROM gaji_final WHERE editor_id = $1 AND bulan = $2', [id, bulan]);
+      await push.kirim({ editorId: id }, { title: `Gaji ${namaBulan(bulan)} sudah dibayar`, body: t.rows[0] ? 'Rp' + Math.round(t.rows[0].total).toLocaleString('id-ID') + '. Cek rekening Anda.' : 'Cek rekening Anda.', url: '/gaji', tag: 'gaji-' + bulan });
+    }
+    res.json(r);
   } catch (err) {
     fail(res, err);
   }

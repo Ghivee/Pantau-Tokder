@@ -75,3 +75,11 @@ test('retention summary', () => {
   assert.deepStrictEqual(ringkasRetensi(JSON.stringify(pts)), { awal: 88, tengah: 64, akhir: 40 });
   assert.strictEqual(ringkasRetensi('rusak'), null);
 });
+
+test('push subscriptions are checked before they are stored', () => {
+  const { validasi } = require('../src/services/pushService');
+  const ok = { endpoint: 'https://fcm.googleapis.com/fcm/send/abc123def456', keys: { p256dh: 'B'.repeat(87), auth: 'a'.repeat(22) } };
+  assert.strictEqual(validasi(ok).endpoint, ok.endpoint);
+  assert.throws(() => validasi({ ...ok, endpoint: 'http://evil.example/x' }));
+  assert.throws(() => validasi({ ...ok, keys: { p256dh: '<script>', auth: 'x' } }));
+});

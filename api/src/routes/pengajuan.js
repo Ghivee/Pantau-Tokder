@@ -7,6 +7,10 @@ const gaji = require('../services/gajiService');
 const { requireAdmin, requireEditor } = require('../middlewares/sessionAuth');
 const { userMutationLimiter } = require('../middlewares/rateLimit');
 const { createAuditMiddleware } = require('../utils/auditLog');
+const push = require('../services/pushService');
+
+const tgl = (d) => { const [y, m, dd] = d.split('-').map(Number); return dd + ' ' + ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'][m - 1]; };
+const rentang = (p) => (p.dari === p.sampai ? tgl(p.dari) : tgl(p.dari) + '–' + tgl(p.sampai));
 
 router.get('/', async (req, res) => {
   try {
@@ -25,7 +29,13 @@ router.post('/', requireEditor, userMutationLimiter, async (req, res) => {
     const p = pengajuan.validasi(req.body);
     const fin = await gaji.bulanFinalDalam(req.editor.id, p.dari, p.sampai);
     if (fin) throw bad(409, `Gaji ${fin} sudah final, jadi tanggal itu tidak bisa diajukan lagi. Hubungi pemilik.`);
-    res.status(201).json(await pengajuan.ajukan(req.editor, req.body, await gaji.getConfig()));
+    const baru = await pengajuan.ajukan(req.editor, req.body, await gaji.getConfig());
+    await push.kirim({ admin: true }, {
+      title: `${pengajuan.JENIS[baru.jenis]} dari ${req.editor.nama}`,
+      body: `${rentang(baru)} · ${baru.alasan}${baru.jumlah ? ' · Rp' + Number(baru.jumlah).toLocaleString('id-ID') : ''}`,
+      url: '/pengajuan', tag: 'pengajuan-' + baru.id,
+    });
+    res.status(201).json(baru);
   } catch (err) {
     fail(res, err);
   }
@@ -69,7 +79,13 @@ router.put('/:id', requireAdmin, createAuditMiddleware('pengajuan', 'putuskan', 
       `UPDATE pengajuan SET status = $1, catatan = $2, diputus_at = NOW() WHERE id = $3 RETURNING ${pengajuan.KOLOM}`,
       [b.status, catatan, req.params.id]
     );
-    res.json(r.rows[0]);
+    const q = r.rows[0];
+    await push.kirim({ editorId: q.editor_id }, {
+      title: `${pengajuan.JENIS[q.jenis]} ${q.status === 'disetujui' ? 'disetujui' : 'ditolak'}`,
+      body: `${rentang(q)} · ${q.alasan}${q.catatan ? ' · Catatan: ' + q.catatan : ''}`,
+      url: '/pengajuan', tag: 'pengajuan-' + q.id,
+    });
+    res.json(q);
   } catch (err) {
     fail(res, err);
   }

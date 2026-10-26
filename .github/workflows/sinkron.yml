@@ -1,0 +1,22 @@
+# Pulls fresh YouTube numbers every hour and sends check-in reminders, even when nobody has the
+# app open. Vercel's free plan only allows one cron run a day; this fills the hours in between.
+# Optional: add a repository secret CRON_SECRET (same value as in Vercel) to skip the 15-minute limit.
+name: Sinkron tiap jam
+on:
+  schedule:
+    - cron: '7 * * * *'
+  workflow_dispatch:
+jobs:
+  sinkron:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Panggil /api/scan/cron
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          auth=()
+          if [ -n "$CRON_SECRET" ]; then auth=(-H "Authorization: Bearer $CRON_SECRET"); fi
+          code=$(curl -sS -o hasil.json -w '%{http_code}' --max-time 150 "${auth[@]}" https://pantautokder.vercel.app/api/scan/cron)
+          cat hasil.json; echo
+          test "$code" -lt 500

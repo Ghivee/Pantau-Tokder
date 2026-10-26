@@ -175,7 +175,10 @@ import './styles.css';
       if (e.status === 401) saveSession(null); else { console.error(e); S.error = e.message; }
     }
     render();
-    if (S.session) { autoSync(); loadInsight(true); }
+    if (S.session) {
+      autoSync(); loadInsight(true);
+      cekNotif().then(() => { if (['ringkasan', 'pengaturan', 'pengajuan', 'presensi'].includes(route()) && !$('#overlay').innerHTML) render(); });
+    }
   }
 
   // Quiet refresh: new numbers without losing the open dialog or scroll position.
@@ -612,6 +615,7 @@ import './styles.css';
             </div>
           </div>
         </header>
+        ${persiapanHtml()}
         <section class="kpis" aria-label="Angka utama">
           <div class="kpi"><span class="l">Video tayang</span><span class="v">${nf.format(vids.length)}${target && S.channel === 'all' ? ` <small>/ ${nf.format(target)}</small>` : ''}</span><span class="d ${vids.length >= vidsPrev.length ? 'ok' : 'bad'}">${signed(vids.length - vidsPrev.length)} dari periode sebelumnya</span></div>
           <div class="kpi"><span class="l">Views video baru</span><span class="v">${fmt(sum(vids, (c) => c.views))}</span><span class="d">${fmt(sum(vidsPrev, (c) => c.views))} di periode sebelumnya</span></div>
@@ -847,6 +851,7 @@ import './styles.css';
       return `
         <header class="head"><div><h1>Pengaturan</h1><p>Sambungan data, sinkronisasi video dan keamanan.</p></div>
           <div class="tools"><button class="btn primary" data-act="sync">${icon('sync')}Sinkronkan sekarang</button></div></header>
+        ${notifCard()}
         <div class="grid-2">
           <section class="card"><div class="card-h"><h2>Sambungan</h2><p>${last ? 'Sinkronisasi terakhir ' + new Date(last.waktu_scan || last.created_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) + ' · ' + (last.jumlah_post_baru ?? 0) + ' video baru' : 'Belum ada catatan sinkronisasi.'}</p></div>
             <div class="checklist">
@@ -1209,7 +1214,8 @@ import './styles.css';
             ${days.map((d) => { const x = hariPresensi(P.rows, who.id, d); return `<tr><td class="full"><b>${tglPanjang(d)}</b></td><td class="mono" data-label="Masuk">${jamWib(x.masuk && x.masuk.waktu)}</td><td class="mono" data-label="Pulang">${jamWib(x.pulang && x.pulang.waktu)}</td><td data-label="Status">${statusPresensi(x, cfg, d)}</td></tr>`; }).join('')}
           </tbody></table></div>` : '<div class="empty"><b>Belum ada presensi</b>Riwayat muncul setelah absen pertama.</div>'}
         </section>
-        <section class="card"><div class="card-h"><h2>Percobaan yang ditolak</h2><p>Alasan tiap absen yang tidak diterima.</p></div>${ditolakTable(P.ditolak, false)}</section>`;
+        <section class="card"><div class="card-h"><h2>Percobaan yang ditolak</h2><p>Alasan tiap absen yang tidak diterima.</p></div>${ditolakTable(P.ditolak, false)}</section>
+        ${notifCard()}`;
     }
     const eds = activeEditors();
     const hadir = eds.filter((e) => hariPresensi(P.rows, e.id, today()).masuk).length;
@@ -1630,7 +1636,8 @@ import './styles.css';
         </section>
         <section class="card"><div class="card-h"><h2>Pengajuan saya</h2><p>120 hari terakhir.</p></div>
           ${P.list.length ? `<div class="table-wrap"><table class="t stack">${th}<tbody>${P.list.map((p) => pengajuanRow(p, false)).join('')}</tbody></table></div>` : '<div class="empty"><b>Belum ada pengajuan</b>Klik Ajukan izin / cuti atau Klaim biaya.</div>'}
-        </section>`;
+        </section>
+        ${notifCard()}`;
     }
     const wait = P.list.filter((p) => p.status === 'menunggu');
     const done = P.list.filter((p) => p.status !== 'menunggu');
@@ -1647,7 +1654,8 @@ import './styles.css';
       </div>
       <section class="card"><div class="card-h"><h2>Riwayat</h2><p>120 hari terakhir.</p></div>
         ${done.length ? `<div class="table-wrap"><table class="t stack">${th}<tbody>${done.map((p) => pengajuanRow(p, true)).join('')}</tbody></table></div>` : '<div class="empty"><b>Belum ada riwayat</b></div>'}
-      </section>`;
+      </section>
+      ${notifCard()}`;
   };
 
   function ajukanDialog(jenis) {
@@ -1896,26 +1904,29 @@ import './styles.css';
     const perEditor = by((c) => (editorById(c.editor_id) ? c.editor_id : 0), (k) => (k ? editorById(k).nama : 'Belum dikenali'));
     const perCh = by((c) => c._ch, chName);
     const maxE = Math.max(...perEditor.map((x) => x.v), 0.01), maxC = Math.max(...perCh.map((x) => x.v), 0.01);
-    const g = S.goal || { target_omset: 0, tercapai: 0 };
-    const gp = g.target_omset ? Math.min(1, g.tercapai / g.target_omset) : 0;
+    // NUMERIC columns arrive as text ("0"), so they are turned into numbers before any comparison.
+    const g0 = S.goal || {};
+    const g = { ...g0, target_omset: +g0.target_omset || 0, tercapai: +g0.tercapai || 0 };
+    const gp = g.target_omset ? Math.min(1, g.tercapai / g.target_omset) : null;
     const chans = analyticsChannels();
     const noRev = '<div class="empty"><b>Belum ada angka pendapatan</b>Muncul setelah channel tersambung ke YouTube Analytics dan sudah dimonetisasi.</div>';
     const ch28 = p28.length && revIn(p28) ? Math.round(((revIn(d28) - revIn(p28)) / revIn(p28)) * 100) : null;
     return `
-      <header class="head"><div><h1>Pendapatan</h1><p>Pendapatan iklan adalah <b>perkiraan dari YouTube Analytics</b> (US$), angka yang sama dengan di YouTube Studio; pembayaran akhir AdSense bisa sedikit berbeda. Omzet afiliasi <b>diisi manual</b> oleh pemilik.</p></div><div class="tools">${bantuan('pendapatan')}</div></header>
+      <header class="head"><div><h1>Pendapatan</h1><p>Pendapatan iklan adalah <b>perkiraan dari YouTube Analytics</b> (US$), angka yang sama dengan di YouTube Studio; pembayaran akhir AdSense bisa sedikit berbeda. Omzet afiliasi berasal dari laporan CSV yang diimpor atau diisi manual oleh pemilik.</p></div><div class="tools">${bantuan('pendapatan')}</div></header>
       <section class="kpis">
         <div class="kpi"><span class="l">Iklan bulan ini</span><span class="v">${hasDaily ? usd(revMonth) : '—'}</span><span class="d">${hasDaily ? 'semua video, sampai ' + tglPendek(latest) : 'belum ada data channel'}</span></div>
         <div class="kpi"><span class="l">Iklan 28 hari</span><span class="v">${hasDaily ? usd(revIn(d28)) : '—'}</span><span class="d ${ch28 == null ? '' : ch28 >= 0 ? 'ok' : 'bad'}">${ch28 == null ? 'belum ada pembanding' : signed(ch28, (v) => nf.format(v) + '%') + ' dari 28 hari sebelumnya'}</span></div>
         <div class="kpi"><span class="l">Total per video tercatat</span><span class="v">${hasVid ? usd(sum(withRev, (c) => c.revenue)) : '—'}</span><span class="d">${hasVid ? nf.format(withRev.filter((c) => c.revenue > 0).length) + ' video menghasilkan, seumur video' : 'belum ada data per video'}</span></div>
-        <div class="kpi"><span class="l">Omzet afiliasi bulan ini</span><span class="v">${idr(g.tercapai)}</span><span class="d">diisi manual · target ${idr(g.target_omset)}</span></div>
+        <div class="kpi"><span class="l">Omzet afiliasi bulan ini</span><span class="v">${idr(g.tercapai)}</span><span class="d">${g.impor && g.impor.bulan.includes(month) ? 'dari impor ' + esc(g.impor.sumber) : 'diisi manual'} · ${g.target_omset ? 'target ' + idr(g.target_omset) : 'target belum diatur'}</span></div>
       </section>
       <section class="card"><div class="card-h"><h2>Sumber angka</h2></div>
         <div class="checklist">${chans.map((c) => { const r = revDaily.filter((d) => d.channel_id === c.id); const ok = c.connected && r.length > 0; return `<div class="ck"><span class="st ${ok ? 'ok' : 'bad'}">${ok ? '✓' : '!'}</span><div><b>${esc(c.nama)}</b><div>${!c.connected ? (r.length ? `Tidak tersambung lagi ke YouTube Analytics. Angka yang tampil adalah data lama sampai ${tglPendek(r.reduce((m, d) => (d.tanggal > m ? d.tanggal : m), ''))}; hubungkan ulang di Pengaturan.` : 'Belum tersambung ke YouTube Analytics: pendapatannya tidak terbaca.') : r.length ? `Pendapatan terbaca, ${usd(sum(r.filter((d) => d.tanggal.slice(0, 7) === month), (d) => d.revenue))} bulan ini.` : 'Tersambung, tapi YouTube tidak mengirim angka pendapatan (channel belum dimonetisasi atau akun tidak punya akses pendapatan).'}</div></div></div>`; }).join('') || '<div class="empty">Belum ada channel.</div>'}</div>
       </section>
       <div class="grid-2">
-        <section class="card"><div class="card-h"><h2>Target omzet afiliasi</h2><button class="btn sm" data-act="goal">Ubah</button></div>
-          <div class="goal-v">${pct(gp)}</div><div class="goal-bar"><i style="width:${gp * 100}%"></i></div>
-          <div class="muted">${idr(g.tercapai)} dari ${idr(g.target_omset)} · sisa ${idr(Math.max(0, g.target_omset - g.tercapai))}</div></section>
+        <section class="card"><div class="card-h"><h2>Target omzet afiliasi</h2><div class="tools"><button class="btn sm" data-act="impor-afiliasi">${icon('download')}Impor CSV</button><button class="btn sm" data-act="goal">Ubah</button></div></div>
+          <div class="goal-v">${gp == null ? idr(g.tercapai) : pct(gp)}</div><div class="goal-bar"><i style="width:${(gp || 0) * 100}%"></i></div>
+          <div class="muted">${gp == null ? 'Target bulan ini belum diatur. Klik Ubah untuk mengisinya.' : `${idr(g.tercapai)} dari ${idr(g.target_omset)} · sisa ${idr(Math.max(0, g.target_omset - g.tercapai))}`}</div>
+          <p class="muted" style="font-size:12.5px;margin:10px 0 0">${g.impor ? `Impor terakhir: ${esc(g.impor.sumber)}, ${esc(g.impor.file)} (${g.impor.bulan.map(bulanLabel).join(', ')}), ${new Date(g.impor.waktu).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}.` : 'Belum pernah diimpor. Isi manual lewat Ubah, atau impor laporan komisi CSV dari dashboard afiliasi.'}</p></section>
         <section class="card"><div class="card-h"><h2>Per karyawan</h2><p>Jumlah pendapatan seumur video buatan tiap orang.</p></div>${hasVid ? `<div class="rank">${perEditor.map((x) => `<div class="rank-row">${avatar(editorById(x.k), 'sm')}<div class="tx"><b>${esc(x.nama)}</b><div class="bar"><i style="width:${(x.v / maxE) * 100}%"></i></div></div><b>${usd(x.v)}</b></div>`).join('')}</div>` : noRev}</section>
         <section class="card"><div class="card-h"><h2>Per channel</h2><p>Jumlah pendapatan seumur video yang tercatat.</p></div>${hasVid ? `<div class="rank">${perCh.map((x) => `<div class="rank-row"><span></span><div class="tx"><b>${esc(x.nama)}</b><div class="bar"><i style="width:${(x.v / maxC) * 100}%"></i></div></div><b>${usd(x.v)}</b></div>`).join('')}</div>` : noRev}</section>
         <section class="card"><div class="card-h"><h2>Video dengan pendapatan tertinggi</h2></div>
@@ -1927,7 +1938,7 @@ import './styles.css';
   PAGES.panduan = function () {
     const owner = isAdmin();
     const sec = (id, title, body) => `<section class="card doc" id="p-${id}"><h2>${title}</h2>${body}</section>`;
-    const toc = [['mulai', 'Mulai cepat'], ['ringkasan', 'Ringkasan'], ['harian', 'Harian dan skor'], ['performa', 'Performa video'], ['tren', 'Tren channel'], ['konten', 'Konten dan Belum dikenali'], ['analytics', 'Analytics'], ['presensi', 'Presensi'], ['pengajuan', 'Izin & klaim'], ['gaji', 'Gaji'], ...(owner ? [['pendapatan', 'Pendapatan'], ['pengaturan', 'Pengaturan']] : []), ['data', 'Dari mana angkanya'], ['faq', 'Pertanyaan umum']];
+    const toc = [['mulai', 'Mulai cepat'], ['ringkasan', 'Ringkasan'], ['harian', 'Harian dan skor'], ['performa', 'Performa video'], ['tren', 'Tren channel'], ['konten', 'Konten dan Belum dikenali'], ['analytics', 'Analytics'], ['presensi', 'Presensi'], ['pengajuan', 'Izin & klaim'], ['gaji', 'Gaji'], ...(owner ? [['pendapatan', 'Pendapatan'], ['pengaturan', 'Pengaturan']] : []), ['notifikasi', 'Notifikasi dan pasang di HP'], ...(owner ? [['afiliasi', 'Impor omzet afiliasi']] : []), ['data', 'Dari mana angkanya'], ['faq', 'Pertanyaan umum']];
     return `
       <header class="head"><div><h1>Panduan</h1><p>Cara memakai tiap menu${owner ? ' sebagai pemilik' : ' sebagai karyawan'}, dan bagaimana angka dihitung.</p></div></header>
       <nav class="card toc" aria-label="Isi panduan">${toc.map(([id, t]) => `<a href="/panduan#p-${id}">${t}</a>`).join('')}</nav>
@@ -1964,9 +1975,12 @@ import './styles.css';
           <li><b>Potongan</b>: hari kerja tanpa absen dan tanpa izin/sakit/cuti, hari izin (bila diatur), kali telat, dan potongan tetap seperti BPJS.</li></ul>
         <p>Ketidakhadiran baru dihitung mulai hari pertama presensi dipakai, dan hari ini baru dihitung setelah lewat. Selama belum final, statusnya <b>Perkiraan</b>. ${owner ? 'Klik <b>Finalkan</b> untuk mengunci angka menjadi slip resmi, lalu <b>Tandai dibayar</b> setelah transfer. <b>Buka lagi</b> mengembalikan ke perkiraan bila ada yang perlu dikoreksi.' : 'Setelah pemilik memfinalkan, slip tidak berubah lagi dan bisa dicetak atau disimpan sebagai PDF.'}</p>`)}
       ${owner ? sec('pendapatan', 'Pendapatan', '<p><b>Iklan bulan ini</b> dan <b>28 hari</b> berasal dari laporan harian YouTube Analytics per channel (estimatedRevenue, US$), sama dengan angka di YouTube Studio. <b>Total per video</b> adalah pendapatan seumur tiap video yang tercatat. Angka ini perkiraan YouTube; pembayaran akhir AdSense bisa sedikit berbeda. Kartu Sumber angka menunjukkan channel mana yang sudah terbaca.</p><p><b>Omzet afiliasi</b> tidak tersambung otomatis ke marketplace: isi target dan yang tercapai lewat tombol Ubah.</p>') : ''}
-      ${owner ? sec('pengaturan', 'Pengaturan', '<p>Status sambungan database, YouTube Data API dan YouTube Analytics per channel, daftar channel yang dipantau, catatan sinkronisasi terakhir (termasuk pesan error dari Google), dan ganti password pemilik. Data YouTube disinkronkan otomatis tiap 15 menit selama aplikasi terbuka, dan sekali sehari lewat jadwal server.</p>') : ''}
+      ${owner ? sec('pengaturan', 'Pengaturan', '<p>Status sambungan database, YouTube Data API dan YouTube Analytics per channel, daftar channel yang dipantau, catatan sinkronisasi terakhir (termasuk pesan error dari Google), dan ganti password pemilik. Data YouTube disinkronkan otomatis tiap 15 menit selama aplikasi terbuka, dan tiap jam lewat jadwal otomatis walau tidak ada yang membuka aplikasi.</p>') : ''}
+      ${sec('notifikasi', 'Notifikasi dan pasang di HP', `<p>Buka ${owner ? 'Pengaturan' : 'Izin & klaim atau Presensi'} → <b>Aktifkan notifikasi</b> di setiap HP atau laptop yang dipakai. ${owner ? 'Pemilik diberi tahu setiap ada pengajuan izin, sakit, cuti atau klaim baru.' : 'Anda diberi tahu saat izin atau klaim diputuskan, slip gaji final, gaji dibayar, dan bila belum absen masuk setelah lewat jam masuk.'}</p>
+        <p><b>Android/laptop:</b> langsung bisa di Chrome, Edge atau Firefox. <b>iPhone:</b> buka di Safari, ketuk <b>Bagikan → Tambah ke Layar Utama</b>, buka Pantau Tokder dari ikon baru itu, lalu aktifkan notifikasi (aturan Apple, butuh iOS 16.4 atau lebih baru). Memasang di layar utama juga membuat aplikasi terbuka layar penuh seperti aplikasi biasa.</p>`)}
+      ${owner ? sec('afiliasi', 'Impor omzet afiliasi', '<p>Di Pendapatan → <b>Impor CSV</b>: unduh laporan komisi dari dashboard afiliasi (Shopee Affiliate, TikTok Shop, dan sejenisnya) dalam format CSV, pilih file, lalu pilih kolom tanggal dan kolom komisi (ditebak otomatis). Bisa disaring, misalnya hanya baris berstatus “Selesai”. Pratinjau menunjukkan total tiap bulan sebelum disimpan; omzet tercapai bulan-bulan itu diganti dengan angka dari laporan, target tidak berubah.</p>') : ''}
       ${sec('data', 'Dari mana angkanya', `<ul>
-        <li><b>Video, views, like, komentar</b>: YouTube Data API, tiap sinkronisasi.</li>
+        <li><b>Video, views, like, komentar</b>: YouTube Data API, tiap sinkronisasi (tiap jam, dan tiap 15 menit selama aplikasi terbuka).</li>
         <li><b>Retensi, jam tonton, subscriber${owner ? ', pendapatan' : ''}</b>: YouTube Analytics, hanya untuk channel yang tersambung, terlambat 2–3 hari.</li>
         <li><b>Presensi</b>: absen karyawan yang lolos pemeriksaan server.</li>
         <li><b>Aktivitas, izin, klaim</b>: dicatat karyawan sendiri; izin dan klaim berlaku setelah disetujui pemilik.</li>
@@ -1985,9 +1999,194 @@ import './styles.css';
     if (el) requestAnimationFrame(() => el.scrollIntoView({ block: 'start' }));
   };
 
+  // ============ notifikasi ============
+  // Web Push: izin baru, keputusan izin, gaji final/dibayar, pengingat absen. On iPhone it needs the
+  // site added to the home screen first (Safari only allows push for installed web apps).
+  const pushDidukung = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+  const diIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+  const terpasang = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  let swReg = null;
+  async function daftarSW() {
+    if (!('serviceWorker' in navigator) || !window.isSecureContext) return null;
+    try { swReg = swReg || (await navigator.serviceWorker.register('/sw.js')); } catch (e) { console.warn('Service worker:', e.message); }
+    return swReg;
+  }
+  async function cekNotif() {
+    if (!pushDidukung()) { S.notif = { didukung: false, aktif: false }; return; }
+    const reg = await daftarSW();
+    const sub = reg && (await reg.pushManager.getSubscription().catch(() => null));
+    S.notif = { didukung: true, aktif: !!sub && Notification.permission === 'granted', izin: Notification.permission };
+  }
+  const b64 = (s) => { const r = atob((s + '='.repeat((4 - (s.length % 4)) % 4)).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from(r, (c) => c.charCodeAt(0)); };
+  const perangkatLabel = () => { const u = navigator.userAgent; return (/Android/.test(u) ? 'Android' : /iPhone|iPad/.test(u) ? 'iPhone' : /Mac/.test(u) ? 'Mac' : /Windows/.test(u) ? 'Windows' : 'Perangkat') + ' · ' + (/Edg\//.test(u) ? 'Edge' : /Chrome\//.test(u) ? 'Chrome' : /Firefox\//.test(u) ? 'Firefox' : /Safari\//.test(u) ? 'Safari' : 'browser'); };
+  async function aktifkanNotif() {
+    if (!pushDidukung()) {
+      toast(diIOS && !terpasang() ? 'Di iPhone: ketuk Bagikan → Tambah ke Layar Utama, buka Pantau Tokder dari ikon itu, lalu aktifkan notifikasi.' : 'Browser ini tidak mendukung notifikasi. Pakai Chrome, Edge, Firefox atau Safari terbaru.', true);
+      return;
+    }
+    const btn = $('[data-act="notif-aktif"]');
+    if (btn) { btn.disabled = true; btn.textContent = 'Mengaktifkan…'; }
+    // Some browsers never answer when their push service is unreachable: give up with a clear message.
+    const batas = (pr, pesan) => Promise.race([pr, new Promise((_, rej) => setTimeout(() => rej(new Error(pesan)), 20000))]);
+    try {
+      const izin = await Notification.requestPermission();
+      if (izin !== 'granted') { toast('Izin notifikasi ditolak. Izinkan notifikasi untuk situs ini di pengaturan browser, lalu coba lagi.', true); return; }
+      await daftarSW();
+      const reg = await batas(navigator.serviceWorker.ready, 'browser tidak menyiapkan layanan notifikasi');
+      const { publicKey } = await api('/api/push');
+      const sub = (await reg.pushManager.getSubscription()) || (await batas(reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64(publicKey) }), 'layanan push browser tidak menjawab. Periksa koneksi lalu coba lagi.'));
+      await api('/api/push/langganan', { method: 'POST', body: { subscription: sub.toJSON(), perangkat: perangkatLabel() } });
+      await api('/api/push/coba', { method: 'POST' });
+      S.notif = { didukung: true, aktif: true, izin: 'granted' };
+      toast('Notifikasi aktif. Pesan percobaan dikirim ke perangkat ini.');
+      render();
+    } catch (e) { toast('Notifikasi belum bisa diaktifkan: ' + e.message, true); render(); }
+  }
+  async function matikanNotif(diam = false) {
+    try {
+      const reg = swReg || (await navigator.serviceWorker.getRegistration());
+      const sub = reg && (await reg.pushManager.getSubscription());
+      if (sub) { await api('/api/push/langganan', { method: 'DELETE', body: { endpoint: sub.endpoint } }).catch(() => {}); await sub.unsubscribe(); }
+    } catch (e) { /* nothing subscribed */ }
+    S.notif = { ...(S.notif || {}), aktif: false };
+    if (!diam) { toast('Notifikasi dimatikan di perangkat ini'); render(); }
+  }
+  function notifCard() {
+    const n = S.notif || {};
+    const isi = isAdmin() ? 'pengajuan izin, sakit, cuti dan klaim baru' : 'keputusan izin dan klaim, slip gaji final, gaji dibayar, dan pengingat bila belum absen masuk';
+    const tombol = n.aktif
+      ? `<span class="pill ok">Aktif di perangkat ini</span><button class="btn sm ghost" data-act="notif-coba">Kirim percobaan</button><button class="btn sm ghost" data-act="notif-mati">Matikan</button>`
+      : !n.didukung && diIOS && !terpasang()
+        ? '<span class="muted" style="font-size:13px">Di iPhone: ketuk <b>Bagikan → Tambah ke Layar Utama</b>, buka dari ikon itu, lalu aktifkan di sini.</span>'
+        : n.izin === 'denied' ? '<span class="muted" style="font-size:13px">Notifikasi diblokir di browser ini. Izinkan untuk situs ini di pengaturan browser.</span>'
+        : `<button class="btn primary sm" data-act="notif-aktif">${icon('plus')}Aktifkan notifikasi</button>`;
+    return `<section class="card" id="kartu-notif"><div class="card-h"><h2>Notifikasi ke HP</h2><p>Kabar ${isi}. Aktifkan di tiap HP atau laptop yang dipakai.</p></div><div class="tools">${tombol}</div></section>`;
+  }
+
+  // ============ persiapan (pemilik) ============
+  // What still needs doing before every number in the app is complete. Hidden once all is done.
+  function persiapanHtml() {
+    if (!isAdmin()) return '';
+    const G = S.gajiCache[today().slice(0, 7)];
+    const eds = activeEditors();
+    const ch = analyticsChannels();
+    const items = [
+      { ok: ch.length && ch.every((c) => c.connected), t: 'Sambungkan YouTube Analytics di semua channel', d: `${ch.filter((c) => c.connected).length} dari ${ch.length} tersambung. Retensi, jam tonton dan pendapatan hanya terbaca dari channel yang tersambung.`, href: '/pengaturan' },
+      { ok: eds.length && eds.every((e) => e.punya_pin), t: 'Beri PIN ke setiap karyawan', d: eds.filter((e) => !e.punya_pin).map((e) => e.nama).join(', ') + ' belum punya PIN untuk masuk.', href: '/karyawan' },
+      { ok: !!(S.presensi && S.presensi.config && S.presensi.config.siap), t: 'Atur presensi', d: 'Isi lokasi kantor dan IP Wi-Fi kantor dari kantor.', href: '/presensi' },
+      { ok: !!(G && G.config && G.config.tersimpan), t: 'Simpan aturan umum gaji', d: 'Pastikan hari kerja (bawaan Senin–Sabtu), tanggal libur dan jatah cuti sudah benar.', href: '/gaji', act: 'atur-gaji', id: 'umum' },
+      { ok: !!(G && G.list && G.list.length && G.list.every((r) => r.aturan_diisi)), t: 'Isi gaji tiap karyawan', d: G && G.list ? G.list.filter((r) => !r.aturan_diisi).map((r) => r.nama).join(', ') + ' belum punya gaji pokok atau komponen lain.' : '', href: '/gaji', act: 'atur-gaji', id: G && G.list && (G.list.find((r) => !r.aturan_diisi) || {}).editor_id },
+      { ok: !!(S.notif && S.notif.aktif), t: 'Aktifkan notifikasi di HP pemilik', d: 'Supaya pengajuan izin dan klaim langsung terlihat.', href: '/pengaturan' },
+    ];
+    const sisa = items.filter((x) => !x.ok);
+    if (!sisa.length) return '';
+    return `<section class="card" id="kartu-persiapan"><div class="card-h"><h2>Persiapan: ${items.length - sisa.length} dari ${items.length} selesai</h2><p>Lengkapi supaya semua angka dan fitur terisi.</p></div>
+      <div class="checklist">${sisa.map((x) => `<div class="ck"><span class="st bad">!</span><div><b>${esc(x.t)}</b><div>${esc(x.d)}</div></div>${x.act ? `<button class="btn sm" data-act="${x.act}" data-id="${x.id || 'umum'}">Atur</button>` : `<a class="btn sm" href="${x.href}">Buka</a>`}</div>`).join('')}</div></section>`;
+  }
+
+  // ============ impor afiliasi (CSV) ============
+  function bacaCsv(text) {
+    text = text.replace(/^﻿/, '');
+    const first = text.split(/\r?\n/, 1)[0] || '';
+    const delim = [',', ';', '\t'].map((d) => [d, first.split(d).length]).sort((a, b) => b[1] - a[1])[0][0];
+    const rows = []; let row = [], cell = '', q = false;
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (q) { if (c === '"') { if (text[i + 1] === '"') { cell += '"'; i++; } else q = false; } else cell += c; continue; }
+      if (c === '"') q = true;
+      else if (c === delim) { row.push(cell); cell = ''; }
+      else if (c === '\n' || c === '\r') { if (c === '\r' && text[i + 1] === '\n') i++; row.push(cell); rows.push(row); row = []; cell = ''; }
+      else cell += c;
+    }
+    if (cell || row.length) { row.push(cell); rows.push(row); }
+    return rows.filter((r) => r.some((x) => x.trim()));
+  }
+  // "Rp1.234.567", "1,234.50", "12.345,67", "1500" → number
+  function angkaUang(v) {
+    let s = String(v ?? '').replace(/[^\d,.\-]/g, '');
+    if (!/\d/.test(s)) return null;
+    const lc = s.lastIndexOf(','), ld = s.lastIndexOf('.');
+    if (lc > -1 && ld > -1) s = lc > ld ? s.replace(/\./g, '').replace(',', '.') : s.replace(/,/g, '');
+    else if (lc > -1) s = /^[^,]*,\d{1,2}$/.test(s) ? s.replace(',', '.') : s.replace(/,/g, '');
+    else if (ld > -1 && !/^[^.]*\.\d{1,2}$/.test(s)) s = s.replace(/\./g, '');
+    const n = Number(s);
+    return Number.isFinite(n) ? n : null;
+  }
+  // "2026-10-21 13:00", "21/10/2026", "21-10-2026 08:00" → "2026-10" (day first, as in Indonesian reports)
+  function bulanTgl(v) {
+    const s = String(v || '').trim();
+    let m = s.match(/^(\d{4})[-/.](\d{1,2})[-/.]\d{1,2}/);
+    let out = m ? m[1] + '-' + m[2].padStart(2, '0') : null;
+    if (!out) { m = s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})/); out = m ? m[3] + '-' + m[2].padStart(2, '0') : null; }
+    return out && /^\d{4}-(0[1-9]|1[0-2])$/.test(out) ? out : null;
+  }
+  function imporDialog() {
+    openDialog(`<h2>Impor laporan afiliasi</h2>
+      <p>Unduh laporan komisi dari dashboard afiliasi (misalnya Shopee Affiliate atau TikTok Shop) dalam format CSV, lalu pilih filenya. Omzet tercapai tiap bulan di file akan diganti dengan jumlah dari laporan.</p>
+      <label class="field"><span>File CSV</span><input class="input" type="file" id="im-file" accept=".csv,text/csv"></label>
+      <div id="im-isi"></div>
+      <div class="err" id="im-err" role="alert"></div>
+      <div class="actions"><button type="button" class="btn ghost" data-act="close-overlay">Batal</button><button class="btn primary" id="im-simpan" disabled>Simpan</button></div>`, (d) => {
+      d.classList.add('wide');
+      let rows = null, nama = '', hasil = null;
+      const isi = $('#im-isi', d), err = $('#im-err', d), simpan = $('#im-simpan', d);
+      const hitung = () => {
+        const [head, ...data] = rows;
+        const ci = +$('#im-tgl', d).value, ca = +$('#im-jml', d).value, cf = $('#im-fkol', d).value, fv = $('#im-fval', d).value.trim().toLowerCase();
+        const per = {}; let pakai = 0, lewat = 0, saring = 0;
+        data.forEach((r) => {
+          if (cf !== '' && fv && !String(r[+cf] || '').toLowerCase().includes(fv)) { saring++; return; }
+          const b = bulanTgl(r[ci]), n = angkaUang(r[ca]);
+          if (!b || n == null) { lewat++; return; }
+          per[b] = (per[b] || 0) + n; pakai++;
+        });
+        hasil = { per, pakai };
+        const bl = Object.keys(per).sort();
+        $('#im-hasil', d).innerHTML = bl.length
+          ? `<table class="t"><thead><tr><th>Bulan</th><th class="num">Omzet tercapai</th></tr></thead><tbody>${bl.map((b) => `<tr><td>${bulanLabel(b)}</td><td class="num"><b>${idr(per[b])}</b></td></tr>`).join('')}</tbody></table><p class="muted" style="font-size:12.5px;margin:6px 0 0">${pakai} baris dipakai${saring ? `, ${saring} tidak cocok saringan` : ''}${lewat ? `, ${lewat} dilewati karena tanggal atau angkanya tidak terbaca` : ''}. Kolom ${esc(head[ci])} dan ${esc(head[ca])}.</p>`
+          : '<div class="empty"><b>Tidak ada baris yang terbaca</b>Periksa pilihan kolom tanggal dan jumlah.</div>';
+        simpan.disabled = !bl.length || bl.length > 36;
+      };
+      $('#im-file', d).addEventListener('change', async (ev) => {
+        const f = ev.target.files[0];
+        err.textContent = ''; simpan.disabled = true; isi.innerHTML = '';
+        if (!f) return;
+        if (f.size > 5e6) { err.textContent = 'File terlalu besar (maksimal 5 MB).'; return; }
+        rows = bacaCsv(await f.text()); nama = f.name;
+        if (rows.length < 2) { err.textContent = 'File kosong atau bukan CSV.'; return; }
+        const head = rows[0];
+        const tebak = (re) => Math.max(0, head.findIndex((h) => re.test(h)));
+        const opt = (sel) => head.map((h, i) => `<option value="${i}" ${i === sel ? 'selected' : ''}>${esc(h || 'Kolom ' + (i + 1))}</option>`).join('');
+        isi.innerHTML = `<div style="display:flex;flex-direction:column;gap:12px">
+          <div class="row"><label class="field"><span>Sumber</span><input class="input" id="im-sumber" maxlength="60" value="${/tiktok/i.test(nama) ? 'TikTok Shop' : /shopee/i.test(nama) ? 'Shopee Affiliate' : 'Afiliasi'}"></label>
+            <label class="field"><span>Kolom tanggal</span><select class="input" id="im-tgl">${opt(tebak(/tanggal|waktu|date|time/i))}</select></label>
+            <label class="field"><span>Kolom jumlah komisi</span><select class="input" id="im-jml">${opt(tebak(/komisi|commission|penghasilan|pendapatan|earning|amount/i))}</select></label></div>
+          <div class="row"><label class="field"><span>Saring kolom (opsional)</span><select class="input" id="im-fkol"><option value="">Tanpa saringan</option>${head.map((h, i) => `<option value="${i}">${esc(h || 'Kolom ' + (i + 1))}</option>`).join('')}</select></label>
+            <label class="field"><span>Hanya baris yang berisi</span><input class="input" id="im-fval" placeholder="Misal: Selesai"><small>Untuk memakai pesanan yang selesai saja</small></label></div>
+          <div id="im-hasil"></div></div>`;
+        ['#im-tgl', '#im-jml', '#im-fkol'].forEach((s) => $(s, d).addEventListener('change', hitung));
+        $('#im-fval', d).addEventListener('input', hitung);
+        hitung();
+      });
+      simpan.addEventListener('click', async () => {
+        simpan.disabled = true;
+        try {
+          const per = Object.fromEntries(Object.entries(hasil.per).map(([k, v]) => [k, Math.round(v)]));
+          const g = await api('/api/goals/impor', { method: 'PUT', body: { bulan: per, sumber: $('#im-sumber', d).value, file: nama, baris: hasil.pakai } });
+          S.goal = g;
+          closeOverlay(); toast(`Omzet ${Object.keys(per).length} bulan diperbarui dari ${nama}`); render();
+        } catch (e) { err.textContent = e.message; simpan.disabled = false; }
+      });
+    });
+  }
+
   // ============ actions: newer pages ============
   async function aksiBaru(act, el, ev) {
     switch (act) {
+      case 'notif-aktif': await aktifkanNotif(); break;
+      case 'notif-mati': await matikanNotif(); break;
+      case 'notif-coba': try { const r = await api('/api/push/coba', { method: 'POST' }); toast(r.terkirim ? 'Pesan percobaan dikirim' : 'Tidak ada perangkat yang menerima. Aktifkan ulang notifikasi.', !r.terkirim); } catch (e) { toast(e.message, true); } break;
+      case 'impor-afiliasi': imporDialog(); break;
       case 'tutup-sambutan': try { localStorage.setItem('pt_sambutan', 'tutup'); } catch (e) { /* storage off */ } el.closest('.notice').remove(); break;
       case 'pf-periode': S.perfPeriode = +el.dataset.v; render(); break;
       case 'konten-orang': ev.preventDefault(); Object.assign(S.konten, { editor: el.dataset.id, periode: String(S.perfPeriode), page: 1 }); navigate('/konten'); break;
@@ -2286,6 +2485,7 @@ import './styles.css';
       case 'lainnya': moreSheet(); break;
       case 'logout':
         closeOverlay();
+        await matikanNotif(true);
         try { await api('/api/auth/logout', { method: 'POST' }); } catch (e) { /* the cookie is cleared or already invalid */ }
         saveSession(null); toast('Anda sudah keluar'); navigate('/'); break;
       case 'retry': S.error = null; $('#page').innerHTML = '<div class="skeleton" style="height:320px"></div>'; await load(); break;

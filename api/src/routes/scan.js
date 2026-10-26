@@ -6,6 +6,7 @@ const db = require('../config/db');
 const dataService = require('../services/dataService');
 const { getChannelIds } = require('../services/channelService');
 const { requireAdmin } = require('../middlewares/sessionAuth');
+const { pengingatAbsen } = require('../services/pengingatService');
 
 // GET: which data sources are configured, and how the last sync went
 router.get('/status', async (req, res) => {
@@ -74,13 +75,15 @@ router.get('/auto', async (req, res) => {
   }
 });
 
-// GET: Cron endpoint (Vercel Cron hits this daily; open without login but throttled)
+// GET: Cron endpoint (Vercel Cron daily, GitHub Actions hourly; open without login but throttled)
 router.get('/cron', async (req, res) => {
   try {
     // Vercel Cron sends "Authorization: Bearer <CRON_SECRET>". Anyone else is held to the normal pace.
     const secret = process.env.CRON_SECRET;
     const fromCron = !!secret && req.headers['authorization'] === `Bearer ${secret}`;
-    if (!fromCron && (await minutesSinceLastScan()) < AUTO_EVERY_MIN) return res.json({ skipped: true, reason: 'Data masih baru' });
+    // Check-in reminders ride on the same schedule; each goes out at most once per person per day.
+    const pengingat = await pengingatAbsen().catch((e) => { console.error('Pengingat absen gagal:', e.message); return 0; });
+    if (!fromCron && (await minutesSinceLastScan()) < AUTO_EVERY_MIN) return res.json({ skipped: true, reason: 'Data masih baru', pengingat });
     await runLocked(res, 'Cron triggered scan started');
   } catch (err) {
     console.error('Cron scan route error:', err);
