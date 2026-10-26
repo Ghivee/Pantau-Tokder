@@ -3,6 +3,8 @@ const { getChannelIds, getChannelNames } = require('./channelService');
 const analyticsService = require('./analyticsService');
 const editorService = require('./editorService');
 const presensi = require('./presensiService');
+const gaji = require('./gajiService');
+const pengajuan = require('./pengajuanService');
 
 // Every list the app shows, in one place: the single routes and /api/bootstrap both use these,
 // so the numbers are the same whichever way they are loaded.
@@ -106,6 +108,13 @@ async function presensiFor({ isAdmin, editor, ip }) {
   return { config, rows, ditolak };
 }
 
+async function pengajuanFor({ isAdmin, editor }) {
+  const editorId = isAdmin ? null : editor.id;
+  const cfg = await gaji.getConfig();
+  const [list, cuti] = await Promise.all([pengajuan.daftar({ editorId }), pengajuan.sisaCuti(cfg, editorId)]);
+  return { list, cuti };
+}
+
 // Everything the app needs to draw any page, in one request. A part that fails is reported
 // in `gagal` instead of failing the whole answer, so the rest still shows.
 async function bootstrap({ isAdmin, editor, ip }) {
@@ -119,6 +128,8 @@ async function bootstrap({ isAdmin, editor, ip }) {
     goal: () => (isAdmin ? goal() : null),
     daily: () => daily({ isAdmin, dari: wib(190) }),
     presensi: () => presensiFor({ isAdmin, editor, ip }),
+    gaji: () => gaji.hitungBulan(wib().slice(0, 7), { editorId: isAdmin ? null : editor.id }),
+    pengajuan: () => pengajuanFor({ isAdmin, editor }),
   };
   const names = Object.keys(parts);
   const results = await Promise.allSettled(names.map((n) => parts[n]()));

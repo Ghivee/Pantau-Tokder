@@ -13,12 +13,17 @@ Pantau Tokder memantau kerja harian tim konten di tiga channel: **Tokder**, **Bu
 |---|---|---|
 | Ringkasan | Video tayang vs target, views, tepat jadwal, kinerja tiap karyawan, per channel, ide topik, video terbaik | Semua |
 | Harian | Satu kartu per karyawan untuk hari yang dipilih: skor, cek harian, garis waktu jadwal vs jam tayang, skor 14 hari, daftar yang dikerjakan | Semua |
+| Performa | Video satu karyawan dibanding median channel dan rekan: views, retensi, like, tepat jadwal, perkembangan 8 minggu, dan saran perbaikan dari datanya sendiri | Semua (karyawan melihat dirinya sendiri) |
+| Tren channel | Views/jam tonton/subscriber 7 hari vs minggu sebelumnya, video yang sedang naik, topik dan kata judul yang laris, video lama yang hidup lagi | Semua |
 | Konten | Semua video: cari, filter, urutkan, detail dan retensi, unduh CSV | Semua |
 | Analytics | Views, jam tonton, subscriber dan pendapatan harian ketiga channel dari YouTube Analytics | Semua (pendapatan hanya Pemilik) |
 | Belum dikenali | Video tanpa kode karyawan, untuk ditetapkan manual | Pemilik dan Editor |
 | Karyawan | Kode, peran, jadwal, target, PIN | Diubah oleh Pemilik |
 | Pendapatan | Pendapatan iklan per karyawan/channel/video, target omzet afiliasi | Pemilik |
 | Presensi | Absen masuk/pulang dengan cek Wi-Fi kantor + GPS; pemilik melihat rekap, percobaan yang ditolak, dan mengatur aturannya | Karyawan absen; rekap & aturan Pemilik |
+| Izin & klaim | Pengajuan izin, sakit, cuti (dengan jatah tahunan) dan klaim biaya; pemilik menyetujui atau menolak | Karyawan mengajukan; Pemilik memutuskan |
+| Gaji | Gaji bulanan dihitung otomatis dari presensi, izin, video, views, klaim dan aturan gaji; finalkan, cetak slip, tandai dibayar | Pemilik semua; karyawan slip sendiri |
+| Panduan | Petunjuk pemakaian di dalam website, sesuai peran (pemilik atau karyawan) | Semua |
 | Pengaturan | Status sambungan, sinkronisasi, channel, password | Pemilik |
 
 Semua menu hanya bisa dibuka setelah **masuk** (pemilik atau karyawan). Sebelum masuk, website hanya menampilkan tombol Masuk.
@@ -167,6 +172,22 @@ Catatan:
 
 **Karyawan:** buka menu **Presensi**, pastikan tersambung ke Wi-Fi kantor dan GPS menyala, lalu klik **Absen masuk** atau **Absen pulang**. Izinkan akses lokasi saat browser memintanya. Kalau ditolak, alasannya muncul di layar dan di daftar "Percobaan yang ditolak".
 
+### 10. Izin, cuti dan klaim
+
+**Karyawan:** menu **Izin & klaim** → **Ajukan izin / cuti** (izin, sakit, atau cuti yang memakai jatah tahunan) atau **Klaim biaya** (mengganti uang yang dikeluarkan untuk kerja). **Pemilik** menyetujui atau menolak di menu yang sama; jumlah yang menunggu tampil sebagai angka di menu.
+
+Yang disetujui langsung masuk ke gaji: hari izin/sakit/cuti tidak dihitung tidak hadir, klaim ditambahkan ke gaji bulan tanggal klaimnya.
+
+### 11. Gaji
+
+1. **Gaji → Atur gaji → Aturan umum:** hari kerja (bawaan Senin–Sabtu), tanggal libur, jatah cuti per tahun (bawaan 12).
+2. **Atur gaji → Gaji (nama):** gaji pokok, tunjangan, potongan tetap (BPJS/kasbon), potongan per hari tidak hadir, potongan per hari izin, potongan per kali telat, upah lembur per jam, bonus per video di atas target, bonus per 1.000 views. Semua mulai dari 0; komponen bernilai 0 tidak dipakai.
+3. Selama bulan berjalan, gaji tampil sebagai **Perkiraan** dan berubah mengikuti data. **Rincian** menampilkan slip lengkap; di sana pemilik bisa menambah **penyesuaian** (bonus atau potongan sekali dengan keterangan).
+4. Akhir bulan: **Finalkan** mengunci angka menjadi slip resmi (tidak berubah lagi walau data atau aturan berubah). Setelah transfer, klik **Tandai dibayar**. **Buka lagi** mengembalikan ke perkiraan bila perlu koreksi.
+5. Karyawan melihat slipnya sendiri di menu Gaji dan bisa **Cetak / PDF**.
+
+Aturan hitung: tidak hadir = hari kerja tanpa absen masuk dan tanpa izin/sakit/cuti yang disetujui, dihitung mulai hari pertama presensi dipakai dan hanya untuk hari yang sudah lewat. Lembur = absen pulang ≥ 30 menit setelah jam pulang (maks. 6 jam/hari). Target video bulanan = target harian × hari kerja yang wajib hadir.
+
 ---
 
 ## Cara skor dihitung (0–100 per hari)
@@ -218,7 +239,10 @@ Topik ditebak dari kata di judul, misalnya "harga", "thrips", "pupuk" atau "sema
 ```
 app/index.html      kerangka halaman
 app/styles.css      tampilan (warna, huruf, tata letak, mode gelap)
-app/main.js         seluruh tampilan: menu, halaman, grafik, skor, presensi
-api/src/...         server: sinkronisasi YouTube, karyawan, aktivitas, presensi, akses
+app/main.js         seluruh tampilan: menu, halaman, grafik, skor, presensi, performa, tren, izin, gaji, panduan
+api/src/...         server: sinkronisasi YouTube, karyawan, aktivitas, presensi, izin & klaim, gaji, akses
+api/src/services/gajiService.js       perhitungan gaji (fungsi murni hitung(), diuji di api/test/gaji.test.cjs)
+api/src/services/pengajuanService.js  izin, sakit, cuti, klaim dan jatah cuti
+api/src/routes/insight.js             ringkasan retensi dan kenaikan views untuk Performa dan Tren
 api/test/*.cjs      tes otomatis (jalankan: npm test)
 ```
