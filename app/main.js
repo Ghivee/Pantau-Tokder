@@ -1387,7 +1387,7 @@ import './styles.css';
   // A short, dismissible pointer to the guide for people new to the app.
   function sambutan() {
     try { if (localStorage.getItem('pt_sambutan') === 'tutup') return ''; } catch (e) { /* storage off: show it */ }
-    return `<div class="notice tip-card" role="note"><b>Baru memakai Pantau Tokder?</b> Panduan menjelaskan tiap menu, cara skor dan gaji dihitung, dan dari mana angkanya berasal.
+    return `<div class="notice tip-card" role="note"><span><b>Baru di Pantau Tokder?</b> Lihat langkah awal dan jawaban singkat di Panduan.</span>
       <a class="btn sm" href="/panduan">${icon('book')}Buka panduan</a><button class="btn sm ghost" data-act="tutup-sambutan">Tutup</button></div>`;
   }
 
@@ -1935,68 +1935,113 @@ import './styles.css';
   };
 
   // ============ page: panduan ============
+  // Short and task-based: first steps, routines, what each menu is for, and short answers.
+  // "Cara kerja" buttons on other pages open the matching answer (/panduan#p-gaji).
+  const MENU_INFO = {
+    ringkasan: 'Gambaran tim: video tayang, views, tepat jadwal, siapa paling bagus.',
+    harian: 'Kerja tiap orang per hari: video, jam tayang, tugas lain, skor.',
+    performa: 'Video mana yang berhasil, dibanding channel dan rekan, plus saran.',
+    tren: 'Apa yang sedang naik di channel: video, topik, kata di judul.',
+    konten: 'Semua video: cari, saring, lihat retensi, unduh CSV.',
+    analytics: 'Angka resmi YouTube per channel: views, jam tonton, subscriber.',
+    presensi: 'Absen masuk dan pulang dari Wi-Fi kantor.',
+    pengajuan: 'Ajukan izin, sakit, cuti atau ganti uang (klaim).',
+    gaji: 'Slip gaji yang dihitung otomatis dari presensi dan video.',
+    identifikasi: 'Video tanpa kode karyawan, untuk ditetapkan pembuatnya.',
+    karyawan: 'Data karyawan: kode, jadwal, target, PIN.',
+    monetisasi: 'Pendapatan iklan YouTube dan omzet afiliasi.',
+    pengaturan: 'Sambungan YouTube, sinkronisasi, notifikasi, password.',
+  };
+
+  const FAQ = [
+    { id: 'harian', q: 'Bagaimana skor harian dihitung?', a: `<p>Skor 0–100 dari empat hal:</p><ul><li><b>Jumlah video</b> dibanding target: 35 poin</li><li><b>Tepat jadwal</b> (telat lebih dari ${TOL} menit = telat): 25 poin</li><li><b>Views</b> dibanding video lain di channel: 20 poin</li><li><b>Tugas lain</b> yang dicatat: 20 poin</li></ul><p>Nilai A ≥ 85, B ≥ 70, C ≥ 55, sisanya D.</p>` },
+    { id: 'performa', q: 'Apa arti angka 1,3× atau 0,8×?', a: '<p>Views video dibanding video biasa di channel yang sama (Shorts dibanding Shorts). <b>1×</b> = biasa, <b>1,3×</b> = 30% lebih ramai, <b>0,8×</b> = 20% lebih sepi.</p><p>Video yang belum 2 hari belum dinilai karena views-nya masih naik.</p>' },
+    { id: 'tren', q: 'Dari mana “Sedang naik sekarang” dihitung?', a: '<p>Dari selisih views antara dua kali sinkronisasi (data diambil tiap jam), lalu disetarakan per 24 jam. Topik dan kata judul dibandingkan dengan video lain di periode yang sama.</p>' },
+    { id: 'presensi', q: 'Kenapa absen saya ditolak?', a: '<p>Absen hanya diterima bila <b>tersambung ke Wi-Fi kantor</b>, <b>GPS menyala dan akurat</b>, dan <b>berada di area kantor</b>. Alasannya tertulis di tabel “Percobaan yang ditolak”.</p><p>Coba: matikan data seluler dan VPN, sambung ke Wi-Fi kantor, nyalakan GPS, tunggu beberapa detik, lalu absen lagi.</p>' },
+    { id: 'video', q: 'Video saya tidak muncul atau tidak terhitung', a: '<p>Pastikan <b>kode Anda</b> (misal #AL) ada di deskripsi video. Video baru muncul paling lama 1 jam setelah tayang. Video tanpa kode bisa ditetapkan pembuatnya di menu Belum dikenali.</p>' },
+    { id: 'retensi', q: 'Kenapa retensi video kosong?', a: '<p>YouTube baru memberi data retensi 2–3 hari setelah video tayang, dan tidak memberikannya untuk video yang penontonnya sangat sedikit. Channel juga harus tersambung ke YouTube Analytics.</p>' },
+    { id: 'pengajuan', q: 'Apa pengaruh izin, cuti dan klaim ke gaji?', a: '<ul><li><b>Sakit</b> dan <b>cuti</b> yang disetujui tidak dipotong.</li><li><b>Izin</b> dipotong hanya bila pemilik mengaturnya.</li><li><b>Klaim</b> yang disetujui ditambahkan ke gaji bulan itu.</li><li>Tidak absen tanpa izin = tidak hadir.</li></ul>' },
+    { id: 'gaji', q: 'Bagaimana gaji dihitung?', a: '<p><b>Ditambah:</b> gaji pokok, tunjangan, lembur (pulang ≥ 30 menit setelah jam pulang), bonus video di atas target, bonus views, klaim, bonus dari pemilik.</p><p><b>Dikurangi:</b> hari tidak hadir, izin (bila diatur), telat, potongan tetap seperti BPJS.</p><p>Nominal tiap komponen diatur pemilik di Gaji → Atur gaji.</p>' },
+    { id: 'status-gaji', q: 'Apa beda Perkiraan, Final dan Dibayar?', a: '<ul><li><b>Perkiraan</b>: bulan masih berjalan, angka masih bisa berubah.</li><li><b>Final</b>: dikunci pemilik, angka tidak berubah lagi.</li><li><b>Dibayar</b>: pemilik sudah mentransfer.</li></ul>' },
+    { id: 'notifikasi', q: 'Cara menyalakan notifikasi di HP', a: '<p><b>Android / laptop:</b> buka menu Pengaturan (pemilik) atau Izin & klaim (karyawan), lalu tekan <b>Aktifkan notifikasi</b>.</p><p><b>iPhone:</b> buka di Safari → <b>Bagikan</b> → <b>Tambah ke Layar Utama</b>. Buka Pantau Tokder dari ikon itu, lalu tekan Aktifkan notifikasi.</p>' },
+    { id: 'pendapatan', q: 'Apakah angka pendapatan asli?', a: '<p>Ya. Pendapatan iklan diambil dari YouTube Analytics, sama dengan di YouTube Studio (bisa sedikit beda dengan pembayaran AdSense). Channel yang belum tersambung tampil “—”. Omzet afiliasi dari file CSV yang diimpor atau diisi manual.</p>', owner: true },
+    { id: 'afiliasi', q: 'Cara memasukkan omzet afiliasi', a: '<p>Unduh laporan komisi (CSV) dari dashboard afiliasi, lalu di menu Pendapatan tekan <b>Impor CSV</b>, pilih file, cek total per bulan, dan Simpan.</p>', owner: true },
+    { id: 'data', q: 'Dari mana semua angka berasal?', a: '<ul><li>Video, views, like: YouTube, diperbarui tiap jam.</li><li>Retensi, jam tonton, pendapatan: YouTube Analytics, terlambat 2–3 hari.</li><li>Absen, aktivitas, izin: dicatat di aplikasi ini.</li></ul><p>Tidak ada angka contoh. Data yang belum ada ditulis “—”.</p>' },
+    { id: 'pin', q: 'Lupa PIN', a: '<p>Minta pemilik mengganti PIN di menu Karyawan → Ubah.</p>' },
+  ];
+
+  function langkahPanduan(lihat) {
+    if (lihat === 'pemilik') {
+      return persiapanItems().map((x) => ({ ok: x.ok, t: x.t, d: x.cara, btn: x.act ? `<button class="btn sm" data-act="${x.act}" data-id="${x.id || 'umum'}">${x.act === 'notif-aktif' ? 'Aktifkan' : x.ok ? 'Ubah' : 'Atur'}</button>` : `<a class="btn sm" href="${x.href}">${x.ok ? 'Lihat' : 'Buka'}</a>` }));
+    }
+    const kode = (me() || {}).kode_identifikasi;
+    const P = S.presensi && S.presensi.rows ? hariPresensi(S.presensi.rows, (me() || {}).id, today()) : {};
+    return [
+      { ok: null, t: `Tulis kode ${kode ? '#' + esc(kode) : 'Anda'} di deskripsi setiap video`, d: 'Tanpa kode, video tidak terhitung untuk Anda.', btn: '' },
+      { ok: me() ? !!P.masuk : null, t: 'Absen masuk dan pulang', d: 'Dari Wi-Fi kantor dengan GPS menyala.', btn: '<a class="btn sm" href="/presensi">Presensi</a>' },
+      { ok: null, t: 'Catat tugas selain upload', d: 'Riset harga, thumbnail, cek SEO, balas komentar.', btn: '<a class="btn sm" href="/harian">Harian</a>' },
+      { ok: !!(S.notif && S.notif.aktif), t: 'Nyalakan notifikasi', d: 'Supaya tahu izin disetujui, gaji dibayar, dan diingatkan absen.', btn: S.notif && S.notif.aktif ? '' : '<button class="btn sm" data-act="notif-aktif">Aktifkan</button>' },
+      { ok: null, t: 'Lihat Performa tiap minggu', d: 'Baca bagian “Yang bisa ditingkatkan”.', btn: '<a class="btn sm" href="/performa">Performa</a>' },
+    ];
+  }
+
   PAGES.panduan = function () {
     const owner = isAdmin();
-    const sec = (id, title, body) => `<section class="card doc" id="p-${id}"><h2>${title}</h2>${body}</section>`;
-    const toc = [['mulai', 'Mulai cepat'], ['ringkasan', 'Ringkasan'], ['harian', 'Harian dan skor'], ['performa', 'Performa video'], ['tren', 'Tren channel'], ['konten', 'Konten dan Belum dikenali'], ['analytics', 'Analytics'], ['presensi', 'Presensi'], ['pengajuan', 'Izin & klaim'], ['gaji', 'Gaji'], ...(owner ? [['pendapatan', 'Pendapatan'], ['pengaturan', 'Pengaturan']] : []), ['notifikasi', 'Notifikasi dan pasang di HP'], ...(owner ? [['afiliasi', 'Impor omzet afiliasi']] : []), ['data', 'Dari mana angkanya'], ['faq', 'Pertanyaan umum']];
+    const lihat = owner ? S.panduanUntuk || 'pemilik' : 'karyawan';
+    const untukPemilik = lihat === 'pemilik';
+    const langkah = langkahPanduan(lihat);
+    const selesai = langkah.filter((x) => x.ok).length, dinilai = langkah.filter((x) => x.ok != null).length;
+    const rutin = untukPemilik
+      ? [['Setiap hari', ['Lihat Ringkasan dan Harian', 'Setujui atau tolak Izin & klaim']], ['Setiap minggu', ['Buka Tren channel dan Performa', 'Tetapkan video di Belum dikenali']], ['Akhir bulan', ['Gaji → cek Rincian → Finalkan', 'Transfer, lalu Tandai dibayar', 'Impor omzet afiliasi']]]
+      : [['Setiap hari', ['Absen masuk', 'Upload sesuai jadwal, pakai kode', 'Catat tugas lain', 'Absen pulang']], ['Setiap minggu', ['Buka Performa', 'Lihat Tren channel untuk ide']], ['Akhir bulan', ['Cek slip di Gaji', 'Ajukan klaim sebelum gaji final']]];
+    const menu = ROUTES.filter((r) => r.id !== 'panduan' && MENU_INFO[r.id] && (!r.admin || untukPemilik));
+    const faq = FAQ.filter((f) => !f.owner || untukPemilik);
     return `
-      <header class="head"><div><h1>Panduan</h1><p>Cara memakai tiap menu${owner ? ' sebagai pemilik' : ' sebagai karyawan'}, dan bagaimana angka dihitung.</p></div></header>
-      <nav class="card toc" aria-label="Isi panduan">${toc.map(([id, t]) => `<a href="/panduan#p-${id}">${t}</a>`).join('')}</nav>
-      ${sec('mulai', 'Mulai cepat', owner ? `<ol>
-        <li><b>Tambah karyawan</b> di menu Karyawan: nama, kode (misal AL), jadwal tayang, target video per hari dan PIN untuk masuk.</li>
-        <li><b>Sambungkan channel</b> di Pengaturan: isi daftar channel, lalu klik Hubungkan untuk YouTube Analytics di tiap channel (retensi, jam tonton dan pendapatan hanya terbaca setelah tersambung).</li>
-        <li><b>Atur presensi</b> di menu Presensi: buka dari Wi-Fi kantor, klik Pakai lokasi saya sekarang dan Tambahkan IP saya, lalu Simpan aturan.</li>
-        <li><b>Atur gaji</b> di menu Gaji → Atur gaji: hari kerja, libur, jatah cuti, lalu gaji pokok dan komponen lain per karyawan.</li>
-        <li>Tiap akhir bulan: cek Izin & klaim yang menunggu, buka Gaji, periksa Rincian, klik <b>Finalkan</b>, transfer, lalu <b>Tandai dibayar</b>.</li></ol>` : `<ol>
-        <li><b>Masuk</b> dengan memilih nama Anda dan mengetik PIN dari pemilik.</li>
-        <li>Tulis <b>kode Anda</b> (misal #AL) di deskripsi setiap video. Tanpa kode, video masuk ke Belum dikenali dan tidak terhitung untuk Anda.</li>
-        <li><b>Absen</b> masuk dan pulang di menu Presensi, tersambung ke Wi-Fi kantor dengan GPS menyala.</li>
-        <li><b>Catat</b> tugas selain upload (riset harga, thumbnail, cek SEO, balas komentar) lewat tombol Catat aktivitas.</li>
-        <li>Cek <b>Performa</b> tiap minggu untuk melihat video mana yang berhasil dan apa yang bisa ditingkatkan.</li>
-        <li>Perlu izin, sakit, cuti, atau mengganti uang yang Anda keluarkan? Ajukan di <b>Izin & klaim</b>.</li></ol>`)}
-      ${sec('ringkasan', 'Ringkasan', '<p>Gambaran tim dalam 7 atau 30 hari: jumlah video tayang dibanding target, views video baru, median views per video, persen tepat jadwal, dan video yang belum dikenali. Kartu Ide konten berikutnya membandingkan median views tiap topik dengan median channel-nya.</p>')}
-      ${sec('harian', 'Harian dan skor', `<p>Satu kartu per karyawan untuk tanggal yang dipilih: video yang tayang (titik hijau tepat, merah telat), tugas lain, dan skor 14 hari.</p>
-        <p><b>Skor harian 0–100</b> = video tayang dibanding target (35 poin) + tepat jadwal (25) + views dibanding median channel untuk video berumur ≥ 2 hari (20) + tugas lain (20). Komponen yang belum ada datanya tidak ikut dihitung. Nilai: A ≥ 85, B ≥ 70, C ≥ 55, D di bawahnya. Telat lebih dari ${TOL} menit dari jadwal dihitung telat.</p>`)}
-      ${sec('performa', 'Performa video', `<p>${owner ? 'Pilih karyawan di kanan atas.' : 'Halaman ini berisi video Anda sendiri.'} Angka utamanya <b>“× median”</b>: views video dibagi median views video lain di channel dan jenis yang sama (Shorts dengan Shorts). 1× = biasa, 2× = dua kali lebih ramai, 0,5× = separuhnya. Video di bawah 2 hari belum dinilai karena views-nya masih naik.</p>
-        <p><b>Retensi</b> = persen penonton yang masih menonton di titik tertentu, dari YouTube Analytics. <b>Like per 1.000 views</b> menunjukkan seberapa kuat ajakan berinteraksi. Kartu <b>Yang bisa ditingkatkan</b> hanya menampilkan saran yang didukung data Anda sendiri, lengkap dengan angkanya. Grafik 8 minggu membandingkan tiap minggu dengan video lain yang tayang di minggu yang sama, jadi adil walau video lama sudah mengumpulkan views lebih lama.</p>`)}
-      ${sec('tren', 'Tren channel', `<p><b>Views, jam tonton dan subscriber 7 hari</b> dibanding 7 hari sebelumnya, dari YouTube Analytics (terlambat 2–3 hari). <b>Sedang naik sekarang</b> dihitung dari selisih views antara dua sinkronisasi yang berjarak 12–72 jam, disetarakan per 24 jam, jadi butuh minimal dua sinkronisasi di hari berbeda.</p>
-        <p><b>Topik 14 hari</b> membandingkan views topik dengan video lain di periode yang sama, lalu dengan 15–60 hari sebelumnya (naik/turun/stabil). <b>Kata di judul yang laris</b> mencari kata yang muncul di 3 video atau lebih dalam 30 hari dan menghitung median views-nya. <b>Video lama yang hidup lagi</b> adalah video berumur lebih dari 30 hari yang masih bertambah views: bahan bagus untuk video lanjutan.</p>`)}
-      ${sec('konten', 'Konten dan Belum dikenali', '<p><b>Konten</b> berisi semua video dari channel yang dipantau, bisa dicari, difilter, diurutkan dan diunduh sebagai CSV. Klik video untuk melihat detail dan kurva retensi.</p><p>Video dikenali pembuatnya dari kode di deskripsi (misal #AL). Video tanpa kode masuk ke <b>Belum dikenali</b>; pemilik atau editor bisa menetapkan pembuatnya di sana.</p>')}
-      ${sec('analytics', 'Analytics', '<p>Angka resmi YouTube Analytics per channel: views harian (termasuk video lama), jam tonton, subscriber baru dan yang berhenti, rata-rata durasi tonton. Kartu Strategi memberi saran yang dihitung dari angka channel sendiri.</p>')}
-      ${sec('presensi', 'Presensi', `<p>Absen hanya diterima bila <b>semua</b> syarat terpenuhi: tersambung ke Wi-Fi kantor (IP internet terdaftar), akurasi GPS cukup, posisi di dalam radius kantor, dan lokasi tidak melompat tidak wajar. Ini menutup celah aplikasi lokasi palsu. Setiap percobaan yang ditolak dicatat dengan alasannya.</p>
-        <p>Bila ditolak: matikan VPN/data seluler, sambungkan ke Wi-Fi kantor, nyalakan GPS akurasi tinggi, tunggu beberapa detik, lalu coba lagi.</p>`)}
-      ${sec('pengajuan', 'Izin & klaim', `<p>Karyawan mengajukan <b>izin</b>, <b>sakit</b>, <b>cuti</b> (memakai jatah tahunan) atau <b>klaim biaya</b> (mengganti uang yang dikeluarkan untuk kerja, misal beli bahan video). Pemilik menyetujui atau menolak, bisa dengan catatan.</p>
-        <p>Yang disetujui langsung masuk ke perhitungan gaji: hari izin/sakit/cuti tidak dihitung tidak hadir, dan klaim ditambahkan ke gaji bulan tanggal klaimnya. Pengajuan yang masih menunggu bisa dibatalkan. Tanggal di bulan yang gajinya sudah final tidak bisa diajukan atau diputuskan lagi sebelum bulan itu dibuka.</p>`)}
-      ${sec('gaji', 'Gaji', `<p>Gaji dihitung otomatis dari data asli, bukan diketik:</p>
-        <ul><li><b>Gaji pokok + tunjangan</b> sesuai aturan per karyawan.</li>
-          <li><b>Lembur</b>: absen pulang 30 menit atau lebih setelah jam pulang, dikali upah per jam (maksimal 6 jam per hari).</li>
-          <li><b>Bonus video</b>: jumlah video di atas target bulan itu (target harian × hari kerja yang wajib hadir). <b>Bonus views</b>: per 1.000 views video yang tayang di bulan itu.</li>
-          <li><b>Klaim</b> yang disetujui dan <b>penyesuaian</b> manual dari pemilik (bonus atau potongan dengan keterangan).</li>
-          <li><b>Potongan</b>: hari kerja tanpa absen dan tanpa izin/sakit/cuti, hari izin (bila diatur), kali telat, dan potongan tetap seperti BPJS.</li></ul>
-        <p>Ketidakhadiran baru dihitung mulai hari pertama presensi dipakai, dan hari ini baru dihitung setelah lewat. Selama belum final, statusnya <b>Perkiraan</b>. ${owner ? 'Klik <b>Finalkan</b> untuk mengunci angka menjadi slip resmi, lalu <b>Tandai dibayar</b> setelah transfer. <b>Buka lagi</b> mengembalikan ke perkiraan bila ada yang perlu dikoreksi.' : 'Setelah pemilik memfinalkan, slip tidak berubah lagi dan bisa dicetak atau disimpan sebagai PDF.'}</p>`)}
-      ${owner ? sec('pendapatan', 'Pendapatan', '<p><b>Iklan bulan ini</b> dan <b>28 hari</b> berasal dari laporan harian YouTube Analytics per channel (estimatedRevenue, US$), sama dengan angka di YouTube Studio. <b>Total per video</b> adalah pendapatan seumur tiap video yang tercatat. Angka ini perkiraan YouTube; pembayaran akhir AdSense bisa sedikit berbeda. Kartu Sumber angka menunjukkan channel mana yang sudah terbaca.</p><p><b>Omzet afiliasi</b> tidak tersambung otomatis ke marketplace: isi target dan yang tercapai lewat tombol Ubah.</p>') : ''}
-      ${owner ? sec('pengaturan', 'Pengaturan', '<p>Status sambungan database, YouTube Data API dan YouTube Analytics per channel, daftar channel yang dipantau, catatan sinkronisasi terakhir (termasuk pesan error dari Google), dan ganti password pemilik. Data YouTube disinkronkan otomatis tiap 15 menit selama aplikasi terbuka, dan tiap jam lewat jadwal otomatis walau tidak ada yang membuka aplikasi.</p>') : ''}
-      ${sec('notifikasi', 'Notifikasi dan pasang di HP', `<p>Buka ${owner ? 'Pengaturan' : 'Izin & klaim atau Presensi'} → <b>Aktifkan notifikasi</b> di setiap HP atau laptop yang dipakai. ${owner ? 'Pemilik diberi tahu setiap ada pengajuan izin, sakit, cuti atau klaim baru.' : 'Anda diberi tahu saat izin atau klaim diputuskan, slip gaji final, gaji dibayar, dan bila belum absen masuk setelah lewat jam masuk.'}</p>
-        <p><b>Android/laptop:</b> langsung bisa di Chrome, Edge atau Firefox. <b>iPhone:</b> buka di Safari, ketuk <b>Bagikan → Tambah ke Layar Utama</b>, buka Pantau Tokder dari ikon baru itu, lalu aktifkan notifikasi (aturan Apple, butuh iOS 16.4 atau lebih baru). Memasang di layar utama juga membuat aplikasi terbuka layar penuh seperti aplikasi biasa.</p>`)}
-      ${owner ? sec('afiliasi', 'Impor omzet afiliasi', '<p>Di Pendapatan → <b>Impor CSV</b>: unduh laporan komisi dari dashboard afiliasi (Shopee Affiliate, TikTok Shop, dan sejenisnya) dalam format CSV, pilih file, lalu pilih kolom tanggal dan kolom komisi (ditebak otomatis). Bisa disaring, misalnya hanya baris berstatus “Selesai”. Pratinjau menunjukkan total tiap bulan sebelum disimpan; omzet tercapai bulan-bulan itu diganti dengan angka dari laporan, target tidak berubah.</p>') : ''}
-      ${sec('data', 'Dari mana angkanya', `<ul>
-        <li><b>Video, views, like, komentar</b>: YouTube Data API, tiap sinkronisasi (tiap jam, dan tiap 15 menit selama aplikasi terbuka).</li>
-        <li><b>Retensi, jam tonton, subscriber${owner ? ', pendapatan' : ''}</b>: YouTube Analytics, hanya untuk channel yang tersambung, terlambat 2–3 hari.</li>
-        <li><b>Presensi</b>: absen karyawan yang lolos pemeriksaan server.</li>
-        <li><b>Aktivitas, izin, klaim</b>: dicatat karyawan sendiri; izin dan klaim berlaku setelah disetujui pemilik.</li>
-        <li><b>Gaji</b>: dihitung dari semua di atas ditambah aturan yang diisi pemilik.</li></ul>
-        <p>Tidak ada angka contoh atau tebakan. Bila datanya belum ada, aplikasi menulis “—” atau “belum ada data” beserta alasannya.</p>`)}
-      ${sec('faq', 'Pertanyaan umum', `<dl class="faq">
-        <dt>Video saya tidak muncul di Harian.</dt><dd>Pastikan kode #${esc((me() || {}).kode_identifikasi || 'KODE')} ada di deskripsi, lalu tunggu sinkronisasi (maks. 15 menit selama aplikasi terbuka). Video tanpa kode bisa ditetapkan manual di Belum dikenali.</dd>
-        <dt>Retensi video kosong.</dt><dd>YouTube baru mengeluarkan retensi 2–3 hari setelah tayang, dan tidak untuk video dengan penonton sangat sedikit. Detail video menulis alasan pastinya.</dd>
-        <dt>Absen saya ditolak padahal di kantor.</dt><dd>Lihat alasan di tabel Percobaan yang ditolak. Biasanya karena data seluler/VPN aktif atau akurasi GPS masih besar.</dd>
-        <dt>Gaji saya berbeda dari perkiraan kemarin.</dt><dd>Perkiraan berubah mengikuti presensi, izin yang disetujui, video dan views terbaru. Setelah final, angkanya tetap.</dd>
-        <dt>Lupa PIN.</dt><dd>Minta pemilik mengganti PIN di menu Karyawan → Ubah.</dd></dl>`)}`;
+      <header class="head"><div><h1>Panduan</h1><p>Semua yang perlu diketahui untuk memakai Pantau Tokder, singkat.</p></div>
+        <div class="tools">${owner ? `<div class="seg" role="group" aria-label="Panduan untuk"><button data-act="panduan-untuk" data-v="pemilik" aria-pressed="${untukPemilik}">Untuk pemilik</button><button data-act="panduan-untuk" data-v="karyawan" aria-pressed="${!untukPemilik}">Untuk karyawan</button></div>` : ''}</div></header>
+      <label class="search guide-search">${icon('search')}<input class="input" type="search" id="pd-cari" placeholder="Cari: gaji, absen ditolak, PIN, notifikasi…" aria-label="Cari di panduan"></label>
+      <p class="muted" id="pd-kosong" hidden style="margin:0">Tidak ada yang cocok. Coba kata lain, misalnya “gaji” atau “absen”.</p>
+      <section class="card guide-sec" data-cari="mulai langkah awal persiapan ${esc(langkah.map((x) => x.t).join(' '))}">
+        <div class="card-h"><h2>${untukPemilik ? 'Mulai di sini' : 'Yang perlu Anda lakukan'}</h2>${dinilai && owner && untukPemilik ? `<span class="pill ${selesai === dinilai ? 'ok' : 'warn'}">${selesai} dari ${dinilai} selesai</span>` : ''}</div>
+        <ol class="steps">${langkah.map((x, i) => `<li class="${x.ok ? 'done' : ''}"><span class="no" aria-hidden="true">${x.ok ? '✓' : i + 1}</span><div class="tx"><b>${x.t}</b><span>${x.d}</span></div>${x.btn}</li>`).join('')}</ol>
+      </section>
+      <section class="guide-sec" data-cari="rutinitas setiap hari minggu akhir bulan ${esc(rutin.flat(2).join(' '))}">
+        <h2 class="guide-h">Rutinitas</h2>
+        <div class="routine">${rutin.map(([w, l]) => `<div class="card"><h3>${w}</h3><ul>${l.map((t) => `<li>${t}</li>`).join('')}</ul></div>`).join('')}</div>
+      </section>
+      <section class="guide-sec" data-cari="menu">
+        <h2 class="guide-h">Isi tiap menu</h2>
+        <div class="menu-grid">${menu.map((r) => `<a class="card menu-card" href="${pathOf(r.id)}" data-cari="${esc(r.label + ' ' + MENU_INFO[r.id])}">${icon(r.icon)}<div><b>${r.label}</b><span>${MENU_INFO[r.id]}</span></div></a>`).join('')}</div>
+      </section>
+      <section class="guide-sec" data-cari="pertanyaan">
+        <h2 class="guide-h">Pertanyaan umum</h2>
+        <div class="card faq-list">${faq.map((f) => `<details id="p-${f.id}" data-cari="${esc(f.q + ' ' + f.a.replace(/<[^>]+>/g, ' '))}"><summary>${f.q}</summary><div class="ans">${f.a}</div></details>`).join('')}</div>
+      </section>`;
   };
   AFTER.panduan = () => {
+    // Opened from a "Cara kerja" button: unfold that answer and point to it.
     const id = location.hash.slice(1);
     const el = id && document.getElementById(id);
-    if (el) requestAnimationFrame(() => el.scrollIntoView({ block: 'start' }));
+    if (el && el.tagName === 'DETAILS') {
+      el.open = true;
+      el.classList.add('flash');
+      requestAnimationFrame(() => el.scrollIntoView({ block: 'center' }));
+      setTimeout(() => el.classList.remove('flash'), 2000);
+    }
+    const inp = $('#pd-cari');
+    if (!inp) return;
+    inp.addEventListener('input', () => {
+      const q = inp.value.trim().toLowerCase();
+      let ada = 0;
+      $$('.guide-sec').forEach((sec) => {
+        const items = $$('[data-cari]', sec).filter((x) => x !== sec);
+        if (!items.length) { const hit = !q || sec.dataset.cari.toLowerCase().includes(q); sec.hidden = !hit; ada += hit; return; }
+        let n = 0;
+        items.forEach((x) => { const hit = !q || x.dataset.cari.toLowerCase().includes(q); x.hidden = !hit; if (hit) n++; if (x.tagName === 'DETAILS') x.open = !!q && hit; });
+        sec.hidden = !n; ada += n;
+      });
+      $('#pd-kosong').hidden = !!ada;
+    });
   };
 
   // ============ notifikasi ============
@@ -2065,23 +2110,28 @@ import './styles.css';
 
   // ============ persiapan (pemilik) ============
   // What still needs doing before every number in the app is complete. Hidden once all is done.
-  function persiapanHtml() {
-    if (!isAdmin()) return '';
+  function persiapanItems() {
     const G = S.gajiCache[today().slice(0, 7)];
     const eds = activeEditors();
     const ch = analyticsChannels();
-    const items = [
-      { ok: ch.length && ch.every((c) => c.connected), t: 'Sambungkan YouTube Analytics di semua channel', d: `${ch.filter((c) => c.connected).length} dari ${ch.length} tersambung. Retensi, jam tonton dan pendapatan hanya terbaca dari channel yang tersambung.`, href: '/pengaturan' },
-      { ok: eds.length && eds.every((e) => e.punya_pin), t: 'Beri PIN ke setiap karyawan', d: eds.filter((e) => !e.punya_pin).map((e) => e.nama).join(', ') + ' belum punya PIN untuk masuk.', href: '/karyawan' },
-      { ok: !!(S.presensi && S.presensi.config && S.presensi.config.siap), t: 'Atur presensi', d: 'Isi lokasi kantor dan IP Wi-Fi kantor dari kantor.', href: '/presensi' },
-      { ok: !!(G && G.config && G.config.tersimpan), t: 'Simpan aturan umum gaji', d: 'Pastikan hari kerja (bawaan Senin–Sabtu), tanggal libur dan jatah cuti sudah benar.', href: '/gaji', act: 'atur-gaji', id: 'umum' },
-      { ok: !!(G && G.list && G.list.length && G.list.every((r) => r.aturan_diisi)), t: 'Isi gaji tiap karyawan', d: G && G.list ? G.list.filter((r) => !r.aturan_diisi).map((r) => r.nama).join(', ') + ' belum punya gaji pokok atau komponen lain.' : '', href: '/gaji', act: 'atur-gaji', id: G && G.list && (G.list.find((r) => !r.aturan_diisi) || {}).editor_id },
-      { ok: !!(S.notif && S.notif.aktif), t: 'Aktifkan notifikasi di HP pemilik', d: 'Supaya pengajuan izin dan klaim langsung terlihat.', href: '/pengaturan' },
+    const belumGaji = G && G.list ? G.list.filter((r) => !r.aturan_diisi) : [];
+    return [
+      { ok: !!(eds.length && eds.every((e) => e.punya_pin)), t: 'Tambah karyawan dan beri PIN', d: eds.length ? eds.filter((e) => !e.punya_pin).map((e) => e.nama).join(', ') + ' belum punya PIN untuk masuk.' : 'Belum ada karyawan.', cara: 'Isi nama, kode video (misal AL), jadwal tayang, target dan PIN.', href: '/karyawan' },
+      { ok: !!(ch.length && ch.every((c) => c.connected)), t: 'Sambungkan YouTube Analytics', d: `${ch.filter((c) => c.connected).length} dari ${ch.length} channel tersambung. Retensi, jam tonton dan pendapatan hanya terbaca dari channel yang tersambung.`, cara: 'Pengaturan → Hubungkan, masuk dengan tokodeeres@gmail.com, pilih channel. Ulangi untuk tiap channel.', href: '/pengaturan' },
+      { ok: !!(S.presensi && S.presensi.config && S.presensi.config.siap), t: 'Atur presensi', d: 'Isi lokasi kantor dan IP Wi-Fi kantor dari kantor.', cara: 'Buka dari Wi-Fi kantor: Pakai lokasi saya, Tambahkan IP saya, Simpan.', href: '/presensi' },
+      { ok: !!(G && G.config && G.config.tersimpan), t: 'Atur hari kerja dan cuti', d: 'Pastikan hari kerja (bawaan Senin–Sabtu), tanggal libur dan jatah cuti sudah benar.', cara: 'Hari kerja, tanggal libur, jatah cuti per tahun.', href: '/gaji', act: 'atur-gaji', id: 'umum' },
+      { ok: !!(G && G.list && G.list.length && !belumGaji.length), t: 'Isi gaji tiap karyawan', d: belumGaji.map((r) => r.nama).join(', ') + ' belum punya gaji pokok atau komponen lain.', cara: 'Gaji pokok, tunjangan, potongan, lembur, bonus.', href: '/gaji', act: 'atur-gaji', id: belumGaji.length ? belumGaji[0].editor_id : G && G.list && G.list[0] && G.list[0].editor_id },
+      { ok: !!(S.notif && S.notif.aktif), t: 'Nyalakan notifikasi di HP', d: 'Supaya pengajuan izin dan klaim langsung terlihat.', cara: 'Supaya pengajuan izin dan klaim langsung masuk ke HP.', href: '/pengaturan', act: S.notif && S.notif.aktif ? null : 'notif-aktif' },
     ];
+  }
+  // What still needs doing before every number in the app is complete. Hidden once all is done.
+  function persiapanHtml() {
+    if (!isAdmin()) return '';
+    const items = persiapanItems();
     const sisa = items.filter((x) => !x.ok);
     if (!sisa.length) return '';
     return `<section class="card" id="kartu-persiapan"><div class="card-h"><h2>Persiapan: ${items.length - sisa.length} dari ${items.length} selesai</h2><p>Lengkapi supaya semua angka dan fitur terisi.</p></div>
-      <div class="checklist">${sisa.map((x) => `<div class="ck"><span class="st bad">!</span><div><b>${esc(x.t)}</b><div>${esc(x.d)}</div></div>${x.act ? `<button class="btn sm" data-act="${x.act}" data-id="${x.id || 'umum'}">Atur</button>` : `<a class="btn sm" href="${x.href}">Buka</a>`}</div>`).join('')}</div></section>`;
+      <div class="checklist">${sisa.map((x) => `<div class="ck"><span class="st bad">!</span><div><b>${esc(x.t)}</b><div>${esc(x.d)}</div></div>${x.act ? `<button class="btn sm" data-act="${x.act}" data-id="${x.id || 'umum'}">${x.act === 'notif-aktif' ? 'Aktifkan' : 'Atur'}</button>` : `<a class="btn sm" href="${x.href}">Buka</a>`}</div>`).join('')}</div></section>`;
   }
 
   // ============ impor afiliasi (CSV) ============
@@ -2187,6 +2237,7 @@ import './styles.css';
       case 'notif-mati': await matikanNotif(); break;
       case 'notif-coba': try { const r = await api('/api/push/coba', { method: 'POST' }); toast(r.terkirim ? 'Pesan percobaan dikirim' : 'Tidak ada perangkat yang menerima. Aktifkan ulang notifikasi.', !r.terkirim); } catch (e) { toast(e.message, true); } break;
       case 'impor-afiliasi': imporDialog(); break;
+      case 'panduan-untuk': S.panduanUntuk = el.dataset.v; render(); break;
       case 'tutup-sambutan': try { localStorage.setItem('pt_sambutan', 'tutup'); } catch (e) { /* storage off */ } el.closest('.notice').remove(); break;
       case 'pf-periode': S.perfPeriode = +el.dataset.v; render(); break;
       case 'konten-orang': ev.preventDefault(); Object.assign(S.konten, { editor: el.dataset.id, periode: String(S.perfPeriode), page: 1 }); navigate('/konten'); break;
