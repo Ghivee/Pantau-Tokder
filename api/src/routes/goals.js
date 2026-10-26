@@ -35,4 +35,33 @@ router.put('/', requireAdmin, async (req, res) => {
   }
 });
 
+// PUT /api/goals/impor — monthly totals from an affiliate report (CSV) read in the browser.
+// Only "tercapai" of the months in the file is replaced; targets stay as they are.
+router.put('/impor', requireAdmin, async (req, res) => {
+  try {
+    const b = req.body || {};
+    const bulan = b.bulan && typeof b.bulan === 'object' ? Object.entries(b.bulan) : [];
+    if (!bulan.length || bulan.length > 36) throw bad(400, 'File tidak berisi bulan yang bisa dibaca');
+    for (const [k, v] of bulan) {
+      if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(k)) throw bad(400, `Bulan "${k}" tidak valid`);
+      if (!Number.isFinite(Number(v)) || Number(v) < 0 || Number(v) > 1e13) throw bad(400, `Jumlah bulan ${k} tidak valid`);
+    }
+    const info = {
+      sumber: String(b.sumber || 'Afiliasi').slice(0, 60), file: String(b.file || '').slice(0, 120),
+      baris: Number.isInteger(b.baris) ? b.baris : null, bulan: bulan.map(([k]) => k).sort(), waktu: new Date().toISOString(),
+    };
+    for (const [k, v] of bulan) {
+      await db.query(
+        `INSERT INTO affiliate_goals (bulan, target_omset, tercapai) VALUES ($1, 0, $2)
+         ON CONFLICT (bulan) DO UPDATE SET tercapai = $2`,
+        [k, Math.round(Number(v))]
+      );
+    }
+    await db.query(`INSERT INTO settings (key, value, updated_at) VALUES ('afiliasi_impor', $1, NOW()) ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = NOW()`, [JSON.stringify(info)]);
+    res.json({ ...(await dataService.goal()), impor: info });
+  } catch (err) {
+    fail(res, err);
+  }
+});
+
 module.exports = router;
