@@ -1,0 +1,14 @@
+{
+  "name": "Pantau Tokder",
+  "short_name": "Tokder",
+  "description": "Kerja tim, presensi, gaji dan performa channel Tokder",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#141518",
+  "theme_color": "#141518",
+  "lang": "id",
+  "icons": [
+    { "src": "/tokderlogo.png", "sizes": "900x900", "type": "image/png", "purpose": "any" }
+  ]
+}

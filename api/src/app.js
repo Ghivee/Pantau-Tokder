@@ -115,6 +115,10 @@ app.use('/api/channels', channelsRouter);
 app.use('/api/analytics', analyticsRouter);
 app.use('/api/performance', performanceRouter);
 app.use('/api/presensi', presensiRouter);
+app.use('/api/gaji', require('./routes/gaji'));
+app.use('/api/pengajuan', require('./routes/pengajuan'));
+app.use('/api/insight', require('./routes/insight'));
+app.use('/api/push', require('./routes/push'));
 app.use('/api', cspReportRouter);
 
 app.use('/api', (req, res) => res.status(404).json({ error: 'Alamat API tidak ditemukan' }));

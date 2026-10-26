@@ -132,7 +132,7 @@ a { color: inherit; }
 .btn.icon { width: 36px; padding: 0; }
 .btn:disabled { opacity: .45; cursor: default; }
 .seg { display: inline-flex; padding: 3px; border-radius: 10px; background: var(--sunken); gap: 2px; }
-.seg button { border: 0; background: transparent; padding: 5px 12px; border-radius: 7px; font-weight: 600; font-size: 13px; color: var(--muted); cursor: pointer; }
+.seg button { white-space: nowrap; border: 0; background: transparent; padding: 5px 12px; border-radius: 7px; font-weight: 600; font-size: 13px; color: var(--muted); cursor: pointer; }
 .seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
 .field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
 .field > span { font-size: 12.5px; font-weight: 600; color: var(--ink-2); }
@@ -456,3 +456,51 @@ table.t { width: 100%; border-collapse: collapse; }
 .sheet-list > :first-child { border-top: 0; }
 .sheet-list svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; color: var(--muted); }
 .sheet-list .count { margin-left: auto; font-size: 12px; font-weight: 650; color: var(--warn); background: var(--warn-soft); border-radius: 999px; padding: 0 8px; }
+
+/* ---------- newer pages: performa, tren, izin & klaim, gaji, panduan ---------- */
+.notice.tip-card { background: var(--sunken); color: var(--ink-2); max-width: none; margin: 0; }
+.notice.tip-card b { color: var(--ink); }
+.card.attn { border-color: var(--warn); }
+.row-actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+.kata { display: flex; flex-wrap: wrap; gap: 8px; }
+.kata .pill { font-size: 12.5px; padding: 3px 10px; }
+.dialog.wide { width: min(640px, 100%); }
+.grid-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: 12px; align-items: start; }
+.chk { display: inline-flex; gap: 6px; align-items: center; font-size: 13.5px; min-height: 32px; padding: 0 10px; border: 1px solid var(--line); border-radius: 8px; }
+.slip { display: flex; flex-direction: column; gap: 14px; }
+.slip-h { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.slip-h b { font-size: 17px; }
+.slip-h .muted { font-size: 13px; margin-top: 2px; }
+.slip-t td { vertical-align: top; }
+.slip-t .num { white-space: nowrap; }
+.slip-t tr.tot td { border-top: 2px solid var(--line-2); font-size: 15px; }
+.slip-adj { display: flex; flex-direction: column; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
+.slip-adj .adj { display: grid; grid-template-columns: minmax(0, 1fr) auto 32px; gap: 10px; align-items: center; font-size: 13.5px; }
+.toc { display: flex; flex-wrap: wrap; gap: 6px 8px; }
+.toc a { padding: 5px 11px; border-radius: 999px; background: var(--sunken); color: var(--ink-2); text-decoration: none; font-size: 13px; font-weight: 600; }
+.toc a:hover { color: var(--ink); }
+.doc { scroll-margin-top: 16px; }
+.doc h2 { margin: 0 0 10px; font-size: 17px; }
+.doc p, .doc li, .doc dd { font-size: 14px; line-height: 1.65; color: var(--ink-2); max-width: 82ch; }
+.doc p { margin: 0 0 10px; }
+.doc p:last-child { margin-bottom: 0; }
+.doc ol, .doc ul { margin: 0 0 10px; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+.doc b { color: var(--ink); }
+.faq { margin: 0; }
+.faq dt { font-weight: 650; margin-top: 12px; }
+.faq dt:first-child { margin-top: 0; }
+.faq dd { margin: 2px 0 0; }
+#print { display: none; }
+@media (max-width: 900px) {
+  .doc { scroll-margin-top: 72px; }
+  .row-actions { justify-content: flex-start; }
+}
+@media print {
+  body > *:not(#print) { display: none !important; }
+  body { background: #fff; }
+  #print { display: block; color: #000; padding: 8mm; font-size: 12pt; }
+  #print .print-brand { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+  #print .print-brand img { width: 28px; height: 28px; border-radius: 6px; }
+  #print .pill { border: 1px solid #999; background: none; color: #000; }
+  #print .muted { color: #444; }
+}
