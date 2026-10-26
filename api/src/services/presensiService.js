@@ -116,7 +116,7 @@ function periksa({ cfg, jenis, lat, lng, akurasi, diambil, ip, now = Date.now(),
 
   // Layer 1: network. Only the office Wi-Fi's public IP counts, whatever the GPS says.
   if (!ipTerdaftar(ip, cfg.ips)) {
-    return { ok: false, alasan: `Anda tidak terhubung ke Wi-Fi kantor (IP Anda ${ip}). Sambungkan ke Wi-Fi kantor dan matikan VPN/data seluler, lalu coba lagi.` };
+    return { ok: false, kode: 'ip', alasan: `Anda tidak terhubung ke Wi-Fi kantor (IP Anda ${ip}). Sambungkan ke Wi-Fi kantor dan matikan VPN/data seluler, lalu coba lagi.` };
   }
 
   // Layer 2: GPS reading quality.
@@ -162,23 +162,61 @@ async function posisiTerakhir(editorId, akurasiMaks) {
   return r.rows[0] || null;
 }
 
-async function catatDitolak(editorId, { jenis, lat, lng, akurasi, jarak, ip, ua, alasan }) {
+async function catatDitolak(editorId, { jenis, lat, lng, akurasi, jarak, ip, ua, alasan, gpsOk = false }) {
   const num = (v) => (Number.isFinite(v) ? v : null);
   await db.query(
-    `INSERT INTO presensi_ditolak (editor_id, jenis, waktu, alasan, lat, lng, akurasi, jarak, ip, user_agent)
-     VALUES ($1, $2, NOW() AT TIME ZONE 'UTC', $3, $4, $5, $6, $7, $8, $9)`,
-    [editorId, String(jenis || '').slice(0, 10), alasan, num(lat), num(lng), num(akurasi), num(jarak), String(ip).slice(0, 64), String(ua || '').slice(0, 300)]
+    `INSERT INTO presensi_ditolak (editor_id, jenis, waktu, alasan, lat, lng, akurasi, jarak, ip, user_agent, gps_ok, ip_jaringan)
+     VALUES ($1, $2, NOW() AT TIME ZONE 'UTC', $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+    [editorId, String(jenis || '').slice(0, 10), alasan, num(lat), num(lng), num(akurasi), num(jarak), String(ip).slice(0, 64), String(ua || '').slice(0, 300),
+      gpsOk, gpsOk ? ipSaran(ip).slice(0, 64) : null]
   );
 }
 
-async function absen(editor, body, ip, ua, now = Date.now()) {
+// Home and small-office internet in Indonesia often gets a new public IP after a modem restart,
+// and then every check-in is refused. When people whose GPS was fine inside the office were all
+// refused from the same unregistered network in the last 3 hours, that network is offered to the
+// owner as the new office IP. Two people are needed (one when the team has only one).
+async function kandidatIp(cfg) {
+  const c = cfg || (await getConfig());
+  if (!c.siap) return null;
+  const r = await db.query(
+    `SELECT ip_jaringan AS ip, COUNT(DISTINCT editor_id)::int AS orang, MAX(waktu) AS terakhir,
+            (SELECT COUNT(*)::int FROM editors WHERE status <> 'nonaktif' AND pin IS NOT NULL AND pin <> '') AS tim
+     FROM presensi_ditolak
+     WHERE gps_ok AND ip_jaringan IS NOT NULL AND waktu > (NOW() AT TIME ZONE 'UTC') - INTERVAL '3 hours'
+     GROUP BY ip_jaringan ORDER BY orang DESC, terakhir DESC LIMIT 5`
+  );
+  const x = r.rows.find((row) => row.orang >= Math.min(2, Math.max(1, row.tim)) && parseIp(row.ip) && !c.ips.includes(row.ip) && !ipTerdaftar(row.ip.split('/')[0], c.ips));
+  return x ? { ip: x.ip, orang: x.orang, terakhir: x.terakhir } : null;
+}
+
+// The owner accepts the suggested network: added to the list, or replacing the old addresses.
+async function pakaiKandidat(ip, ganti) {
+  const cfg = await getConfig();
+  const k = await kandidatIp(cfg);
+  if (!k || k.ip !== ip) throw bad(409, 'Usulan IP ini sudah tidak berlaku. Muat ulang halaman Presensi.');
+  const ips = ganti ? [ip] : [...cfg.ips, ip].slice(-20);
+  const baru = await saveConfig({ ...cfg, ips });
+  const r = await db.query(
+    `UPDATE presensi_ditolak SET gps_ok = FALSE WHERE gps_ok AND ip_jaringan = $1 RETURNING editor_id`, [ip]
+  );
+  return { config: baru, editorIds: [...new Set(r.rows.map((x) => x.editor_id))] };
+}
+
+// The owner says it is not the office: the evidence is set aside so it is not offered again.
+async function abaikanKandidat(ip) {
+  await db.query(`UPDATE presensi_ditolak SET gps_ok = FALSE WHERE gps_ok AND ip_jaringan = $1`, [String(ip || '')]);
+}
+
+async function absen(editor, body, ip, ua, now = Date.now(), onIpBaru = null) {
   const b = body || {};
   const input = { jenis: b.jenis, lat: Number(b.lat), lng: Number(b.lng), akurasi: Number(b.akurasi), diambil: Number(b.diambil) };
   const cfg = await getConfig();
   const tanggal = todayWib(now);
 
-  const ditolak = async (alasan, jarak) => {
-    await catatDitolak(editor.id, { ...input, jarak, ip, ua, alasan });
+  const ditolak = async (alasan, jarak, gpsOk = false) => {
+    await catatDitolak(editor.id, { ...input, jarak, ip, ua, alasan, gpsOk });
+    if (gpsOk && onIpBaru) await onIpBaru(await kandidatIp(cfg)).catch((e) => console.error('Cek IP kantor gagal:', e.message));
     throw bad(422, alasan);
   };
 
@@ -188,8 +226,13 @@ async function absen(editor, body, ip, ua, now = Date.now()) {
   if (input.jenis === 'pulang' && jenisAda.includes('pulang')) throw bad(409, 'Anda sudah absen pulang hari ini.');
   if (input.jenis === 'pulang' && !jenisAda.includes('masuk')) throw bad(409, 'Absen masuk dulu sebelum absen pulang.');
 
-  const hasil = periksa({ cfg, ...input, ip, now, terakhir: await posisiTerakhir(editor.id, cfg.akurasi_maks) });
-  if (!hasil.ok) return ditolak(hasil.alasan, hasil.jarak);
+  const terakhir = await posisiTerakhir(editor.id, cfg.akurasi_maks);
+  const hasil = periksa({ cfg, ...input, ip, now, terakhir });
+  if (!hasil.ok) {
+    // Refused only for the network: would everything else have passed?
+    const gpsOk = hasil.kode === 'ip' && net.isIP(ip) > 0 && periksa({ cfg: { ...cfg, ips: [ipSaran(ip)] }, ...input, ip, now, terakhir }).ok;
+    return ditolak(hasil.alasan, hasil.jarak, gpsOk);
+  }
 
   const telat = input.jenis === 'masuk' ? Math.max(0, menitWib(now) - keMenit(cfg.jam_masuk) - cfg.toleransi) : null;
   const r = await db.query(
@@ -220,6 +263,6 @@ async function daftarDitolak({ dari, sampai, editorId }) {
 }
 
 module.exports = {
-  getConfig, saveConfig, validasiConfig, periksa, absen, daftar, daftarDitolak,
+  getConfig, saveConfig, validasiConfig, periksa, absen, daftar, daftarDitolak, kandidatIp, pakaiKandidat, abaikanKandidat,
   jarakMeter, parseIp, ipTerdaftar, ipSaran, todayWib, menitWib,
 };

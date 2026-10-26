@@ -97,13 +97,18 @@ import './styles.css';
     konten: { q: '', channel: 'all', editor: 'all', tipe: 'all', periode: '30', sort: 'tanggal', dir: 'desc', page: 1 },
     sel: new Set(),
     cache: new Map(),
+    // Lookup tables rebuilt by normalize(), so pages find a person's videos and tasks without scanning everything.
+    edMap: new Map(), byEdDay: new Map(), akByEdDay: new Map(), unmatched: 0,
   };
 
   // Who is signed in lives in an HttpOnly cookie checked by the server; the browser keeps nothing secret.
   try { localStorage.removeItem('pt_session'); localStorage.removeItem('adminToken'); } catch (e) { /* storage off */ }
   function saveSession(s) {
     S.session = s;
-    if (!s) Object.assign(S, { editors: [], content: [], aktivitas: [], daily: [], goal: null, presensi: null, gajiCache: {}, gajiRiwayat: null, pengajuan: null, insight: null, warnings: [] });
+    if (!s) {
+      Object.assign(S, { editors: [], content: [], aktivitas: [], daily: [], goal: null, presensi: null, gajiCache: {}, gajiRiwayat: null, pengajuan: null, insight: null, sistem: undefined, warnings: [], offline: null });
+      simpanCache(null);
+    }
   }
   const isAdmin = () => S.session && S.session.type === 'admin';
   const me = () => (S.session && S.session.type === 'karyawan' ? S.editors.find((e) => e.id === S.session.id) || null : null);
@@ -149,8 +154,29 @@ import './styles.css';
 
   // One request brings everything every page needs, so switching pages never waits for the network.
   const BAGIAN = { aktivitas: 'Aktivitas', channels: 'Daftar channel', scan: 'Status sinkronisasi', oauth: 'Status YouTube Analytics', goal: 'Target omzet', daily: 'YouTube Analytics', presensi: 'Presensi', gaji: 'Gaji', pengajuan: 'Izin & klaim' };
+  // The last data is kept on this device so the app opens instantly and still shows something
+  // on a weak signal. Payroll is left out; signing out clears it.
+  const CACHE_KEY = 'pt_data';
+  function simpanCache(b) {
+    try {
+      if (!b) localStorage.removeItem(CACHE_KEY);
+      else localStorage.setItem(CACHE_KEY, JSON.stringify({ waktu: Date.now(), b: { ...b, gaji: null } }));
+    } catch (e) { /* storage full or off: the app works without it */ }
+  }
+  function bacaCache() {
+    try {
+      const c = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+      return c && c.b && c.b.me && c.b.me.authenticated && Date.now() - c.waktu < 7 * 86400000 ? c : null;
+    } catch (e) { return null; }
+  }
+
   async function fetchAll() {
     const b = await api('/api/bootstrap');
+    pakaiData(b);
+    S.offline = null;
+    simpanCache(b);
+  }
+  function pakaiData(b) {
     applySession(b.me);
     S.warnings = Object.keys(b.gagal || {}).map((k) => (BAGIAN[k] || k) + ': ' + b.gagal[k]);
     Object.assign(S, {
@@ -168,11 +194,17 @@ import './styles.css';
 
   async function load() {
     S.error = null;
+    // Show the saved data at once; fresh data replaces it a moment later.
+    const c = bacaCache();
+    if (c) { try { pakaiData(c.b); render(); } catch (e) { simpanCache(null); } }
     try {
       await fetchAll();
     } catch (e) {
       // 401 means signed out: the sign-in screen is shown, not an error.
-      if (e.status === 401) saveSession(null); else { console.error(e); S.error = e.message; }
+      if (e.status === 401) saveSession(null);
+      // No connection but saved data on screen: keep it, labelled with its time.
+      else if (c && !e.status && S.session) S.offline = c.waktu;
+      else { console.error(e); S.error = e.message; }
     }
     render();
     if (S.session) {
@@ -258,9 +290,20 @@ import './styles.css';
     S.content.filter((c) => c._age >= 2 && c._age <= 32).forEach((c) => { (grouped[c._ch + '|' + c.tipe_video] ||= []).push(c.views); });
     Object.entries(grouped).forEach(([k, v]) => { S.medians[k] = median(v); });
     if (!S.day) S.day = today();
+    buildIndex();
   }
 
-  const editorById = (id) => S.editors.find((e) => e.id === +id) || null;
+  function buildIndex() {
+    const push = (map, k, v) => { const a = map.get(k); if (a) a.push(v); else map.set(k, [v]); };
+    S.edMap = new Map(S.editors.map((e) => [e.id, e]));
+    S.byEdDay = new Map();
+    S.akByEdDay = new Map();
+    S.unmatched = 0;
+    S.content.forEach((c) => { if (S.edMap.has(c.editor_id)) push(S.byEdDay, c.editor_id + '|' + c._day, c); else S.unmatched++; });
+    S.aktivitas.forEach((a) => push(S.akByEdDay, a.editor_id + '|' + a.tanggal, a));
+  }
+
+  const editorById = (id) => S.edMap.get(+id) || null;
   const activeEditors = () => S.editors.filter((e) => e.status !== 'nonaktif');
   const chName = (id) => (S.channels.find((c) => c.id === id) || {}).nama || 'Channel utama';
   const chColor = (id) => (S.channels.find((c) => c.id === id) || {})._color || 'var(--muted)';
@@ -301,9 +344,9 @@ import './styles.css';
     }
     const target = Math.round(targetOf(e) * frac);
     const tTarget = Object.fromEntries(TUGAS.map((t) => [t.nama, t.target(target, frac)]));
-    const vids = S.content.filter((c) => c.editor_id === e.id && c._day === day).sort((a, b) => a._jam.localeCompare(b._jam));
+    const vids = (S.byEdDay.get(e.id + '|' + day) || []).slice().sort((a, b) => a._jam.localeCompare(b._jam));
     vids.forEach((v) => { const m = slotFor(e, v._jam); v._slot = m && m.slot; v._late = m ? m.late : null; v._tepat = m ? m.late <= TOL : null; });
-    const tasks = S.aktivitas.filter((a) => a.editor_id === e.id && a.tanggal === day);
+    const tasks = S.akByEdDay.get(e.id + '|' + day) || [];
     const done = (nama) => sum(tasks.filter((a) => a.tugas === nama), (a) => a.jumlah);
     const n = vids.length;
     const withSlot = vids.filter((v) => v._tepat !== null);
@@ -486,14 +529,15 @@ import './styles.css';
 
   // ============ navigation ============
   const ROUTES = [
+    { id: 'hari-ini', label: 'Hari ini', icon: 'home', karyawan: true },
     { id: 'ringkasan', label: 'Ringkasan', icon: 'home' },
     { id: 'harian', label: 'Harian', icon: 'day' },
     { id: 'performa', label: 'Performa', icon: 'target' },
-    { id: 'tren', label: 'Tren channel', icon: 'trend' },
+    { id: 'tren', label: 'Tren channel', short: 'Tren', icon: 'trend' },
     { id: 'konten', label: 'Konten', icon: 'video' },
     { id: 'analytics', label: 'Analytics', icon: 'chart' },
     { id: 'presensi', label: 'Presensi', icon: 'pin' },
-    { id: 'pengajuan', label: 'Izin & klaim', icon: 'inbox' },
+    { id: 'pengajuan', label: 'Izin & klaim', short: 'Izin', icon: 'inbox' },
     { id: 'gaji', label: 'Gaji', icon: 'wallet' },
     { id: 'identifikasi', label: 'Belum dikenali', icon: 'help' },
     { id: 'karyawan', label: 'Karyawan', icon: 'team' },
@@ -501,12 +545,29 @@ import './styles.css';
     { id: 'monetisasi', label: 'Pendapatan', icon: 'money', admin: true },
     { id: 'pengaturan', label: 'Pengaturan', icon: 'gear', admin: true },
   ];
-  // Pages live at real paths (/harian, /presensi, /harian/3); "/" is Ringkasan.
-  const pathOf = (id) => (id === 'ringkasan' ? '/' : '/' + id);
+  // The menu in groups, ordered by what each role uses most. The bottom bar on phones shows the first four.
+  function menuGroups() {
+    if (me()) return [
+      { label: 'Kerja saya', ids: ['hari-ini', 'presensi', 'performa', 'pengajuan', 'gaji'] },
+      { label: 'Channel & tim', ids: ['ringkasan', 'harian', 'tren', 'konten', 'analytics', 'identifikasi', 'karyawan'] },
+      { label: 'Bantuan', ids: ['panduan'] },
+    ];
+    return [
+      { label: 'Pantau', ids: ['ringkasan', 'harian', 'performa', 'tren', 'konten', 'analytics'] },
+      { label: 'Tim', ids: ['presensi', 'pengajuan', 'gaji', 'karyawan', 'identifikasi'] },
+      { label: 'Pemilik', ids: ['monetisasi', 'pengaturan', 'panduan'] },
+    ];
+  }
+  const TABS = () => (me() ? ['hari-ini', 'presensi', 'performa', 'pengajuan'] : ['ringkasan', 'harian', 'pengajuan', 'gaji']);
+  const routeLabel = (r) => (r.id === 'ringkasan' && me() ? 'Ringkasan tim' : r.id === 'karyawan' && me() ? 'Tim' : r.label);
+  const bisaBuka = (r) => (!r.admin || isAdmin()) && (!r.karyawan || !!me());
+  const badgeOf = (id) => (id === 'identifikasi' ? S.unmatched : id === 'pengajuan' ? menunggu() : 0);
+  // Pages live at real paths (/harian, /presensi, /harian/3); "/" is the home page of each role.
+  const pathOf = (id) => (id === (me() ? 'hari-ini' : 'ringkasan') ? '/' : '/' + id);
   function route() {
-    const h = location.pathname.replace(/^\/+/, '').split('/')[0] || 'ringkasan';
+    const h = location.pathname.replace(/^\/+/, '').split('/')[0] || (me() ? 'hari-ini' : 'ringkasan');
     const r = ROUTES.find((x) => x.id === h);
-    if (!r || (r.admin && !isAdmin())) return me() && h === 'ringkasan' ? 'harian' : 'ringkasan';
+    if (!r || !bisaBuka(r)) return me() ? 'hari-ini' : 'ringkasan';
     return r.id;
   }
   function navigate(path) {
@@ -520,11 +581,9 @@ import './styles.css';
 
   function renderNav() {
     const cur = route();
-    const unmatched = S.content.filter((c) => !editorById(c.editor_id)).length;
-    $('#nav').innerHTML = ROUTES.filter((r) => !r.admin || isAdmin()).map((r, i) =>
-      (r.admin && !ROUTES.slice(0, ROUTES.indexOf(r)).some((x) => x.admin) ? '<div class="nav-label">Pemilik</div>' : '') +
-      `<a href="${pathOf(r.id)}" ${r.id === cur ? 'aria-current="page"' : ''}>${icon(r.icon)}<span>${r.label}</span>${r.id === 'identifikasi' && unmatched ? `<span class="count">${unmatched}</span>` : r.id === 'pengajuan' && menunggu() ? `<span class="count">${menunggu()}</span>` : ''}</a>`
-    ).join('');
+    $('#nav').innerHTML = S.session ? menuGroups().map((g) => `<div class="nav-label">${g.label}</div>` + g.ids.map((id) => ROUTES.find((x) => x.id === id)).filter(bisaBuka).map((r) =>
+      `<a href="${pathOf(r.id)}" ${r.id === cur ? 'aria-current="page"' : ''}>${icon(r.icon)}<span>${routeLabel(r)}</span>${badgeOf(r.id) ? `<span class="count">${badgeOf(r.id)}</span>` : ''}</a>`
+    ).join('')).join('') : '';
     const who = me();
     const theme = document.documentElement.dataset.theme;
     const dark = theme ? theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
@@ -535,10 +594,11 @@ import './styles.css';
       <img class="logo" src="/tokderlogo.png" alt="">
       <div class="ttl"><b>Pantau Tokder</b><small>${last || syncing ? '<span class="dot"></span>' : ''}${freshText}</small></div>
       ${S.session ? `<button data-act="lainnya" aria-label="Akun dan menu lain">${who2 ? avatar(who2, 'sm') : '<span class="ava sm" style="background:var(--ink);color:var(--paper)">P</span>'}</button>` : '<button class="btn sm primary" data-act="login" style="border-radius:9px;padding:0 14px">Masuk</button>'}`;
-    const TABS = ['ringkasan', 'harian', 'presensi', 'konten'];
-    const moreActive = !TABS.includes(cur);
-    $('#tabbar').innerHTML = TABS.map((id) => { const r = ROUTES.find((x) => x.id === id); return `<a href="${pathOf(id)}" ${id === cur ? 'aria-current="page"' : ''}>${icon(r.icon)}<span>${r.label}</span></a>`; }).join('') +
-      `<button data-act="lainnya" ${moreActive ? 'aria-current="page"' : ''}>${icon('more')}<span>Lainnya</span>${unmatched + menunggu() ? `<span class="count">${unmatched + menunggu() > 99 ? '99+' : unmatched + menunggu()}</span>` : ''}</button>`;
+    const tabs = TABS();
+    const moreActive = !tabs.includes(cur);
+    const sisa = sum(ROUTES.filter((r) => !tabs.includes(r.id) && bisaBuka(r)), (r) => badgeOf(r.id));
+    $('#tabbar').innerHTML = !S.session ? '' : tabs.map((id) => { const r = ROUTES.find((x) => x.id === id); return `<a href="${pathOf(id)}" ${id === cur ? 'aria-current="page"' : ''}>${icon(r.icon)}<span>${r.short || routeLabel(r)}</span>${badgeOf(id) ? `<span class="count">${badgeOf(id) > 99 ? '99+' : badgeOf(id)}</span>` : ''}</a>`; }).join('') +
+      `<button data-act="lainnya" ${moreActive ? 'aria-current="page"' : ''}>${icon('more')}<span>Lainnya</span>${sisa ? `<span class="count">${sisa > 99 ? '99+' : sisa}</span>` : ''}</button>`;
     $('#side-foot').innerHTML = `
       <div class="fresh" title="Data YouTube ditarik otomatis tiap 15 menit selama aplikasi terbuka">${last || syncing ? `<span class="dot${syncing ? ' live' : ''}"></span>` : ''}${freshText}</div>
       ${S.session ? `<div class="who">${who ? avatar(who, 'sm') : '<span class="ava sm" style="background:var(--ink)">P</span>'}<div class="t"><b>${who ? esc(who.nama) : 'Pemilik'}</b><small>${who ? peranLabel(who.peran) : 'Akses penuh'}</small></div></div>` : ''}
@@ -546,7 +606,9 @@ import './styles.css';
         ${S.session ? `<button class="btn sm ghost" data-act="logout">${icon('out')}Keluar</button>` : `<button class="btn sm primary" data-act="login">Masuk</button>`}
         <button class="btn sm ghost icon" data-act="theme" aria-label="${dark ? 'Mode terang' : 'Mode gelap'}">${icon(dark ? 'sun' : 'moon')}</button>
       </div>`;
-    $('#notice').innerHTML = S.warnings.length && !S.error
+    $('#notice').innerHTML = S.offline && S.session && !S.error
+      ? `<div class="notice" role="status"><b>Tanpa koneksi.</b> Menampilkan data tersimpan jam ${new Date(S.offline + WIB).toISOString().slice(11, 16)} WIB. <button class="btn sm ghost" data-act="retry">Coba lagi</button></div>`
+      : S.warnings.length && !S.error
       ? `<div class="notice" role="status"><b>Sebagian data tidak termuat.</b> ${S.warnings.map(esc).join(' · ')} <button class="btn sm ghost" data-act="retry">Coba lagi</button></div>`
       : '';
   }
@@ -556,7 +618,7 @@ import './styles.css';
     const r = route();
     const page = $('#page');
     // A page this person cannot open (or an unknown address) shows its fallback at the matching address.
-    const want = location.pathname.replace(/^\/+/, '').split('/')[0] || 'ringkasan';
+    const want = location.pathname.replace(/^\/+/, '').split('/')[0] || (me() ? 'hari-ini' : 'ringkasan');
     if (want !== r) history.replaceState(null, '', pathOf(r));
     if (!S.session && !S.error) {
       page.innerHTML = `<section class="card empty" style="padding:56px 20px;max-width:520px;margin:24px auto">
@@ -571,10 +633,10 @@ import './styles.css';
       page.innerHTML = `<section class="card empty" style="padding:48px 20px" role="alert"><b style="font-size:16px">Data belum bisa dimuat</b><p style="margin:6px 0 16px">${esc(S.error)}</p><button class="btn primary" data-act="retry">${icon('sync')}Coba lagi</button></section>`;
       return;
     }
-    page.innerHTML = (['ringkasan', 'harian'].includes(r) ? sambutan() : '') + PAGES[r]();
+    page.innerHTML = (['ringkasan', 'harian', 'hari-ini'].includes(r) ? sambutan() : '') + PAGES[r]();
     page.dataset.route = r;
     (AFTER[r] || (() => {}))();
-    document.title = (ROUTES.find((x) => x.id === r) || {}).label + ' · Pantau Tokder';
+    document.title = routeLabel(ROUTES.find((x) => x.id === r) || {}) + ' · Pantau Tokder';
   }
 
   // ============ page: ringkasan ============
@@ -594,7 +656,7 @@ import './styles.css';
       const { days, vids, vidsPrev, team, target } = ringkasanData();
       const stats = team.map((e) => periodStats(e, days));
       const mature = vids.filter((c) => c._age >= 2);
-      const unmatched = S.content.filter((c) => !editorById(c.editor_id)).length;
+      const unmatched = S.unmatched;
       const slotted = sum(stats, (s) => sum(s.list, (x) => x.withSlot));
       const tepat = slotted ? sum(stats, (s) => sum(s.list, (x) => x.tepat)) / slotted : null;
       const label = S.periode === 7 ? '7 hari terakhir' : '30 hari terakhir';
@@ -615,6 +677,7 @@ import './styles.css';
             </div>
           </div>
         </header>
+        ${ipBaruCard()}
         ${persiapanHtml()}
         <section class="kpis" aria-label="Angka utama">
           <div class="kpi"><span class="l">Video tayang</span><span class="v">${nf.format(vids.length)}${target && S.channel === 'all' ? ` <small>/ ${nf.format(target)}</small>` : ''}</span><span class="d ${vids.length >= vidsPrev.length ? 'ok' : 'bad'}">${signed(vids.length - vidsPrev.length)} dari periode sebelumnya</span></div>
@@ -874,9 +937,32 @@ import './styles.css';
             </form></section>
           <section class="card"><div class="card-h"><h2>Password pemilik</h2><p>Dipakai untuk masuk sebagai pemilik. Mengganti password mengeluarkan pemilik dari perangkat lain.</p></div>
             <div class="tools"><input class="input" type="password" id="pw-baru" placeholder="Password baru, minimal 8 karakter" autocomplete="new-password" style="max-width:300px"><button class="btn" data-act="ganti-pw">Simpan</button></div></section>
-        </div>`;
+        </div>
+        ${sistemCard()}`;
     },
   };
+
+  // Database size, the nightly clean-up and the last sync, loaded when Pengaturan opens.
+  function sistemCard() {
+    const x = S.sistem;
+    if (!x) {
+      if (x === undefined) { S.sistem = null; api('/api/scan/sistem').then((r) => { S.sistem = r; }).catch((e) => { S.sistem = { error: e.message }; }).then(() => { if (route() === 'pengaturan' && !$('#overlay').innerHTML) render(); }); }
+      return '<section class="card"><div class="card-h"><h2>Kesehatan sistem</h2><p>Memuat…</p></div></section>';
+    }
+    if (x.error) return `<section class="card"><div class="card-h"><h2>Kesehatan sistem</h2><p>${esc(x.error)}</p></div></section>`;
+    const mb = (b) => (b == null ? '—' : nf.format(Math.round(b / 1048576)) + ' MB');
+    const b = x.baris || {};
+    const r = x.perawatan;
+    return `<section class="card"><div class="card-h"><h2>Kesehatan sistem</h2><p>Data lama dirapikan otomatis tiap malam: angka views per jam disimpan 14 hari, setelahnya satu angka per hari.</p></div>
+      <div class="sys-grid">
+        <div><span>Ukuran database</span><b>${mb(x.db_bytes)}</b></div>
+        <div><span>Video</span><b>${nf.format(b.content || 0)}</b></div>
+        <div><span>Catatan views</span><b>${nf.format(b.metrics_snapshot || 0)}</b></div>
+        <div><span>Sinkron terakhir</span><b>${x.sinkron_terakhir ? agoText(new Date(x.sinkron_terakhir).getTime()) : '—'}</b></div>
+        <div><span>Perapian terakhir</span><b>${r ? agoText(new Date(r.waktu).getTime()) : 'belum pernah'}</b>${r ? `<span>${nf.format(r.dihapus.snapshot + r.dihapus.terkirim + r.dihapus.ditolak)} baris lama dihapus</span>` : ''}</div>
+        <div><span>Perangkat dengan notifikasi</span><b>${x.perangkat_notif}</b></div>
+      </div></section>`;
+  }
 
   // Revenue and growth advice computed from the channels' own numbers. A rule shows only when
   // there is enough data behind it, and each one states the numbers it is based on.
@@ -1179,6 +1265,15 @@ import './styles.css';
     </tbody></table></div>`;
   }
 
+  // The office's public IP seems to have changed (several people refused from one new network while
+  // inside the office): one tap for the owner instead of everyone being refused all day.
+  function ipBaruCard() {
+    const k = isAdmin() && S.presensi && S.presensi.config && S.presensi.config.ip_kandidat;
+    if (!k) return '';
+    return `<section class="card ip-baru" role="alert"><div class="card-h"><h2>IP Wi-Fi kantor tampaknya berubah</h2><p>${k.orang} karyawan yang GPS-nya di dalam kantor ditolak dari jaringan <b class="mono">${esc(k.ip)}</b> (terakhir ${jamWib(k.terakhir)}). Biasanya karena modem dinyalakan ulang. Setujui bila mereka memang di kantor.</p></div>
+      <div class="tools"><button class="btn primary" data-act="ip-baru" data-ip="${esc(k.ip)}" data-ganti="1">Ganti IP lama dengan ini</button><button class="btn" data-act="ip-baru" data-ip="${esc(k.ip)}">Tambahkan saja</button><button class="btn ghost" data-act="ip-abaikan" data-ip="${esc(k.ip)}">Bukan kantor</button></div></section>`;
+  }
+
   function presensiPage() {
     const P = S.presensi;
     if (!P) {
@@ -1224,6 +1319,7 @@ import './styles.css';
     return `
       <header class="head"><div><h1>Presensi</h1><p><span class="muted">${tglPanjang(today())}.</span> <b>${hadir}</b> dari ${eds.length} karyawan sudah absen masuk${telat ? `, <b>${telat}</b> telat` : ''}.</p></div><div class="tools">${bantuan('presensi')}</div></header>
       ${!cfg.siap ? '<div class="notice" role="status" style="margin:0;max-width:none"><b>Presensi belum bisa dipakai.</b> Isi lokasi kantor dan IP Wi-Fi kantor di kartu Aturan presensi.</div>' : ''}
+      ${ipBaruCard()}
       <section class="kpis">
         <div class="kpi"><span class="l">Hadir hari ini</span><span class="v">${hadir} <small>/ ${eds.length}</small></span><span class="d">absen masuk tercatat</span></div>
         <div class="kpi"><span class="l">Telat hari ini</span><span class="v ${telat ? 'bad' : ''}">${telat}</span><span class="d">lewat ${esc(cfg.jam_masuk)} + ${cfg.toleransi} mnt</span></div>
@@ -1234,7 +1330,7 @@ import './styles.css';
           <div class="table-wrap"><table class="t stack"><thead><tr><th>Karyawan</th><th>Masuk</th><th>Pulang</th><th>Status</th><th class="num">Jarak</th></tr></thead><tbody>
             ${eds.map((e) => { const h = hariPresensi(P.rows, e.id, today()); return `<tr><td class="full"><span class="ed">${avatar(e, 'xs')}<b>${esc(e.nama)}</b></span></td><td class="mono" data-label="Masuk">${jamWib(h.masuk && h.masuk.waktu)}</td><td class="mono" data-label="Pulang">${jamWib(h.pulang && h.pulang.waktu)}</td><td data-label="Status">${statusPresensi(h, cfg, today())}</td><td class="num" data-label="Jarak">${meter(h.masuk && h.masuk.jarak)}</td></tr>`; }).join('') || '<tr><td colspan="5" class="muted">Belum ada karyawan aktif.</td></tr>'}
           </tbody></table></div></section>
-        <section class="card"><div class="card-h"><h2>Rekap 30 hari</h2></div>
+        <section class="card"><div class="card-h"><h2>Rekap 30 hari</h2><button class="btn sm ghost" data-act="csv-presensi">${icon('download')}Excel</button></div>
           <div class="table-wrap"><table class="t stack"><thead><tr><th>Karyawan</th><th class="num">Hadir</th><th class="num">Telat</th><th class="num">Total telat</th><th class="num">Ditolak</th></tr></thead><tbody>
             ${eds.map((e) => { const m = P.rows.filter((r) => r.editor_id === e.id && r.jenis === 'masuk'); const t = m.filter((r) => r.telat_menit > 0); const dt = P.ditolak.filter((x) => x.editor_id === e.id).length; return `<tr><td class="full"><b>${esc(e.nama)}</b></td><td class="num" data-label="Hadir">${m.length} hari</td><td class="num" data-label="Telat">${t.length}×</td><td class="num" data-label="Total telat">${sum(t, (r) => r.telat_menit)} mnt</td><td class="num" data-label="Ditolak">${dt ? `<span class="pill bad">${dt}</span>` : '0'}</td></tr>`; }).join('')}
           </tbody></table></div></section>
@@ -1314,6 +1410,77 @@ import './styles.css';
         render();
       } catch (e) { $('#presensi-err').textContent = e.message; btn.disabled = false; }
     });
+  };
+
+  // ============ page: hari ini (karyawan) ============
+  // One screen with everything an employee needs today: check in, the upload schedule,
+  // tasks left, and anything waiting on them. The rest of the menu is for looking back.
+  PAGES['hari-ini'] = function () {
+    const e = me();
+    if (!e) return '<section class="card empty"><b>Masuk sebagai karyawan</b></section>';
+    const d = today();
+    const st = dayStats(e, d);
+    const P = S.presensi && S.presensi.config ? S.presensi : null;
+    const cfg = P && P.config;
+    const h = P ? hariPresensi(P.rows, e.id, d) : {};
+    const now = toMin(nowJam());
+    const salam = now < 660 ? 'Selamat pagi' : now < 900 ? 'Selamat siang' : now < 1080 ? 'Selamat sore' : 'Selamat malam';
+
+    // Check-in: the one action that matters first thing.
+    const absenLangkah = !cfg ? '' : !cfg.siap
+      ? '<p class="muted" style="margin:0">Presensi belum diatur pemilik.</p>'
+      : h.pulang ? `<p style="margin:0">Masuk <b class="mono">${jamWib(h.masuk.waktu)}</b> · pulang <b class="mono">${jamWib(h.pulang.waktu)}</b>. Absen hari ini lengkap.</p>`
+      : `<div class="tools">${h.masuk
+        ? `<button class="btn primary big" data-act="absen" data-jenis="pulang">${icon('out')}Absen pulang</button><span class="muted">Masuk ${jamWib(h.masuk.waktu)} · jadwal pulang ${esc(cfg.jam_pulang)}</span>`
+        : `<button class="btn primary big" data-act="absen" data-jenis="masuk">${icon('pin')}Absen masuk</button><span class="muted">Jadwal masuk ${esc(cfg.jam_masuk)}</span>`}</div>
+        <p class="muted" id="absen-status" role="status" style="margin:10px 0 0;font-size:13px">${cfg.ip_kantor ? 'Tersambung ke Wi-Fi kantor.' : 'Belum tersambung ke Wi-Fi kantor. Sambungkan dulu, matikan data seluler dan VPN.'} Nyalakan GPS.</p>`;
+
+    // Upload schedule: each slot done, due now, or later.
+    const slots = slotsOf(e);
+    const target = targetOf(e);
+    const terpakai = new Set(st.vids.map((v) => v._slot));
+    const jadwal = slots.length ? slots.map((x) => {
+      const v = st.vids.find((y) => y._slot === x);
+      const cls = v ? (v._tepat ? 'ok' : 'warn') : toMin(x) + TOL < now ? 'bad' : toMin(x) - 60 <= now ? 'due' : '';
+      const ket = v ? (v._tepat ? 'Tayang ' + v._jam : 'Telat · ' + v._jam) : toMin(x) + TOL < now ? 'Terlewat' : toMin(x) - 60 <= now ? 'Sebentar lagi' : 'Nanti';
+      return `<li class="${cls}"><b class="mono">${x}</b><span>${ket}</span></li>`;
+    }).join('') : '';
+    const lepas = st.vids.filter((v) => !terpakai.has(v._slot) || !v._slot);
+
+    // Tasks besides uploads, against the full-day target.
+    const tugas = TUGAS.map((t) => ({ t, butuh: t.target(target, 1), sudah: st.done(t.nama) })).filter((x) => x.butuh > 0);
+
+    // Waiting on someone.
+    const aju = S.pengajuan ? S.pengajuan.list.filter((p) => p.editor_id === e.id) : [];
+    const tunggu = aju.filter((p) => p.status === 'menunggu').length;
+    const putus = aju.filter((p) => p.status !== 'menunggu' && p.diputus_at && Date.now() - new Date(p.diputus_at).getTime() < 3 * 86400000);
+    const G = S.gajiCache[d.slice(0, 7)];
+    const gajiSaya = G && G.list ? G.list.find((r) => r.editor_id === e.id) : null;
+
+    return `
+      <header class="head"><div><h1>${salam}, ${esc(e.nama.split(' ')[0])}</h1><p class="muted">${tglPanjang(d)}</p></div></header>
+      <section class="card today-hero">
+        <div class="card-h"><h2>Presensi</h2>${cfg ? statusPresensi(h, cfg, d) : ''}</div>
+        ${P ? absenLangkah : '<p class="muted" style="margin:0">Data presensi belum termuat. <a href="/presensi">Buka Presensi</a></p>'}
+      </section>
+      <div class="grid-2">
+        <section class="card">
+          <div class="card-h"><h2>Video hari ini</h2><span class="pill ${st.n >= target ? 'ok' : ''}">${st.n} / ${target}</span></div>
+          ${slots.length ? `<ul class="slots">${jadwal}</ul>` : `<p class="muted" style="margin:0">Belum ada jadwal tayang. Minta pemilik mengisinya di menu Tim.</p>`}
+          ${lepas.length ? `<p class="muted" style="margin:10px 0 0;font-size:13px">${lepas.length} video di luar jadwal juga terhitung.</p>` : ''}
+          <p class="muted" style="margin:10px 0 0;font-size:13px">Tulis <b class="mono">#${esc(e.kode_identifikasi || '')}</b> di deskripsi. Video muncul paling lama 1 jam setelah tayang.</p>
+        </section>
+        <section class="card">
+          <div class="card-h"><h2>Tugas lain</h2><button class="btn sm" data-act="catat" data-id="${e.id}">${icon('plus')}Catat</button></div>
+          <ul class="todo">${tugas.map((x) => `<li class="${x.sudah >= x.butuh ? 'done' : ''}"><span class="tick" aria-hidden="true">${x.sudah >= x.butuh ? '✓' : ''}</span><span>${esc(x.t.nama)}</span><b class="num">${nf.format(x.sudah)} / ${nf.format(x.butuh)}</b></li>`).join('')}</ul>
+        </section>
+      </div>
+      <section class="kpis">
+        <a class="kpi" href="/harian/${e.id}"><span class="l">Skor ${st.partial ? 'sementara' : 'hari ini'}</span><span class="v">${st.skor ?? '—'} ${st.nilai ? `<span class="grade ${st.nilai}">${st.nilai}</span>` : ''}</span><span class="d">Lihat rinciannya →</span></a>
+        <a class="kpi ${tunggu ? 'alert' : ''}" href="/pengajuan"><span class="l">Izin & klaim</span><span class="v">${tunggu}</span><span class="d">${tunggu ? 'menunggu keputusan' : putus.length ? putus.map((p) => (p.status === 'disetujui' ? 'disetujui' : 'ditolak')).join(', ') + ' baru-baru ini' : 'tidak ada yang menunggu'}</span></a>
+        <a class="kpi" href="/gaji"><span class="l">Gaji ${bulanLabel(d.slice(0, 7)).split(' ')[0]}</span><span class="v">${gajiSaya && gajiSaya.aturan_diisi ? idr(gajiSaya.total) : '—'}</span><span class="d">${!gajiSaya ? 'belum termuat' : !gajiSaya.aturan_diisi ? 'aturan gaji belum diisi pemilik' : gajiSaya.dibayar_at ? 'sudah dibayar' : gajiSaya.status === 'final' ? 'sudah final' : 'perkiraan sampai hari ini'}</span></a>
+      </section>
+      ${S.notif && !S.notif.aktif ? notifCard() : ''}`;
   };
 
   // ============ shared: newer pages ============
@@ -1850,7 +2017,7 @@ import './styles.css';
     const belumAtur = list.filter((r) => !r.aturan_diisi);
     const lastDay = new Date(Date.UTC(+b.slice(0, 4), +b.slice(5, 7), 0)).toISOString().slice(0, 10);
     return head(`${list.length} karyawan, total <b>${idr(sum(list, (r) => r.total))}</b>. ${draf.length ? `${draf.length} masih perkiraan.` : 'Semua sudah final.'}`,
-      draf.length ? `<button class="btn primary" data-act="finalkan" data-v="semua">Finalkan ${draf.length > 1 ? 'semua' : ''}</button>` : '') + `
+      `<button class="btn" data-act="csv-gaji">${icon('download')}Excel</button>` + (draf.length ? `<button class="btn primary" data-act="finalkan" data-v="semua">Finalkan ${draf.length > 1 ? 'semua' : ''}</button>` : '')) + `
       ${belumAtur.length ? `<div class="notice" role="status" style="margin:0;max-width:none"><b>Aturan gaji belum diisi</b> untuk ${belumAtur.map((r) => esc(r.nama)).join(', ')}. <button class="btn sm" data-act="atur-gaji" data-id="${belumAtur[0].editor_id}">Atur sekarang</button></div>` : ''}
       ${b === today().slice(0, 7) && today() < lastDay ? `<p class="muted" style="margin:0;font-size:13px">Bulan masih berjalan sampai ${tglPanjang(lastDay)}. Ketidakhadiran dihitung sampai kemarin; hari ini baru dihitung bila sudah absen.</p>` : ''}
       <section class="kpis">
@@ -1938,6 +2105,7 @@ import './styles.css';
   // Short and task-based: first steps, routines, what each menu is for, and short answers.
   // "Cara kerja" buttons on other pages open the matching answer (/panduan#p-gaji).
   const MENU_INFO = {
+    'hari-ini': 'Halaman utama karyawan: absen, jadwal video, tugas, izin dan gaji hari ini.',
     ringkasan: 'Gambaran tim: video tayang, views, tepat jadwal, siapa paling bagus.',
     harian: 'Kerja tiap orang per hari: video, jam tayang, tugas lain, skor.',
     performa: 'Video mana yang berhasil, dibanding channel dan rekan, plus saran.',
@@ -1967,6 +2135,10 @@ import './styles.css';
     { id: 'pendapatan', q: 'Apakah angka pendapatan asli?', a: '<p>Ya. Pendapatan iklan diambil dari YouTube Analytics, sama dengan di YouTube Studio (bisa sedikit beda dengan pembayaran AdSense). Channel yang belum tersambung tampil “—”. Omzet afiliasi dari file CSV yang diimpor atau diisi manual.</p>', owner: true },
     { id: 'afiliasi', q: 'Cara memasukkan omzet afiliasi', a: '<p>Unduh laporan komisi (CSV) dari dashboard afiliasi, lalu di menu Pendapatan tekan <b>Impor CSV</b>, pilih file, cek total per bulan, dan Simpan.</p>', owner: true },
     { id: 'data', q: 'Dari mana semua angka berasal?', a: '<ul><li>Video, views, like: YouTube, diperbarui tiap jam.</li><li>Retensi, jam tonton, pendapatan: YouTube Analytics, terlambat 2–3 hari.</li><li>Absen, aktivitas, izin: dicatat di aplikasi ini.</li></ul><p>Tidak ada angka contoh. Data yang belum ada ditulis “—”.</p>' },
+    { id: 'ip-kantor', q: 'Semua karyawan ditolak “bukan Wi-Fi kantor”', a: '<p>Biasanya IP internet kantor berganti setelah modem dinyalakan ulang. Bila dua karyawan yang GPS-nya di dalam kantor ditolak dari jaringan baru yang sama, pemilik mendapat notifikasi dan kartu <b>IP Wi-Fi kantor tampaknya berubah</b> di Presensi. Tekan <b>Ganti IP lama dengan ini</b>; karyawan diberi kabar untuk absen lagi.</p>', owner: true },
+    { id: 'offline', q: 'Sinyal hilang, apakah data hilang?', a: '<p>Tidak. Aplikasi menampilkan data terakhir yang tersimpan di HP dengan keterangan jamnya, lalu memperbarui sendiri saat sinyal kembali. Absen tetap butuh koneksi karena diperiksa server.</p>' },
+    { id: 'hapus', q: 'Salah hapus catatan', a: '<p>Setelah menghapus aktivitas atau membatalkan pengajuan, tekan <b>Batalkan</b> di pesan bawah layar dalam 5 detik.</p>' },
+    { id: 'excel', q: 'Cara mengunduh rekap ke Excel', a: '<p>Tekan tombol <b>Excel</b> di Gaji (rekap gaji per bulan), Presensi (rekap 30 hari), atau Konten (daftar video). File bisa dibuka di Excel dan Google Sheets.</p>', owner: true },
     { id: 'pin', q: 'Lupa PIN', a: '<p>Minta pemilik mengganti PIN di menu Karyawan → Ubah.</p>' },
   ];
 
@@ -1978,8 +2150,8 @@ import './styles.css';
     const P = S.presensi && S.presensi.rows ? hariPresensi(S.presensi.rows, (me() || {}).id, today()) : {};
     return [
       { ok: null, t: `Tulis kode ${kode ? '#' + esc(kode) : 'Anda'} di deskripsi setiap video`, d: 'Tanpa kode, video tidak terhitung untuk Anda.', btn: '' },
-      { ok: me() ? !!P.masuk : null, t: 'Absen masuk dan pulang', d: 'Dari Wi-Fi kantor dengan GPS menyala.', btn: '<a class="btn sm" href="/presensi">Presensi</a>' },
-      { ok: null, t: 'Catat tugas selain upload', d: 'Riset harga, thumbnail, cek SEO, balas komentar.', btn: '<a class="btn sm" href="/harian">Harian</a>' },
+      { ok: me() ? !!P.masuk : null, t: 'Absen masuk dan pulang', d: 'Dari Wi-Fi kantor dengan GPS menyala, langsung di halaman Hari ini.', btn: '<a class="btn sm" href="/">Hari ini</a>' },
+      { ok: null, t: 'Catat tugas selain upload', d: 'Riset harga, thumbnail, cek SEO, balas komentar.', btn: '<a class="btn sm" href="/">Hari ini</a>' },
       { ok: !!(S.notif && S.notif.aktif), t: 'Nyalakan notifikasi', d: 'Supaya tahu izin disetujui, gaji dibayar, dan diingatkan absen.', btn: S.notif && S.notif.aktif ? '' : '<button class="btn sm" data-act="notif-aktif">Aktifkan</button>' },
       { ok: null, t: 'Lihat Performa tiap minggu', d: 'Baca bagian “Yang bisa ditingkatkan”.', btn: '<a class="btn sm" href="/performa">Performa</a>' },
     ];
@@ -1992,9 +2164,9 @@ import './styles.css';
     const langkah = langkahPanduan(lihat);
     const selesai = langkah.filter((x) => x.ok).length, dinilai = langkah.filter((x) => x.ok != null).length;
     const rutin = untukPemilik
-      ? [['Setiap hari', ['Lihat Ringkasan dan Harian', 'Setujui atau tolak Izin & klaim']], ['Setiap minggu', ['Buka Tren channel dan Performa', 'Tetapkan video di Belum dikenali']], ['Akhir bulan', ['Gaji → cek Rincian → Finalkan', 'Transfer, lalu Tandai dibayar', 'Impor omzet afiliasi']]]
-      : [['Setiap hari', ['Absen masuk', 'Upload sesuai jadwal, pakai kode', 'Catat tugas lain', 'Absen pulang']], ['Setiap minggu', ['Buka Performa', 'Lihat Tren channel untuk ide']], ['Akhir bulan', ['Cek slip di Gaji', 'Ajukan klaim sebelum gaji final']]];
-    const menu = ROUTES.filter((r) => r.id !== 'panduan' && MENU_INFO[r.id] && (!r.admin || untukPemilik));
+      ? [['Setiap hari', ['Lihat Ringkasan dan Harian', 'Setujui atau tolak Izin & klaim']], ['Setiap minggu', ['Baca ringkasan Senin pagi di notifikasi', 'Buka Tren channel dan Performa', 'Tetapkan video di Belum dikenali']], ['Akhir bulan', ['Gaji → cek Rincian → Finalkan', 'Transfer, lalu Tandai dibayar', 'Unduh Excel untuk arsip', 'Impor omzet afiliasi']]]
+      : [['Setiap hari', ['Buka Hari ini, absen masuk', 'Upload sesuai jadwal, pakai kode', 'Centang tugas lain dengan Catat', 'Absen pulang']], ['Setiap minggu', ['Buka Performa', 'Lihat Tren channel untuk ide']], ['Akhir bulan', ['Cek slip di Gaji', 'Ajukan klaim sebelum gaji final']]];
+    const menu = ROUTES.filter((r) => r.id !== 'panduan' && MENU_INFO[r.id] && (!r.admin || untukPemilik) && (!r.karyawan || !untukPemilik));
     const faq = FAQ.filter((f) => !f.owner || untukPemilik);
     return `
       <header class="head"><div><h1>Panduan</h1><p>Semua yang perlu diketahui untuk memakai Pantau Tokder, singkat.</p></div>
@@ -2057,7 +2229,7 @@ import './styles.css';
     return swReg;
   }
   async function cekNotif() {
-    if (!pushDidukung()) { S.notif = { didukung: false, aktif: false }; return; }
+    if (!pushDidukung()) { daftarSW(); S.notif = { didukung: false, aktif: false }; return; }
     const reg = await daftarSW();
     const sub = reg && (await reg.pushManager.getSubscription().catch(() => null));
     S.notif = { didukung: true, aktif: !!sub && Notification.permission === 'granted', izin: Notification.permission };
@@ -2243,11 +2415,34 @@ import './styles.css';
       case 'konten-orang': ev.preventDefault(); Object.assign(S.konten, { editor: el.dataset.id, periode: String(S.perfPeriode), page: 1 }); navigate('/konten'); break;
       case 'ajukan': ajukanDialog(el.dataset.v); break;
       case 'putuskan': putuskanDialog(el.dataset.id, el.dataset.v); break;
-      case 'batal-pengajuan':
-        confirmDialog('Batalkan pengajuan?', 'Pengajuan ini akan dihapus.', 'Batalkan', async () => {
-          try { await api('/api/pengajuan/' + el.dataset.id, { method: 'DELETE' }); toast('Pengajuan dibatalkan'); await muatUlang(); } catch (e) { toast(e.message, true); }
+      case 'batal-pengajuan': {
+        const row = S.pengajuan && S.pengajuan.list.find((p) => p.id === +el.dataset.id);
+        if (!row) break;
+        hapusDenganBatal('Pengajuan dibatalkan', '/api/pengajuan/' + row.id, {
+          sembunyikan: () => { S.pengajuan.list = S.pengajuan.list.filter((p) => p !== row); render(); },
+          kembalikan: () => { if (!S.pengajuan.list.includes(row)) S.pengajuan.list.push(row); render(); },
+          sesudah: muatUlang,
         });
         break;
+      }
+      case 'ip-baru':
+      case 'ip-abaikan': {
+        el.disabled = true;
+        try {
+          if (act === 'ip-baru') {
+            S.presensi.config = await api('/api/presensi/ip-kandidat', { method: 'PUT', body: { ip: el.dataset.ip, ganti: el.dataset.ganti === '1' } });
+            toast('IP kantor diperbarui. Karyawan yang ditolak diberi kabar untuk absen lagi.');
+          } else {
+            await api('/api/presensi/ip-kandidat', { method: 'DELETE', body: { ip: el.dataset.ip } });
+            S.presensi.config.ip_kandidat = null;
+            toast('Usulan diabaikan');
+          }
+          render();
+        } catch (e) { el.disabled = false; toast(e.message, true); }
+        break;
+      }
+      case 'csv-gaji': exportGaji(); break;
+      case 'csv-presensi': exportPresensi(); break;
       case 'atur-gaji': aturGajiDialog(el.dataset.id || 'umum'); break;
       case 'gaji-muat': delete S.gajiCache[S.gajiBulan]; render(); break;
       case 'gaji-ke': ev.preventDefault(); S.gajiBulan = el.dataset.v; render(); window.scrollTo({ top: 0 }); break;
@@ -2287,7 +2482,7 @@ import './styles.css';
       for (const id of ids) await api(`/api/content/${id}/assign`, { method: 'POST', body: { editor_id: editorId } });
       ids.forEach((id) => { const c = S.content.find((x) => x.id === id); if (c) { c.editor_id = editorId; c.status_identifikasi = 'matched'; } });
       S.sel.clear();
-      S.cache.clear();
+      normalize();
       toast(ids.length + ' video ditetapkan ke ' + editorById(editorId).nama);
       render();
     } catch (e) { toast(e.message, true); }
@@ -2309,15 +2504,16 @@ import './styles.css';
 
   // Phone: the routes and account actions that don't fit in the bottom bar.
   function moreSheet() {
-    const unmatched = S.content.filter((c) => !editorById(c.editor_id)).length;
     const who = me();
     const theme = document.documentElement.dataset.theme;
     const dark = theme ? theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
-    const extra = ROUTES.filter((r) => !['ringkasan', 'harian', 'presensi', 'konten'].includes(r.id) && (!r.admin || isAdmin()));
+    const tabs = TABS();
+    const groups = S.session ? menuGroups().map((g) => ({ label: g.label, list: g.ids.map((id) => ROUTES.find((x) => x.id === id)).filter((r) => bisaBuka(r) && !tabs.includes(r.id)) })).filter((g) => g.list.length) : [];
     openDialog(`
       ${S.session ? `<div class="who">${who ? avatar(who, 'sm') : '<span class="ava sm" style="background:var(--ink);color:var(--paper)">P</span>'}<div class="t"><b>${who ? esc(who.nama) : 'Pemilik'}</b><small>${who ? peranLabel(who.peran) : 'Akses penuh'}</small></div></div>` : '<h2>Menu</h2>'}
       <div class="sheet-list">
-        ${extra.map((r) => `<a href="${pathOf(r.id)}">${icon(r.icon)}${r.label}${r.id === 'identifikasi' && unmatched ? `<span class="count">${unmatched}</span>` : r.id === 'pengajuan' && menunggu() ? `<span class="count">${menunggu()}</span>` : ''}</a>`).join('')}
+        ${groups.map((g) => `<div class="sheet-label">${g.label}</div>` + g.list.map((r) => `<a href="${pathOf(r.id)}">${icon(r.icon)}${routeLabel(r)}${badgeOf(r.id) ? `<span class="count">${badgeOf(r.id)}</span>` : ''}</a>`).join('')).join('')}
+        <div class="sheet-label">Akun</div>
         <button data-act="theme">${icon(dark ? 'sun' : 'moon')}${dark ? 'Mode terang' : 'Mode gelap'}</button>
         ${S.session ? `<button data-act="logout">${icon('out')}Keluar</button>` : `<button data-act="login">${icon('out')}Masuk</button>`}
       </div>`);
@@ -2507,18 +2703,73 @@ import './styles.css';
     $('.drawer .btn').focus();
   }
 
-  function exportCsv() {
-    const rows = kontenRows();
-    const head = ['Tanggal', 'Jam (WIB)', 'Channel', 'Pembuat', 'Judul', 'Jenis', 'Views', 'Like', 'Komentar', 'Durasi (detik)', 'URL'];
-    // A cell starting with = + - @ would run as a formula in Excel/Sheets: prefix it with a quote.
-    const q = (v) => { let x = String(v ?? ''); if (/^[=+\-@\t\r]/.test(x)) x = "'" + x; return '"' + x.replace(/"/g, '""') + '"'; };
-    const csv = [head, ...rows.map((c) => [c._day, c._jam, c._chNama, (editorById(c.editor_id) || {}).nama || '', c.judul, c.tipe_video, c.views, c.likes, c.comments, c.duration_secs, c.url])].map((r) => r.map(q).join(',')).join('\n');
+  // A CSV that opens in Excel and Google Sheets (UTF-8 with BOM).
+  function unduhCsv(nama, head, rows) {
+    // A text cell starting with = + - @ would run as a formula in Excel/Sheets: prefix it with a quote.
+    const q = (v) => { if (typeof v === 'number') return String(v); let x = String(v ?? ''); if (/^[=+\-@\t\r]/.test(x)) x = "'" + x; return '"' + x.replace(/"/g, '""') + '"'; };
+    const csv = [head, ...rows].map((r) => r.map(q).join(',')).join('\n');
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }));
-    a.download = 'konten-tokder-' + today() + '.csv';
+    a.download = nama + '.csv';
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   }
+  function exportCsv() {
+    unduhCsv('konten-tokder-' + today(), ['Tanggal', 'Jam (WIB)', 'Channel', 'Pembuat', 'Judul', 'Jenis', 'Views', 'Like', 'Komentar', 'Durasi (detik)', 'URL'],
+      kontenRows().map((c) => [c._day, c._jam, c._chNama, (editorById(c.editor_id) || {}).nama || '', c.judul, c.tipe_video, c.views, c.likes, c.comments, c.duration_secs, c.url]));
+  }
+  function exportGaji() {
+    const b = S.gajiBulan;
+    const G = S.gajiCache[b];
+    if (!G || !G.list) return toast('Data gaji belum termuat', true);
+    const nilai = (r, label) => sum(r.baris.filter((x) => x.label === label), (x) => x.jumlah);
+    unduhCsv('gaji-tokder-' + b, ['Bulan', 'Karyawan', 'Status', 'Hadir', 'Tidak hadir', 'Izin', 'Sakit', 'Cuti', 'Telat (kali)', 'Telat (menit)', 'Lembur (menit)', 'Video', 'Target video', 'Gaji pokok', 'Tunjangan', 'Tambahan lain', 'Potongan', 'Total', 'Dibayar'],
+      G.list.map((r) => {
+        const pokok = nilai(r, 'Gaji pokok'), tunj = nilai(r, 'Tunjangan');
+        const plus = sum(r.baris.filter((x) => x.jumlah > 0), (x) => x.jumlah) - pokok - tunj;
+        const minus = sum(r.baris.filter((x) => x.jumlah < 0), (x) => x.jumlah);
+        return [b, r.nama, r.dibayar_at ? 'Dibayar' : r.status === 'final' ? 'Final' : 'Perkiraan', r.hari.hadir, r.hari.alpa, r.hari.izin, r.hari.sakit, r.hari.cuti, r.hari.telat, r.hari.telat_menit, r.hari.lembur_menit,
+          r.video.jumlah, r.video.target, pokok, tunj, plus, minus, r.total, r.dibayar_at ? String(r.dibayar_at).slice(0, 10) : ''];
+      }));
+  }
+  function exportPresensi() {
+    const P = S.presensi;
+    if (!P || !P.rows) return toast('Data presensi belum termuat', true);
+    const hari = [...new Set(P.rows.map((r) => r.tanggal))].sort().reverse();
+    const rows = [];
+    hari.forEach((d) => activeEditors().forEach((e) => {
+      const h = hariPresensi(P.rows, e.id, d);
+      if (h.masuk || h.pulang) rows.push([d, e.nama, jamWib(h.masuk && h.masuk.waktu), jamWib(h.pulang && h.pulang.waktu), h.masuk ? h.masuk.telat_menit || 0 : '', h.masuk && h.masuk.jarak != null ? Math.round(h.masuk.jarak) : '']);
+    }));
+    unduhCsv('presensi-tokder-' + today(), ['Tanggal', 'Karyawan', 'Masuk', 'Pulang', 'Telat (menit)', 'Jarak (m)'], rows);
+  }
+
+  // Deleting waits 5 seconds with an Undo button; the request goes out only when time is up
+  // (or right away when the page is closed), so a mis-tap costs nothing.
+  const tertunda = new Map();
+  function hapusDenganBatal(pesan, url, { sembunyikan, kembalikan, sesudah }) {
+    const id = url + '|' + Date.now();
+    sembunyikan();
+    const t = document.createElement('div');
+    t.className = 'toast undo';
+    t.setAttribute('role', 'status');
+    t.innerHTML = `<span>${esc(pesan)}</span><button type="button">Batalkan</button>`;
+    document.querySelectorAll('.toast').forEach((x) => x.remove());
+    document.body.append(t);
+    const jalan = async () => {
+      if (!tertunda.has(id)) return;
+      tertunda.delete(id);
+      t.remove();
+      try { await api(url, { method: 'DELETE' }); if (sesudah) await sesudah(); } catch (e) { kembalikan(); toast(e.message, true); }
+    };
+    tertunda.set(id, url);
+    $('button', t).addEventListener('click', () => { if (!tertunda.delete(id)) return; t.remove(); kembalikan(); toast('Dibatalkan'); });
+    setTimeout(jalan, 5000);
+  }
+  window.addEventListener('pagehide', () => {
+    tertunda.forEach((url) => { try { fetch(url, { method: 'DELETE', keepalive: true, credentials: 'same-origin' }); } catch (e) { /* closing anyway */ } });
+    tertunda.clear();
+  });
 
   document.addEventListener('click', async (ev) => {
     const a = ev.target.closest('a[href^="/"]');
@@ -2555,11 +2806,18 @@ import './styles.css';
       case 'ke-hari': S.day = el.dataset.v; render(); break;
       case 'lihat-orang': ev.preventDefault(); navigate('/harian/' + el.dataset.id); break;
       case 'catat': catatDialog(+el.dataset.id || null); break;
-      case 'hapus-aktivitas':
-        confirmDialog('Hapus aktivitas?', 'Catatan ini akan dihapus dan skor dihitung ulang.', 'Hapus', async () => {
-          try { await api('/api/aktivitas/' + el.dataset.id, { method: 'DELETE' }); await refreshAktivitas(); S.cache.clear(); toast('Aktivitas dihapus'); render(); } catch (e) { toast(e.message, true); }
+      case 'hapus-aktivitas': {
+        const id = +el.dataset.id;
+        const row = S.aktivitas.find((a) => a.id === id);
+        if (!row) break;
+        const ulang = () => { normalize(); render(); };
+        hapusDenganBatal('Aktivitas dihapus', '/api/aktivitas/' + id, {
+          sembunyikan: () => { S.aktivitas = S.aktivitas.filter((a) => a !== row); ulang(); },
+          kembalikan: () => { if (!S.aktivitas.includes(row)) S.aktivitas.push(row); ulang(); },
+          sesudah: async () => { await refreshAktivitas(); if (!$('#overlay').innerHTML) render(); },
         });
         break;
+      }
       case 'video': ev.preventDefault(); videoDrawer(el.dataset.id); break;
       case 'sort': { const k = S.konten; if (k.sort === el.dataset.k) k.dir = k.dir === 'asc' ? 'desc' : 'asc'; else { k.sort = el.dataset.k; k.dir = el.dataset.k === 'judul' || el.dataset.k === 'editor' ? 'asc' : 'desc'; } render(); break; }
       case 'page': S.konten.page += +el.dataset.v; render(); window.scrollTo({ top: 0 }); break;

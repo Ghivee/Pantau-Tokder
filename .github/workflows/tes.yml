@@ -1,0 +1,21 @@
+# Runs the tests and a production build on every pull request, so a change that breaks
+# payroll, attendance or the security rules is caught before it is merged.
+name: Tes
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  tes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --no-audit --no-fund
+      - run: npm test
+      - run: npm run build
+      - name: CSP cocok dengan skrip inline
+        run: node scripts/cek-csp.cjs
