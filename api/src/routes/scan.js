@@ -7,11 +7,21 @@ const dataService = require('../services/dataService');
 const { getChannelIds } = require('../services/channelService');
 const { requireAdmin } = require('../middlewares/sessionAuth');
 const { pengingatAbsen } = require('../services/pengingatService');
+const perawatan = require('../services/perawatanService');
 
 // GET: which data sources are configured, and how the last sync went
 router.get('/status', async (req, res) => {
   try {
     res.json(await dataService.scanStatus());
+  } catch (err) {
+    fail(res, err);
+  }
+});
+
+// GET: database size, last clean-up and last sync, for the owner's System card
+router.get('/sistem', requireAdmin, async (req, res) => {
+  try {
+    res.json(await perawatan.status());
   } catch (err) {
     fail(res, err);
   }
@@ -83,7 +93,9 @@ router.get('/cron', async (req, res) => {
     const fromCron = !!secret && req.headers['authorization'] === `Bearer ${secret}`;
     // Check-in reminders ride on the same schedule; each goes out at most once per person per day.
     const pengingat = await pengingatAbsen().catch((e) => { console.error('Pengingat absen gagal:', e.message); return 0; });
-    if (!fromCron && (await minutesSinceLastScan()) < AUTO_EVERY_MIN) return res.json({ skipped: true, reason: 'Data masih baru', pengingat });
+    // Nightly clean-up and the Monday summary also ride on it.
+    const tugas = await perawatan.jadwal().catch((e) => { console.error('Perawatan gagal:', e.message); return {}; });
+    if (!fromCron && (await minutesSinceLastScan()) < AUTO_EVERY_MIN) return res.json({ skipped: true, reason: 'Data masih baru', pengingat, ...tugas });
     await runLocked(res, 'Cron triggered scan started');
   } catch (err) {
     console.error('Cron scan route error:', err);
