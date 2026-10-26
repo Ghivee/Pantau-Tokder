@@ -143,6 +143,19 @@ const STATEMENTS = [
     created_at TIMESTAMP DEFAULT NOW()
   )`,
   `CREATE INDEX IF NOT EXISTS pengajuan_editor_idx ON pengajuan (editor_id, dari)`,
+  // Phones and browsers that asked for notifications. editor_id is NULL for the owner.
+  `CREATE TABLE IF NOT EXISTS push_langganan (
+    id SERIAL PRIMARY KEY,
+    tipe VARCHAR(10) NOT NULL,
+    editor_id INTEGER REFERENCES editors(id) ON DELETE CASCADE,
+    endpoint TEXT NOT NULL UNIQUE,
+    p256dh VARCHAR(200) NOT NULL,
+    auth VARCHAR(100) NOT NULL,
+    perangkat VARCHAR(120),
+    created_at TIMESTAMP DEFAULT NOW()
+  )`,
+  // Reminders already sent, so a reminder goes out once however often the scheduler runs.
+  `CREATE TABLE IF NOT EXISTS push_terkirim (kunci VARCHAR(120) PRIMARY KEY, waktu TIMESTAMP DEFAULT NOW())`,
 ];
 
 const CONNECTION_CODES = ['ECONNREFUSED', 'ENOTFOUND', 'ETIMEDOUT', '57P01', '53300'];
