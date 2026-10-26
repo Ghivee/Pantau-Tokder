@@ -95,6 +95,54 @@ const STATEMENTS = [
   // When retention was last asked from YouTube for a video that had none, so opening it does not ask again every time.
   `ALTER TABLE content ADD COLUMN IF NOT EXISTS retention_cek TIMESTAMP`,
   `CREATE INDEX IF NOT EXISTS content_channel_idx ON content (channel_id)`,
+  // Pay rules per employee. Every amount starts at 0: nothing is paid or cut until the owner sets it.
+  `CREATE TABLE IF NOT EXISTS gaji_aturan (
+    editor_id INTEGER PRIMARY KEY REFERENCES editors(id) ON DELETE CASCADE,
+    gaji_pokok NUMERIC DEFAULT 0,
+    tunjangan NUMERIC DEFAULT 0,
+    potongan_tetap NUMERIC DEFAULT 0,
+    potong_alpa NUMERIC DEFAULT 0,
+    potong_izin NUMERIC DEFAULT 0,
+    potong_telat NUMERIC DEFAULT 0,
+    tarif_lembur NUMERIC DEFAULT 0,
+    bonus_video NUMERIC DEFAULT 0,
+    bonus_1000_views NUMERIC DEFAULT 0,
+    updated_at TIMESTAMP DEFAULT NOW()
+  )`,
+  `CREATE TABLE IF NOT EXISTS gaji_penyesuaian (
+    id SERIAL PRIMARY KEY,
+    editor_id INTEGER NOT NULL REFERENCES editors(id) ON DELETE CASCADE,
+    bulan CHAR(7) NOT NULL,
+    jumlah NUMERIC NOT NULL,
+    keterangan VARCHAR(200) NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+  )`,
+  `CREATE INDEX IF NOT EXISTS gaji_penyesuaian_bulan_idx ON gaji_penyesuaian (bulan)`,
+  // A finalized month is a frozen copy of the calculation: later changes to rules or data do not move it.
+  `CREATE TABLE IF NOT EXISTS gaji_final (
+    editor_id INTEGER NOT NULL REFERENCES editors(id) ON DELETE CASCADE,
+    bulan CHAR(7) NOT NULL,
+    rincian JSONB NOT NULL,
+    total NUMERIC NOT NULL,
+    final_at TIMESTAMP DEFAULT NOW(),
+    dibayar_at TIMESTAMP,
+    PRIMARY KEY (editor_id, bulan)
+  )`,
+  // Leave (izin, sakit, cuti) and expense claims an employee asks for and the owner decides on.
+  `CREATE TABLE IF NOT EXISTS pengajuan (
+    id SERIAL PRIMARY KEY,
+    editor_id INTEGER NOT NULL REFERENCES editors(id) ON DELETE CASCADE,
+    jenis VARCHAR(10) NOT NULL,
+    dari DATE NOT NULL,
+    sampai DATE NOT NULL,
+    jumlah NUMERIC,
+    alasan VARCHAR(300) NOT NULL,
+    status VARCHAR(10) NOT NULL DEFAULT 'menunggu',
+    catatan VARCHAR(200),
+    diputus_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT NOW()
+  )`,
+  `CREATE INDEX IF NOT EXISTS pengajuan_editor_idx ON pengajuan (editor_id, dari)`,
 ];
 
 const CONNECTION_CODES = ['ECONNREFUSED', 'ENOTFOUND', 'ETIMEDOUT', '57P01', '53300'];
