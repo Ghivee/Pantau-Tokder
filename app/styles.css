@@ -530,3 +530,34 @@ table.t { width: 100%; border-collapse: collapse; }
   #print .pill { border: 1px solid #999; background: none; color: #000; }
   #print .muted { color: #444; }
 }
+
+/* Hari ini (karyawan) */
+.btn.big { height: 48px; padding: 0 22px; font-size: 15px; border-radius: 12px; }
+.today-hero .tools { align-items: center; }
+.slots { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+.slots li { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); font-size: 12.5px; color: var(--muted); }
+.slots li b { font-size: 15px; color: var(--ink); }
+.slots li.ok { background: var(--ok-soft); border-color: transparent; color: var(--ok); }
+.slots li.warn { background: var(--warn-soft); border-color: transparent; color: var(--warn); }
+.slots li.bad { background: var(--bad-soft); border-color: transparent; color: var(--bad); }
+.slots li.due { border-color: var(--ink); color: var(--ink); font-weight: 600; }
+.todo { list-style: none; margin: 0; padding: 0; }
+.todo li { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); }
+.todo li:first-child { border-top: 0; padding-top: 2px; }
+.todo li .num { margin-left: auto; font-variant-numeric: tabular-nums; }
+.todo li.done > span:not(.tick) { color: var(--muted); text-decoration: line-through; }
+.tick { width: 20px; height: 20px; flex: none; border-radius: 6px; border: 1.5px solid var(--line-2); display: grid; place-items: center; font-size: 12px; font-weight: 700; }
+.todo li.done .tick { background: var(--ok); border-color: var(--ok); color: var(--surface); }
+.sheet-label { font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; padding: 14px 6px 4px; }
+.sheet-list > .sheet-label + a, .sheet-list > .sheet-label + button { border-top: 0; }
+
+/* Toast with an undo button */
+.toast.undo { display: flex; align-items: center; gap: 14px; }
+.toast.undo button { background: none; border: 0; color: inherit; font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; padding: 4px 0; }
+
+/* Kartu usulan IP kantor */
+.ip-baru { border-color: var(--warn); }
+.ip-baru .tools { margin-top: 10px; }
+.sys-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.sys-grid div { display: flex; flex-direction: column; gap: 2px; font-size: 12.5px; color: var(--muted); }
+.sys-grid b { font-size: 15px; color: var(--ink); }

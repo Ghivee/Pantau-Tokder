@@ -206,6 +206,24 @@ Vercel gratis hanya boleh menjalankan jadwal sekali sehari. File `.github/workfl
 
 **Pendapatan → Impor CSV**: pilih laporan komisi CSV dari dashboard afiliasi, cek kolom tanggal dan komisi (ditebak otomatis), saring bila perlu (misal status "Selesai"), lihat pratinjau per bulan, lalu Simpan. Omzet tercapai bulan-bulan di file diganti; target tidak berubah.
 
+### 15. Halaman Hari ini (karyawan)
+
+Karyawan langsung masuk ke **Hari ini**: tombol absen masuk/pulang, jadwal tayang (hijau = tepat, kuning = telat, merah = terlewat, bergaris = sebentar lagi), tugas lain dengan tombol Catat, skor sementara, izin yang menunggu, dan perkiraan gaji bulan ini. Menu dikelompokkan: **Kerja saya**, **Channel & tim**, **Bantuan**. Di HP, bilah bawah karyawan berisi Hari ini · Presensi · Performa · Izin; pemilik berisi Ringkasan · Harian · Izin · Gaji.
+
+### 16. IP Wi-Fi kantor berubah
+
+IP internet kantor bisa berganti setelah modem menyala ulang. Bila dua karyawan (satu, bila tim hanya satu orang) yang GPS-nya di dalam kantor ditolak dari jaringan baru yang sama dalam 3 jam, pemilik mendapat notifikasi dan kartu **IP Wi-Fi kantor tampaknya berubah** di Presensi dan Ringkasan: **Ganti IP lama dengan ini**, **Tambahkan saja**, atau **Bukan kantor**. Setelah disetujui, karyawan yang tadi ditolak diberi kabar untuk absen lagi.
+
+### 17. Perawatan data dan ringkasan mingguan
+
+Tiap malam (01.00–05.00 WIB) jadwal tiap jam merapikan data lama: angka views per jam disimpan 14 hari, setelahnya satu angka per video per hari; tanda notifikasi terkirim dihapus setelah 60 hari; percobaan absen ditolak disimpan setahun. Senin 07.00–10.00 WIB pemilik menerima notifikasi ringkasan minggu lalu (video baru, views, telat, pengajuan menunggu). Kondisinya terlihat di **Pengaturan → Kesehatan sistem**.
+
+### 18. Kenyamanan lain
+
+- **Batalkan**: menghapus aktivitas atau membatalkan pengajuan bisa diurungkan dalam 5 detik.
+- **Excel**: unduh rekap gaji (Gaji), presensi 30 hari (Presensi) dan daftar video (Konten).
+- **Tanpa sinyal**: data terakhir disimpan di perangkat dan langsung tampil saat aplikasi dibuka; bila server tidak terjangkau, muncul keterangan jam data tersebut. Data gaji tidak disimpan di perangkat; keluar akun menghapus semuanya.
+
 ---
 
 ## Cara skor dihitung (0–100 per hari)
@@ -243,6 +261,7 @@ Topik ditebak dari kata di judul, misalnya "harga", "thrips", "pupuk" atau "sema
 - Token YouTube Analytics disimpan terenkripsi. Kuncinya tetap (dari `ENCRYPTION_KEY` bila diisi, kalau tidak dari `GOOGLE_CLIENT_SECRET`), jadi tidak hilang saat server Vercel mulai ulang. Kalau di Pengaturan → Catatan sinkronisasi muncul "kunci enkripsi berubah", hubungkan ulang channel itu sekali.
 - `/api/scan/status` sekarang hanya menjawab "ada/tidak". Potongan kunci API tidak lagi ditampilkan.
 - Pendapatan hanya dikirim server ke pemilik yang sudah masuk.
+- Aturan keamanan browser (CSP) tidak lagi mengizinkan skrip inline sembarang: hanya skrip yang hash-nya tercatat di `vercel.json`. Setelah mengubah skrip di `app/index.html`, jalankan `npm run build && node scripts/cek-csp.cjs --tulis`. GitHub Actions **Tes** memeriksanya di setiap PR, bersama `npm test` dan build.
 - Semua isian diperiksa di server: kode karyawan, jadwal, PIN, tanggal, jam, angka target. Pesan kesalahannya dalam bahasa Indonesia, dan kalau database tidak bisa dihubungi, aplikasi mengatakan itu dengan jelas.
 
 ## Kecepatan
@@ -264,6 +283,8 @@ api/src/services/pengajuanService.js  izin, sakit, cuti, klaim dan jatah cuti
 api/src/routes/insight.js             ringkasan retensi dan kenaikan views untuk Performa dan Tren
 api/src/services/pushService.js       notifikasi Web Push; pengingatService.js: pengingat absen
 assets/sw.js, assets/manifest.webmanifest  service worker notifikasi dan pemasangan di layar utama
-.github/workflows/sinkron.yml         sinkronisasi + pengingat tiap jam lewat GitHub Actions
+.github/workflows/sinkron.yml         sinkronisasi + pengingat + perawatan data tiap jam lewat GitHub Actions
+.github/workflows/tes.yml             tes, build dan cek CSP di setiap pull request
+api/src/services/perawatanService.js  perapian data lama, ringkasan mingguan, status sistem
 api/test/*.cjs      tes otomatis (jalankan: npm test)
 ```

@@ -1,4 +1,5 @@
 const express = require('express');
+const axios = require('axios');
 const cors = require('cors');
 
 const editorsRouter = require('./routes/editors');
@@ -17,6 +18,9 @@ const { identify, requireAnyAuth } = require('./middlewares/sessionAuth');
 const db = require('./config/db');
 const dataService = require('./services/dataService');
 const { clientIp } = require('./utils/clientIp');
+
+// One slow answer from Google must not hold a sync until the serverless time limit.
+axios.defaults.timeout = 20000;
 
 const app = express();
 app.set('trust proxy', false);

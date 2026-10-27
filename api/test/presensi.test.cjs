@@ -72,3 +72,13 @@ test('IPv6 suggestion is the /64 network', () => {
   assert.equal(p.ipSaran('2001:db8::1'), '2001:db8:0:0::/64');
   assert.equal(p.ipSaran('203.0.113.7'), '203.0.113.7');
 });
+
+test('marks a network-only refusal, so a changed office IP can be spotted', () => {
+  const r = p.periksa({ ...ok, ip: '36.80.1.2' });
+  assert.equal(r.kode, 'ip');
+  // Same reading checked against the new network passes: this is the evidence counted.
+  assert.equal(p.periksa({ ...ok, cfg: { ...cfg, ips: [p.ipSaran('36.80.1.2')] }, ip: '36.80.1.2' }).ok, true);
+  // Outside the office it is not evidence.
+  assert.equal(p.periksa({ ...ok, cfg: { ...cfg, ips: ['36.80.1.2'] }, ip: '36.80.1.2', lat: -6.3 }).ok, false);
+  assert.equal(p.ipSaran('2001:db8:1:2:abcd::9'), '2001:db8:1:2::/64');
+});
