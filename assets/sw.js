@@ -38,7 +38,7 @@ self.addEventListener('fetch', (e) => {
     return;
   }
   // Build files have the content hash in their name, so a saved copy is always right.
-  if (url.pathname.startsWith('/assets/') || url.pathname === '/tokderlogo.png') {
+  if (url.pathname.startsWith('/assets/') || /^\/(tokderlogo|icon-[a-z0-9-]+|apple-touch-icon)\.png$/.test(url.pathname)) {
     e.respondWith((async () => {
       const hit = await caches.match(req);
       if (hit) return hit;
@@ -53,7 +53,7 @@ self.addEventListener('push', (e) => {
   let d = {};
   try { d = e.data ? e.data.json() : {}; } catch (err) { d = { title: 'Pantau Tokder', body: e.data && e.data.text() }; }
   e.waitUntil(self.registration.showNotification(d.title || 'Pantau Tokder', {
-    body: d.body || '', icon: '/tokderlogo.png', badge: '/tokderlogo.png', tag: d.tag, data: { url: d.url || '/' },
+    body: d.body || '', icon: '/icon-192.png', badge: '/icon-192.png', tag: d.tag, data: { url: d.url || '/' },
   }));
 });
 

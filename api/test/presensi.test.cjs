@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const p = require('../src/services/presensiService');
 
 const KANTOR = { lat: -6.2, lng: 106.816666 };
-const cfg = { ...KANTOR, radius: 100, akurasi_maks: 50, ips: ['203.0.113.7', '198.51.100.0/24', '2001:db8:1:2::/64'], jam_masuk: '08:00', toleransi: 10, jam_pulang: '17:00', siap: true };
+const cfg = { ...KANTOR, radius: 100, akurasi_maks: 50, ips: ['203.0.113.7', '198.51.100.0/24', '2001:db8:1:2::/64'], toleransi: 10, siap: true };
 const now = Date.parse('2026-10-26T01:05:00Z'); // 08:05 WIB
 const ok = { cfg, jenis: 'masuk', lat: KANTOR.lat, lng: KANTOR.lng, akurasi: 12, diambil: now - 3000, ip: '203.0.113.7', now };
 
@@ -59,13 +59,14 @@ test('distance is measured in metres', () => {
 });
 
 test('config validation', () => {
-  const good = { lat: '-6.2', lng: '106.8', radius: 100, akurasi_maks: 50, ips: ['203.0.113.7'], jam_masuk: '08:00', toleransi: 10, jam_pulang: '17:00' };
+  const good = { lat: '-6.2', lng: '106.8', radius: 100, akurasi_maks: 50, ips: ['203.0.113.7'], jadwal: require('../src/services/kalenderService').JADWAL_DEFAULT, toleransi: 10 };
   assert.deepEqual(p.validasiConfig(good).ips, ['203.0.113.7']);
   assert.throws(() => p.validasiConfig({ ...good, ips: [] }), /minimal satu IP/);
   assert.throws(() => p.validasiConfig({ ...good, ips: ['999.1.1.1'] }), /tidak valid/);
   assert.throws(() => p.validasiConfig({ ...good, ips: ['10.0.0.0/4'] }), /tidak valid/);
   assert.throws(() => p.validasiConfig({ ...good, lat: '' }), /lat/);
-  assert.throws(() => p.validasiConfig({ ...good, jam_pulang: '07:00' }), /setelah jam masuk/);
+  assert.throws(() => p.validasiConfig({ ...good, jadwal: good.jadwal.map((x) => x && { ...x, pulang: '07:00' }) }), /setelah jam masuk/);
+  assert.strictEqual(p.validasiConfig(good).jadwal[5].pulang, '15:00');
 });
 
 test('IPv6 suggestion is the /64 network', () => {

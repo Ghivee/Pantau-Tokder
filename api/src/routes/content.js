@@ -8,12 +8,12 @@ const { requireAnyAuth, requireRole } = require('../middlewares/sessionAuth');
 const { createAuditMiddleware } = require('../utils/auditLog');
 const { checkIdempotency } = require('../middlewares/rateLimit');
 
-const { content: listContent, LIST_COLUMNS } = require('../services/dataService');
+const { content: listContent, LIST_COLUMNS, samarkan } = require('../services/dataService');
 
 router.get('/', async (req, res) => {
   try {
     const { editor_id, platform, status } = req.query;
-    res.json(await listContent({ isAdmin: req.isAdmin, editorId: editor_id, platform, status }));
+    res.json(await listContent({ isAdmin: req.isAdmin, selfId: req.editor && req.editor.id, editorId: req.isAdmin ? editor_id : null, platform, status }));
   } catch (err) {
     fail(res, err);
   }
@@ -32,7 +32,7 @@ router.get('/:id', async (req, res) => {
     );
     if (!r.rows.length) throw bad(404, 'Video tidak ditemukan');
     const v = r.rows[0];
-    if (!req.isAdmin) delete v.revenue;
+    if (!req.isAdmin) { delete v.revenue; samarkan(v, req.editor.id); }
     v.retensi_status = v.retention_data ? 'ada' : 'belum_ada';
     if (!v.retention_data && v.channel_id && !v.baru_dicek) {
       let token = null;
@@ -71,10 +71,12 @@ router.post('/:id/assign', requireRole('editor'), checkIdempotency, createAuditM
     const editorId = Number((req.body || {}).editor_id);
     if (!/^\d+$/.test(id)) throw bad(400, 'ID video tidak valid');
     if (!Number.isInteger(editorId) || editorId <= 0) throw bad(400, 'Pilih karyawan');
+    // An employee can claim an unrecognized video as their own, nothing else.
+    if (!req.isAdmin && editorId !== req.editor.id) throw bad(403, 'Anda hanya bisa menetapkan video sebagai milik Anda sendiri');
     const ed = await db.query(`SELECT id FROM editors WHERE id = $1 AND status <> 'nonaktif'`, [editorId]);
     if (!ed.rows.length) throw bad(400, 'Karyawan tidak ditemukan atau nonaktif');
-    const r = await db.query('UPDATE content SET editor_id = $1, status_identifikasi = $2 WHERE id = $3', [editorId, 'matched', id]);
-    if (!r.rowCount) throw bad(404, 'Video tidak ditemukan');
+    const r = await db.query(`UPDATE content SET editor_id = $1, status_identifikasi = $2 WHERE id = $3${req.isAdmin ? '' : ' AND editor_id IS NULL'}`, [editorId, 'matched', id]);
+    if (!r.rowCount) throw bad(404, req.isAdmin ? 'Video tidak ditemukan' : 'Video tidak ditemukan atau sudah ada pembuatnya');
     res.json({ message: 'Success' });
   } catch (err) {
     fail(res, err);
@@ -95,6 +97,9 @@ router.post('/bulk-assign', requireRole('editor'), checkIdempotency, async (req,
     if (!Number.isInteger(editorId) || editorId <= 0) {
       return res.status(400).json({ error: 'editor_id tidak valid' });
     }
+    if (!req.isAdmin && editorId !== req.editor.id) {
+      return res.status(403).json({ error: 'Anda hanya bisa menetapkan video sebagai milik Anda sendiri' });
+    }
     // Verify editor exists and is active
     const ed = await db.query(`SELECT id FROM editors WHERE id = $1 AND status <> 'nonaktif'`, [editorId]);
     if (!ed.rows.length) {
@@ -103,11 +108,11 @@ router.post('/bulk-assign', requireRole('editor'), checkIdempotency, async (req,
     // Verify all videos exist
     const placeholders = video_ids.map((_, i) => `$${i + 1}`).join(',');
     const videos = await db.query(
-      `SELECT id FROM content WHERE id IN (${placeholders})`,
+      `SELECT id FROM content WHERE id IN (${placeholders})${req.isAdmin ? '' : ' AND editor_id IS NULL'}`,
       video_ids
     );
     if (videos.rows.length !== video_ids.length) {
-      return res.status(400).json({ error: 'Beberapa video tidak ditemukan' });
+      return res.status(400).json({ error: req.isAdmin ? 'Beberapa video tidak ditemukan' : 'Beberapa video tidak ditemukan atau sudah ada pembuatnya' });
     }
     // Bulk update
     await db.query(

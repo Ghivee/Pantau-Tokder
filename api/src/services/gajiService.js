@@ -1,14 +1,15 @@
 const db = require('../config/db');
 const { bad } = require('../utils/httpError');
 const presensi = require('./presensiService');
-const { rangeDays, isWorkday, addDays, validDate } = require('./pengajuanService');
+const kalender = require('./kalenderService');
+const { rangeDays, isWorkday, addDays } = require('./pengajuanService');
 
 // Monthly pay from real records only: presensi (attendance, lateness, overtime), approved leave
 // and claims, the videos each person published, the owner's rules and manual adjustments.
 // A month can be finalized: the calculation is then stored as is and no longer moves.
 
 const CONFIG_KEY = 'gaji_config';
-const DEFAULTS = { hari_kerja: [1, 2, 3, 4, 5, 6], libur: [], jatah_cuti: 12 };
+const DEFAULTS = { jatah_cuti: 12 };
 const ATURAN = ['gaji_pokok', 'tunjangan', 'potongan_tetap', 'potong_alpa', 'potong_izin', 'potong_telat', 'tarif_lembur', 'bonus_video', 'bonus_1000_views'];
 const BULAN = /^\d{4}-(0[1-9]|1[0-2])$/;
 const LEMBUR_MIN = 30; // minutes after closing time before it counts as overtime
@@ -20,23 +21,19 @@ const tglWib = (t) => wibDate(t).toISOString().slice(0, 10);
 const menitWib = (t) => { const d = wibDate(t); return d.getUTCHours() * 60 + d.getUTCMinutes(); };
 const akhirBulan = (b) => new Date(Date.UTC(+b.slice(0, 4), +b.slice(5, 7), 0)).toISOString().slice(0, 10);
 
+// Working days and days off come from the office calendar (Presensi → Jam kerja & libur);
+// payroll only keeps the yearly leave allowance.
 async function getConfig() {
-  const r = await db.query('SELECT value FROM settings WHERE key = $1', [CONFIG_KEY]);
+  const [r, pcfg] = await Promise.all([db.query('SELECT value FROM settings WHERE key = $1', [CONFIG_KEY]), presensi.getConfig()]);
   let saved = {};
   try { saved = r.rows[0] ? JSON.parse(r.rows[0].value) : {}; } catch (e) { saved = {}; }
-  return { ...DEFAULTS, ...saved, tersimpan: !!r.rows[0] };
+  return { ...DEFAULTS, jatah_cuti: saved.jatah_cuti ?? DEFAULTS.jatah_cuti, ...kalender.kalenderGaji(pcfg), tersimpan: !!r.rows[0] };
 }
 
 function validasiConfig(b = {}) {
-  const hari = [...new Set((Array.isArray(b.hari_kerja) ? b.hari_kerja : []).map(Number))].filter((x) => Number.isInteger(x) && x >= 0 && x <= 6).sort();
-  if (!hari.length) throw bad(400, 'Pilih minimal satu hari kerja');
-  const libur = [...new Set((Array.isArray(b.libur) ? b.libur : String(b.libur || '').split(/[\s,;]+/)).map((x) => String(x).trim()).filter(Boolean))].sort();
-  const salah = libur.find((d) => !validDate(d));
-  if (salah) throw bad(400, `Tanggal libur "${salah}" tidak valid. Pakai format YYYY-MM-DD`);
-  if (libur.length > 100) throw bad(400, 'Maksimal 100 tanggal libur');
   const jatah = Number(b.jatah_cuti);
   if (!Number.isInteger(jatah) || jatah < 0 || jatah > 60) throw bad(400, 'Jatah cuti harus 0–60 hari per tahun');
-  return { hari_kerja: hari, libur, jatah_cuti: jatah };
+  return { jatah_cuti: jatah };
 }
 
 function validasiAturan(b = {}) {
@@ -50,9 +47,11 @@ function validasiAturan(b = {}) {
 }
 
 // The calculation for one person and one month. Pure, so it can be tested and re-run exactly.
+// `jam` is the opening hours: a function of the date (null on a day off), or one set for every working day.
 function hitung({ bulan, editor, aturan, cfg, jam, presensiRows, cuti, klaim, penyesuaian, videos, mulaiPresensi, now = Date.now() }) {
   const a = { ...Object.fromEntries(ATURAN.map((k) => [k, 0])), ...(aturan || {}) };
   ATURAN.forEach((k) => { a[k] = Number(a[k]) || 0; });
+  const jamPada = typeof jam === 'function' ? jam : (d) => (isWorkday(d, cfg) ? jam : null);
   const awal = bulan + '-01', akhir = akhirBulan(bulan), hariIni = tglWib(now);
   const selesai = hariIni > akhir;
   const sampai = selesai ? akhir : hariIni;
@@ -77,8 +76,11 @@ function hitung({ bulan, editor, aturan, cfg, jam, presensiRows, cuti, klaim, pe
     h.kerja++; h.alpa++; h.alpa_tanggal.push(d);
   });
   masuk.forEach((p) => { if (p.telat_menit > 0) { h.telat++; h.telat_menit += p.telat_menit; } });
+  // Overtime: staying past that day's closing time, or the whole time worked on a day off.
   pulang.forEach((p) => {
-    const lebih = menitWib(p.waktu) - keMenit(jam.pulang);
+    const j = jamPada(p.tanggal);
+    const m = masuk.get(p.tanggal);
+    const lebih = j ? menitWib(p.waktu) - keMenit(j.pulang) : m ? menitWib(p.waktu) - menitWib(m.waktu) : 0;
     if (lebih >= LEMBUR_MIN) h.lembur_menit += Math.min(lebih, LEMBUR_MAKS);
   });
 
@@ -143,7 +145,7 @@ async function hitungBulan(bulan, { editorId = null, now = Date.now() } = {}) {
     }
     if (e.status === 'nonaktif') continue;
     const r = hitung({
-      bulan, editor: e, cfg, jam: { masuk: pcfg.jam_masuk, pulang: pcfg.jam_pulang, toleransi: pcfg.toleransi },
+      bulan, editor: e, cfg, jam: (d) => kalender.jamPada(pcfg, d, cfg.libur_nama),
       aturan: aturan.rows.find((x) => x.editor_id === e.id),
       presensiRows: by(pres.rows, e.id),
       cuti: by(peng.rows, e.id).filter((x) => x.jenis !== 'klaim'),

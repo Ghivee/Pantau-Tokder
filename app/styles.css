@@ -561,3 +561,41 @@ table.t { width: 100%; border-collapse: collapse; }
 .sys-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
 .sys-grid div { display: flex; flex-direction: column; gap: 2px; font-size: 12.5px; color: var(--muted); }
 .sys-grid b { font-size: 15px; color: var(--ink); }
+
+/* ---------- menu groups: each part of the app has its own accent ----------
+   a = kerja saya / pantau (oranye), b = channel / tim (biru), c = bantuan / pemilik (ungu). */
+:root { --g-a: #C2410C; --g-b: #2F6FAB; --g-c: #6D5BD0; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --g-a: #F2925A; --g-b: #7EB2EE; --g-c: #B1A3F2; } }
+:root[data-theme="dark"] { --g-a: #F2925A; --g-b: #7EB2EE; --g-c: #B1A3F2; }
+[data-grup="a"] { --g: var(--g-a); } [data-grup="b"] { --g: var(--g-b); } [data-grup="c"] { --g: var(--g-c); }
+.nav-label[data-grup] { display: flex; align-items: center; gap: 7px; }
+.nav-label[data-grup]::before { content: ""; width: 8px; height: 8px; border-radius: 2px; background: var(--g); }
+.nav a[data-grup][aria-current="page"] { background: color-mix(in srgb, var(--g) 14%, transparent); color: var(--g); box-shadow: inset 3px 0 0 var(--g); }
+.nav a[data-grup]:not([aria-current="page"]):hover svg { color: var(--g); }
+.page-ico { display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: 11px; flex: none;
+  background: color-mix(in srgb, var(--g, var(--ink)) 14%, transparent); color: var(--g, var(--ink)); }
+.page-ico svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.head > div:has(> .page-ico) { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 14px; align-items: center; }
+.head > div:has(> .page-ico) > .page-ico { grid-row: 1 / span 2; align-self: start; margin-top: 2px; }
+.head > div:has(> .page-ico) > :not(.page-ico) { grid-column: 2; }
+.tabbar [data-grup][aria-current="page"] { color: var(--g); }
+@media (max-width: 760px) {
+  .page-ico { width: 34px; height: 34px; border-radius: 10px; }
+  .page-ico svg { width: 19px; height: 19px; }
+  .head > div:has(> .page-ico) { column-gap: 10px; }
+}
+
+/* ---------- jam kerja per hari (Presensi → Aturan) ---------- */
+.jam-kerja { border: 1px solid var(--line); border-radius: var(--r); padding: 10px 12px 12px; margin: 0; display: grid; gap: 8px; min-width: 0; }
+.jam-kerja legend { font-size: 13px; font-weight: 600; padding: 0 6px; }
+.jk-row { display: flex; gap: 8px; align-items: center; }
+.jk-row .chk { border: 0; padding: 0; width: 104px; flex: none; }
+.jk-row input[type=time] { width: 128px; flex: 0 1 128px; min-width: 0; }
+.field > .chk { width: fit-content; }
+@media (max-width: 520px) {
+  .jam-kerja { padding: 8px 10px 10px; }
+  .jk-row { gap: 6px; }
+  .jk-row .chk { width: 78px; font-size: 13px; }
+  .jk-row input[type=time] { flex: 1 1 0; width: auto; padding-left: 8px; padding-right: 6px; }
+}
+.jk-row input[type=time]:disabled { opacity: .45; }

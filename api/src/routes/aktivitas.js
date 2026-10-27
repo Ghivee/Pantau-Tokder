@@ -20,7 +20,8 @@ router.get('/', async (req, res) => {
     const dari = req.query.dari || todayWib(30);
     const sampai = req.query.sampai || todayWib(0);
     if (![dari, sampai].every((d) => /^\d{4}-\d{2}-\d{2}$/.test(d))) return res.status(400).json({ error: 'Format tanggal harus YYYY-MM-DD' });
-    const editorId = /^\d+$/.test(req.query.editor_id || '') ? req.query.editor_id : null;
+    // Employees see only their own log.
+    const editorId = !req.isAdmin ? req.editor.id : /^\d+$/.test(req.query.editor_id || '') ? req.query.editor_id : null;
     res.json(await dataService.aktivitas({ dari, sampai, editorId }));
   } catch (err) {
     fail(res, err);
