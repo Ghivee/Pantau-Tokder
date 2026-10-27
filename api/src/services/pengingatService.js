@@ -1,19 +1,18 @@
 const db = require('../config/db');
 const presensi = require('./presensiService');
-const gaji = require('./gajiService');
 const push = require('./pushService');
-const { isWorkday } = require('./pengajuanService');
+const kalender = require('./kalenderService');
 
 // Reminder for people who have not checked in, sent once per person per day between
 // 10 minutes after the late limit and 3 hours after opening time, on working days only.
 async function pengingatAbsen(now = Date.now()) {
-  const [pcfg, gcfg] = await Promise.all([presensi.getConfig(), gaji.getConfig()]);
+  const pcfg = await presensi.getConfig();
   if (!pcfg.siap) return 0;
   const hari = presensi.todayWib(now);
-  if (!isWorkday(hari, gcfg)) return 0;
+  const jam = kalender.jamPada(pcfg, hari);
+  if (!jam) return 0;
   const menit = presensi.menitWib(now);
-  const [h, m] = pcfg.jam_masuk.split(':').map(Number);
-  const buka = h * 60 + m;
+  const buka = kalender.keMenit(jam.masuk);
   if (menit < buka + pcfg.toleransi + 10 || menit > buka + 180) return 0;
   const r = await db.query(
     `SELECT e.id, e.nama FROM editors e
@@ -26,7 +25,7 @@ async function pengingatAbsen(now = Date.now()) {
   let n = 0;
   for (const e of r.rows) {
     const sent = await push.sekali(`absen:${hari}:${e.id}`, () => push.kirim({ editorId: e.id }, {
-      title: 'Belum absen masuk', body: `${e.nama}, jam masuk ${pcfg.jam_masuk}. Absen dari Wi-Fi kantor, atau ajukan izin bila berhalangan.`, url: '/presensi', tag: 'absen',
+      title: 'Belum absen masuk', body: `${e.nama}, jam masuk ${jam.masuk}. Absen dari Wi-Fi kantor, atau ajukan izin bila berhalangan.`, url: '/presensi', tag: 'absen',
     }));
     if (sent) n++;
   }

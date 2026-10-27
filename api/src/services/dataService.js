@@ -5,6 +5,7 @@ const editorService = require('./editorService');
 const presensi = require('./presensiService');
 const gaji = require('./gajiService');
 const pengajuan = require('./pengajuanService');
+const kalender = require('./kalenderService');
 
 // Every list the app shows, in one place: the single routes and /api/bootstrap both use these,
 // so the numbers are the same whichever way they are loaded.
@@ -17,7 +18,14 @@ const LIST_COLUMNS = `id, post_id, platform, url, judul, tanggal_upload, editor_
   duration_secs, channel_id, channel_nama, revenue, views, likes, comments, stats_at,
   (retention_data IS NOT NULL) AS punya_retensi`;
 
-async function content({ isAdmin, editorId, platform, status } = {}) {
+// An employee sees the channel as a whole and their own work, not colleagues': videos made by
+// someone else carry editor_id 0 ("a colleague") instead of who made them.
+function samarkan(row, selfId) {
+  if (row.editor_id != null && row.editor_id !== selfId) row.editor_id = 0;
+  return row;
+}
+
+async function content({ isAdmin, selfId, editorId, platform, status } = {}) {
   let sql = `SELECT ${LIST_COLUMNS} FROM content WHERE 1=1`;
   const params = [];
   if (editorId && editorId !== 'all') { params.push(editorId); sql += ` AND editor_id = $${params.length}`; }
@@ -25,7 +33,7 @@ async function content({ isAdmin, editorId, platform, status } = {}) {
   if (status) { params.push(status); sql += ` AND status_identifikasi = $${params.length}`; }
   const rows = (await db.query(sql + ' ORDER BY tanggal_upload DESC', params)).rows;
   // Revenue is for the owner only.
-  if (!isAdmin) rows.forEach((r) => { delete r.revenue; });
+  if (!isAdmin) rows.forEach((r) => { delete r.revenue; samarkan(r, selfId); });
   return rows;
 }
 
@@ -57,7 +65,6 @@ async function aktivitas({ dari = wib(30), sampai = wib(0), editorId } = {}) {
   let sql = `SELECT id, editor_id, to_char(tanggal, 'YYYY-MM-DD') AS tanggal, jam, tugas, detail, jumlah, channel_id, created_at
              FROM aktivitas WHERE tanggal BETWEEN $1 AND $2`;
   if (editorId) { params.push(editorId); sql += ` AND editor_id = $3`; }
-  // Everyone signed in sees the whole team's log: the Harian page scores every person from it.
   return (await db.query(sql + ' ORDER BY tanggal, jam', params)).rows;
 }
 
@@ -107,8 +114,14 @@ async function presensiFor({ isAdmin, editor, ip }) {
   const base = { ip_anda: ip, ip_kantor: presensi.ipTerdaftar(ip, cfg.ips) };
   const config = isAdmin
     ? { ...cfg, ...base, ip_saran: presensi.ipSaran(ip), ip_kandidat: await presensi.kandidatIp(cfg) }
-    : { siap: cfg.siap, radius: cfg.radius, akurasi_maks: cfg.akurasi_maks, jam_masuk: cfg.jam_masuk, toleransi: cfg.toleransi, jam_pulang: cfg.jam_pulang, ...base };
+    : { ...presensi.untukKaryawan(cfg), ...base };
   return { config, rows, ditolak };
+}
+
+// Opening hours per weekday and every day off by date, for the pages that count working days.
+async function kalenderFor() {
+  const cfg = await presensi.getConfig();
+  return { jadwal: cfg.jadwal, toleransi: cfg.toleransi, cuti_bersama: cfg.cuti_bersama, libur: kalender.daftarLibur(cfg) };
 }
 
 async function pengajuanFor({ isAdmin, editor }) {
@@ -122,9 +135,11 @@ async function pengajuanFor({ isAdmin, editor }) {
 // in `gagal` instead of failing the whole answer, so the rest still shows.
 async function bootstrap({ isAdmin, editor, ip }) {
   const parts = {
-    editors: () => editorService.getAllEditors(),
-    content: () => content({ isAdmin }),
-    aktivitas: () => aktivitas({ dari: wib(60) }),
+    // An employee gets only their own profile, tasks and attendance.
+    editors: () => editorService.getAllEditors().then((l) => (isAdmin ? l : l.filter((e) => e.id === editor.id))),
+    content: () => content({ isAdmin, selfId: editor && editor.id }),
+    aktivitas: () => aktivitas({ dari: wib(60), editorId: isAdmin ? null : editor.id }),
+    kalender: () => kalenderFor(),
     channels: () => channels(),
     scan: () => scanStatus(),
     oauth: () => oauthStatus(),
@@ -146,4 +161,4 @@ async function bootstrap({ isAdmin, editor, ip }) {
   return out;
 }
 
-module.exports = { content, channels, daily, aktivitas, goal, scanStatus, oauthStatus, presensiFor, bootstrap, LIST_COLUMNS, wib };
+module.exports = { samarkan, kalenderFor, content, channels, daily, aktivitas, goal, scanStatus, oauthStatus, presensiFor, bootstrap, LIST_COLUMNS, wib };

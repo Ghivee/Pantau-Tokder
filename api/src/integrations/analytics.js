@@ -85,6 +85,12 @@ async function fetchRetentionData(videoId, accessToken) {
  * Returns revenue amount (number).
  * Returns null if not available or no revenue.
  */
+// Revenue is asked from YouTube in rupiah (YouTube converts with its own daily rate).
+// Until the stored US$ figures are converted once (see analyticsService.pastikanRupiah) the
+// scan keeps asking in US$, so the two are never mixed.
+let mataUang = 'USD';
+const pakaiMataUang = (c) => { mataUang = c === 'IDR' ? 'IDR' : 'USD'; };
+
 async function fetchRevenueData(videoId, accessToken) {
   if (!accessToken) return null;
 
@@ -96,6 +102,7 @@ async function fetchRevenueData(videoId, accessToken) {
         startDate: '2020-01-01',
         endDate: new Date().toISOString().slice(0, 10),
         metrics: 'estimatedRevenue',
+        currency: mataUang,
         filters: `video==${videoId}`
       }
     });
@@ -133,7 +140,7 @@ async function fetchChannelDaily(accessToken, startDate, endDate) {
   const base = ['views', 'estimatedMinutesWatched', 'subscribersGained', 'subscribersLost'];
   const run = (metrics) => axios.get('https://youtubeanalytics.googleapis.com/v2/reports', {
     headers: { Authorization: `Bearer ${accessToken}` },
-    params: { ids: 'channel==MINE', startDate, endDate, metrics: metrics.join(','), dimensions: 'day', sort: 'day' }
+    params: { ids: 'channel==MINE', startDate, endDate, metrics: metrics.join(','), dimensions: 'day', sort: 'day', currency: mataUang }
   });
   let res;
   let withRevenue = true;
@@ -153,4 +160,4 @@ async function fetchChannelDaily(accessToken, startDate, endDate) {
   }));
 }
 
-module.exports = { retentionCurve, getAuthUrl, exchangeCodeForTokens, getAccessToken, fetchRetentionData, fetchRevenueData, fetchOwnChannel, fetchChannelDaily, takeErrors };
+module.exports = { pakaiMataUang, retentionCurve, getAuthUrl, exchangeCodeForTokens, getAccessToken, fetchRetentionData, fetchRevenueData, fetchOwnChannel, fetchChannelDaily, takeErrors };
