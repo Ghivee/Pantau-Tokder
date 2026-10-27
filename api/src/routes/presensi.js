@@ -37,8 +37,7 @@ router.get('/config', async (req, res) => {
     const ip = clientIp(req);
     const ip_kantor = presensi.ipTerdaftar(ip, cfg.ips);
     if (req.isAdmin) return res.json({ ...cfg, ip_anda: ip, ip_saran: presensi.ipSaran(ip), ip_kantor, ip_kandidat: await presensi.kandidatIp(cfg) });
-    const { siap, radius, akurasi_maks, jam_masuk, toleransi, jam_pulang } = cfg;
-    res.json({ siap, radius, akurasi_maks, jam_masuk, toleransi, jam_pulang, ip_anda: ip, ip_kantor });
+    res.json({ ...presensi.untukKaryawan(cfg), ip_anda: ip, ip_kantor });
   } catch (err) {
     fail(res, err);
   }

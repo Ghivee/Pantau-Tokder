@@ -163,7 +163,7 @@ Satu karyawan hanya bisa absen masuk sekali dan absen pulang sekali per hari. Ab
 1. Datang ke kantor, sambungkan laptop/HP ke **Wi-Fi kantor**, masuk sebagai pemilik.
 2. Klik **Pakai lokasi saya sekarang** untuk mengisi koordinat kantor.
 3. Klik **Tambahkan IP saya** untuk mendaftarkan IP Wi-Fi kantor.
-4. Atur radius, akurasi maksimal, jam masuk, toleransi telat dan jam pulang, lalu klik **Simpan aturan**.
+4. Atur radius, akurasi maksimal, **jam kerja per hari**, toleransi telat dan hari libur, lalu klik **Simpan aturan**.
 
 Catatan:
 
@@ -180,13 +180,13 @@ Yang disetujui langsung masuk ke gaji: hari izin/sakit/cuti tidak dihitung tidak
 
 ### 11. Gaji
 
-1. **Gaji → Atur gaji → Aturan umum:** hari kerja (bawaan Senin–Sabtu), tanggal libur, jatah cuti per tahun (bawaan 12).
+1. **Gaji → Atur gaji → Aturan umum:** jatah cuti per tahun (bawaan 12). Hari kerja dan libur ikut **Presensi → Aturan presensi** (bagian 19).
 2. **Atur gaji → Gaji (nama):** gaji pokok, tunjangan, potongan tetap (BPJS/kasbon), potongan per hari tidak hadir, potongan per hari izin, potongan per kali telat, upah lembur per jam, bonus per video di atas target, bonus per 1.000 views. Semua mulai dari 0; komponen bernilai 0 tidak dipakai.
 3. Selama bulan berjalan, gaji tampil sebagai **Perkiraan** dan berubah mengikuti data. **Rincian** menampilkan slip lengkap; di sana pemilik bisa menambah **penyesuaian** (bonus atau potongan sekali dengan keterangan).
 4. Akhir bulan: **Finalkan** mengunci angka menjadi slip resmi (tidak berubah lagi walau data atau aturan berubah). Setelah transfer, klik **Tandai dibayar**. **Buka lagi** mengembalikan ke perkiraan bila perlu koreksi.
 5. Karyawan melihat slipnya sendiri di menu Gaji dan bisa **Cetak / PDF**.
 
-Aturan hitung: tidak hadir = hari kerja tanpa absen masuk dan tanpa izin/sakit/cuti yang disetujui, dihitung mulai hari pertama presensi dipakai dan hanya untuk hari yang sudah lewat. Lembur = absen pulang ≥ 30 menit setelah jam pulang (maks. 6 jam/hari). Target video bulanan = target harian × hari kerja yang wajib hadir.
+Aturan hitung: tidak hadir = hari kerja tanpa absen masuk dan tanpa izin/sakit/cuti yang disetujui, dihitung mulai hari pertama presensi dipakai dan hanya untuk hari yang sudah lewat. Lembur = absen pulang ≥ 30 menit setelah jam pulang hari itu, atau seluruh jam kerja bila masuk di hari libur (maks. 6 jam/hari). Target video bulanan = target harian × hari kerja yang wajib hadir.
 
 ### 12. Notifikasi ke HP
 
@@ -223,6 +223,15 @@ Tiap malam (01.00–05.00 WIB) jadwal tiap jam merapikan data lama: angka views 
 - **Batalkan**: menghapus aktivitas atau membatalkan pengajuan bisa diurungkan dalam 5 detik.
 - **Excel**: unduh rekap gaji (Gaji), presensi 30 hari (Presensi) dan daftar video (Konten).
 - **Tanpa sinyal**: data terakhir disimpan di perangkat dan langsung tampil saat aplikasi dibuka; bila server tidak terjangkau, muncul keterangan jam data tersebut. Data gaji tidak disimpan di perangkat; keluar akun menghapus semuanya.
+
+### 19. Jam kerja, tanggal merah, privasi karyawan, rupiah, ikon
+
+- **Jam kerja per hari** (Presensi → Aturan presensi): bawaan **Senin–Kamis 08.00–16.00**, **Jumat–Sabtu 08.00–15.00**, Minggu libur. Telat dihitung dari jam masuk hari itu, pulang lebih awal dan lembur dari jam pulang hari itu.
+- **Tanggal merah libur**: libur nasional dari SKB 3 Menteri 2026 dan 2027 (setneg.go.id) sudah tercatat di `api/src/services/kalenderService.js`; tahun berikutnya ditambahkan di file itu saat SKB-nya terbit (biasanya September). **Cuti bersama** opsional (centang *Ikut cuti bersama pemerintah*), dan pemilik bisa menambah **libur kantor** sendiri. Di hari libur: tidak dihitung tidak hadir, tidak ada target video/tugas, absen tetap boleh dan jamnya dihitung lembur. Satu kalender ini dipakai presensi, pengingat absen, gaji, cuti dan skor harian.
+- **Karyawan hanya melihat dirinya sendiri dan channel secara umum.** Server hanya mengirim profil, aktivitas, presensi, izin dan gaji milik karyawan itu; video buatan rekan dikirim tanpa pembuat (tampil “Tim”). Menu Ringkasan tim dan Karyawan (termasuk tabel hak akses) hanya untuk pemilik. Performa karyawan dibandingkan dengan video lain di channel, bukan dengan rekan. Di Belum dikenali, karyawan hanya bisa menandai video sebagai miliknya sendiri.
+- **Pendapatan dalam rupiah**: YouTube Analytics diminta dalam IDR (kurs harian YouTube). Saat pertama kali sinkron setelah pembaruan ini, angka US$ yang sudah tersimpan dikonversi sekali dengan kurs hari itu (Frankfurter/ECB, cadangan open.er-api.com; tercatat di settings `pendapatan_rupiah`), lalu riwayat harian channel diambil ulang dalam rupiah.
+- **Warna per bagian menu**: tiap kelompok menu punya warna aksen sendiri (oranye, biru, ungu) di menu samping, tab bawah dan ikon di judul halaman.
+- **Ikon aplikasi** dari logo Tokder: `icon-192.png`, `icon-512.png`, `icon-maskable-512.png` (Android), `apple-touch-icon.png` (iPhone), `icon-32.png` (tab browser).
 
 ---
 
@@ -286,5 +295,6 @@ assets/sw.js, assets/manifest.webmanifest  service worker notifikasi dan pemasan
 .github/workflows/sinkron.yml         sinkronisasi + pengingat + perawatan data tiap jam lewat GitHub Actions
 .github/workflows/tes.yml             tes, build dan cek CSP di setiap pull request
 api/src/services/perawatanService.js  perapian data lama, ringkasan mingguan, status sistem
+api/src/services/kalenderService.js   jam kerja per hari, tanggal merah, cuti bersama, libur kantor
 api/test/*.cjs      tes otomatis (jalankan: npm test)
 ```

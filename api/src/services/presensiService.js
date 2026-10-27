@@ -1,9 +1,10 @@
 const net = require('net');
 const db = require('../config/db');
 const { bad } = require('../utils/httpError');
+const kalender = require('./kalenderService');
 
 const CONFIG_KEY = 'presensi_config';
-const DEFAULTS = { lat: null, lng: null, radius: 100, akurasi_maks: 50, ips: [], jam_masuk: '08:00', toleransi: 10, jam_pulang: '17:00' };
+const DEFAULTS = { lat: null, lng: null, radius: 100, akurasi_maks: 50, ips: [], toleransi: 10, cuti_bersama: false, libur_kantor: [] };
 const MAX_UMUR_LOKASI_MS = 2 * 60 * 1000;
 const MAX_SELISIH_JAM_MS = 5 * 60 * 1000;
 const KECEPATAN_MAKS_KMJ = 150;
@@ -76,23 +77,21 @@ function validasiConfig(body) {
   if (ips.length > 20) throw bad(400, 'Maksimal 20 IP kantor');
   const salah = ips.find((x) => !parseIp(x));
   if (salah) throw bad(400, `IP "${salah}" tidak valid. Contoh: 203.0.113.7 atau 203.0.113.0/24`);
-  const jam = (v, nama) => {
-    const s = String(v || '').replace('.', ':');
-    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(s)) throw bad(400, `${nama} harus format JJ:MM, misal 08:00`);
-    return s;
-  };
-  const jam_masuk = jam(b.jam_masuk, 'Jam masuk');
-  const jam_pulang = jam(b.jam_pulang, 'Jam pulang');
-  if (keMenit(jam_pulang) <= keMenit(jam_masuk)) throw bad(400, 'Jam pulang harus setelah jam masuk');
+  const jadwal = kalender.validasiJadwal(b.jadwal, bad);
   const toleransi = Number(b.toleransi);
   if (!Number.isInteger(toleransi) || toleransi < 0 || toleransi > 120) throw bad(400, 'Toleransi telat harus 0–120 menit');
-  return { lat, lng, radius, akurasi_maks: akurasi, ips: [...new Set(ips)], jam_masuk, toleransi, jam_pulang };
+  const libur_kantor = kalender.validasiLibur(b.libur_kantor, bad);
+  return { lat, lng, radius, akurasi_maks: akurasi, ips: [...new Set(ips)], jadwal, toleransi, cuti_bersama: !!b.cuti_bersama, libur_kantor };
 }
 
 async function getConfig() {
-  const r = await db.query('SELECT value FROM settings WHERE key = $1', [CONFIG_KEY]);
-  let saved = {};
-  try { saved = r.rows[0] ? JSON.parse(r.rows[0].value) : {}; } catch (e) { saved = {}; }
+  const r = await db.query(`SELECT key, value FROM settings WHERE key IN ($1, 'gaji_config')`, [CONFIG_KEY]);
+  const baca = (k) => { const row = r.rows.find((x) => x.key === k); try { return row ? JSON.parse(row.value) : {}; } catch (e) { return {}; } };
+  const saved = baca(CONFIG_KEY);
+  // Older settings had one opening time for every day and kept days off with payroll.
+  if (!Array.isArray(saved.jadwal)) saved.jadwal = kalender.JADWAL_DEFAULT;
+  if (!Array.isArray(saved.libur_kantor)) saved.libur_kantor = Array.isArray(baca('gaji_config').libur) ? baca('gaji_config').libur : [];
+  delete saved.jam_masuk; delete saved.jam_pulang;
   const cfg = { ...DEFAULTS, ...saved };
   cfg.siap = Number.isFinite(cfg.lat) && Number.isFinite(cfg.lng) && cfg.ips.length > 0;
   return cfg;
@@ -234,7 +233,9 @@ async function absen(editor, body, ip, ua, now = Date.now(), onIpBaru = null) {
     return ditolak(hasil.alasan, hasil.jarak, gpsOk);
   }
 
-  const telat = input.jenis === 'masuk' ? Math.max(0, menitWib(now) - keMenit(cfg.jam_masuk) - cfg.toleransi) : null;
+  // Lateness against that day's opening time; checking in on a day off is never late.
+  const jam = kalender.jamPada(cfg, tanggal);
+  const telat = input.jenis === 'masuk' ? (jam ? Math.max(0, menitWib(now) - keMenit(jam.masuk) - cfg.toleransi) : 0) : null;
   const r = await db.query(
     `INSERT INTO presensi (editor_id, tanggal, jenis, waktu, lat, lng, akurasi, jarak, ip, telat_menit)
      VALUES ($1, $2, $3, NOW() AT TIME ZONE 'UTC', $4, $5, $6, $7, $8, $9)
@@ -262,7 +263,14 @@ async function daftarDitolak({ dari, sampai, editorId }) {
   return (await db.query(sql + ' ORDER BY waktu DESC LIMIT 200', params)).rows;
 }
 
+// What employees may see of the rules: no office coordinates or IP list.
+function untukKaryawan(cfg) {
+  const { siap, radius, akurasi_maks, toleransi, jadwal } = cfg;
+  return { siap, radius, akurasi_maks, toleransi, jadwal };
+}
+
 module.exports = {
+  untukKaryawan,
   getConfig, saveConfig, validasiConfig, periksa, absen, daftar, daftarDitolak, kandidatIp, pakaiKandidat, abaikanKandidat,
   jarakMeter, parseIp, ipTerdaftar, ipSaran, todayWib, menitWib,
 };
