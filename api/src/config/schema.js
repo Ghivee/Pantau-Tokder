@@ -156,6 +156,17 @@ const STATEMENTS = [
   )`,
   // Reminders already sent, so a reminder goes out once however often the scheduler runs.
   `CREATE TABLE IF NOT EXISTS push_terkirim (kunci VARCHAR(120) PRIMARY KEY, waktu TIMESTAMP DEFAULT NOW())`,
+  // Lookups by person happen on almost every page.
+  `CREATE INDEX IF NOT EXISTS content_editor_idx ON content (editor_id)`,
+  `CREATE INDEX IF NOT EXISTS aktivitas_editor_tanggal_idx ON aktivitas (editor_id, tanggal)`,
+  `CREATE INDEX IF NOT EXISTS presensi_ditolak_editor_idx ON presensi_ditolak (editor_id, waktu DESC)`,
+  // For the daily clean-up of old rows.
+  `CREATE INDEX IF NOT EXISTS metrics_snapshot_time_idx ON metrics_snapshot (timestamp)`,
+  `CREATE INDEX IF NOT EXISTS push_terkirim_waktu_idx ON push_terkirim (waktu)`,
+  // A refusal for the office Wi-Fi while the GPS was fine inside the office: when several people
+  // get one from the same new network, the office's public IP has most likely changed.
+  `ALTER TABLE presensi_ditolak ADD COLUMN IF NOT EXISTS gps_ok BOOLEAN DEFAULT FALSE`,
+  `ALTER TABLE presensi_ditolak ADD COLUMN IF NOT EXISTS ip_jaringan VARCHAR(64)`,
 ];
 
 const CONNECTION_CODES = ['ECONNREFUSED', 'ENOTFOUND', 'ETIMEDOUT', '57P01', '53300'];

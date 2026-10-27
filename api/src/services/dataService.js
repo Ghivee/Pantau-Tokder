@@ -106,7 +106,7 @@ async function presensiFor({ isAdmin, editor, ip }) {
   const [cfg, rows, ditolak] = await Promise.all([presensi.getConfig(), presensi.daftar({ dari, sampai, editorId }), presensi.daftarDitolak({ dari, sampai, editorId })]);
   const base = { ip_anda: ip, ip_kantor: presensi.ipTerdaftar(ip, cfg.ips) };
   const config = isAdmin
-    ? { ...cfg, ...base, ip_saran: presensi.ipSaran(ip) }
+    ? { ...cfg, ...base, ip_saran: presensi.ipSaran(ip), ip_kandidat: await presensi.kandidatIp(cfg) }
     : { siap: cfg.siap, radius: cfg.radius, akurasi_maks: cfg.akurasi_maks, jam_masuk: cfg.jam_masuk, toleransi: cfg.toleransi, jam_pulang: cfg.jam_pulang, ...base };
   return { config, rows, ditolak };
 }
