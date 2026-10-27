@@ -1,5 +1,6 @@
 const db = require('../config/db');
-const { getAccessToken, fetchOwnChannel, fetchChannelDaily } = require('../integrations/analytics');
+const axios = require('axios');
+const { getAccessToken, fetchOwnChannel, fetchChannelDaily, pakaiMataUang } = require('../integrations/analytics');
 const { encrypt, decrypt, isEncrypted } = require('../utils/encryption');
 
 const PREFIX = 'google_refresh_token:';
@@ -117,4 +118,51 @@ async function syncChannelDaily(channelId, accessToken, days = 95) {
   return rows.length;
 }
 
-module.exports = { saveConnection, removeConnection, listConnections, accessTokens, accessTokenFor, takeTokenErrors, syncChannelDaily, migrateLegacyToken };
+// One-time switch of stored revenue from US$ to rupiah. Stored figures are multiplied by
+// today's rate in one transaction; the next syncs then overwrite recent days and videos with
+// YouTube's own rupiah figures. Until a rate can be fetched, everything stays in US$.
+const KUNCI_RUPIAH = 'pendapatan_rupiah';
+
+async function kursUsdIdr() {
+  const sumber = [
+    ['https://api.frankfurter.dev/v1/latest?base=USD&symbols=IDR', (d) => d.rates && d.rates.IDR],
+    ['https://open.er-api.com/v6/latest/USD', (d) => d.rates && d.rates.IDR],
+  ];
+  for (const [url, ambil] of sumber) {
+    try {
+      const k = Number(ambil((await axios.get(url, { timeout: 8000 })).data));
+      if (k > 1000 && k < 100000) return { kurs: k, sumber: new URL(url).host };
+    } catch (e) { console.warn('Kurs', url, e.message); }
+  }
+  return null;
+}
+
+async function pastikanRupiah() {
+  const ada = await db.query('SELECT value FROM settings WHERE key = $1', [KUNCI_RUPIAH]);
+  if (ada.rows[0]) { pakaiMataUang('IDR'); return { rupiah: true, baru: false }; }
+  const k = await kursUsdIdr();
+  if (!k || !db.pool) { pakaiMataUang('USD'); return { rupiah: false }; }
+  const client = await db.pool.connect();
+  try {
+    await client.query('BEGIN');
+    // Inserted first: a second scan running at the same time stops here instead of converting twice.
+    const r = await client.query(`INSERT INTO settings (key, value, updated_at) VALUES ($1, $2, NOW()) ON CONFLICT (key) DO NOTHING RETURNING key`,
+      [KUNCI_RUPIAH, JSON.stringify({ kurs: k.kurs, sumber: k.sumber, waktu: new Date().toISOString() })]);
+    if (r.rows.length) {
+      await client.query('UPDATE content SET revenue = revenue * $1 WHERE revenue IS NOT NULL AND revenue <> 0', [k.kurs]);
+      await client.query('UPDATE channel_daily SET revenue = revenue * $1 WHERE revenue IS NOT NULL AND revenue <> 0', [k.kurs]);
+      await client.query('UPDATE metrics_snapshot SET revenue = revenue * $1 WHERE revenue IS NOT NULL AND revenue <> 0', [k.kurs]);
+    }
+    await client.query('COMMIT');
+    pakaiMataUang('IDR');
+    return { rupiah: true, baru: r.rows.length > 0, kurs: k.kurs };
+  } catch (e) {
+    await client.query('ROLLBACK').catch(() => {});
+    pakaiMataUang('USD');
+    throw e;
+  } finally {
+    client.release();
+  }
+}
+
+module.exports = { pastikanRupiah, saveConnection, removeConnection, listConnections, accessTokens, accessTokenFor, takeTokenErrors, syncChannelDaily, migrateLegacyToken };

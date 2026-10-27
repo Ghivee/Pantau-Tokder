@@ -63,8 +63,8 @@ test('rules that are 0 add no lines, and the total never goes below 0', () => {
 test('input checks', () => {
   assert.throws(() => validasiAturan({ gaji_pokok: -1 }));
   assert.strictEqual(validasiAturan({ gaji_pokok: '2500000.4' }).gaji_pokok, 2500000);
-  assert.throws(() => validasiConfig({ hari_kerja: [], jatah_cuti: 12 }));
-  assert.throws(() => validasiConfig({ hari_kerja: [1], libur: '2026-02-30', jatah_cuti: 12 }));
+  assert.throws(() => validasiConfig({ jatah_cuti: 61 }));
+  assert.deepStrictEqual(validasiConfig({ jatah_cuti: 12, hari_kerja: [1] }), { jatah_cuti: 12 });
   assert.throws(() => validasi({ jenis: 'klaim', dari: '2026-10-20', jumlah: 50, alasan: 'Bensin' }));
   assert.throws(() => validasi({ jenis: 'cuti', dari: '2026-10-20', sampai: '2026-10-19', alasan: 'Pulang' }));
   assert.strictEqual(workdaysIn('2026-10-17', '2026-10-19', cfg).length, 1); // Sat holiday, Sun, Mon

@@ -11,8 +11,8 @@ import './styles.css';
   const cf = new Intl.NumberFormat('id-ID', { notation: 'compact', maximumFractionDigits: 1 });
   const fmt = (n) => (n == null || isNaN(n) ? '—' : Math.abs(n) >= 10000 ? cf.format(n) : nf.format(Math.round(n)));
   const pct = (v) => (v == null || isNaN(v) ? '—' : Math.round(v * 100) + '%');
-  const usd = (v) => (v == null || isNaN(v) ? '—' : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(v));
   const idr = (v) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(v || 0);
+  const rpOrDash = (v) => (v == null || isNaN(v) ? '—' : idr(v));
   const signed = (v, f = nf.format) => (v == null || isNaN(v) ? '' : (v > 0 ? '+' : v < 0 ? '−' : '±') + f(Math.abs(v)));
   const BLN = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
   const HARI = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
@@ -34,7 +34,7 @@ import './styles.css';
     video: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9l5 3-5 3z"/>',
     help: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 015 .5c0 1.5-2.5 2-2.5 3.5M12 17h.01"/>',
     team: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 010 7M18 14.8c1.8.8 3 2.6 3.5 5.2"/>',
-    money: '<path d="M12 2v20M17 6.5c-.8-1.5-2.6-2.5-5-2.5-3 0-5 1.5-5 3.7 0 5 10 2.6 10 7.6 0 2.2-2 3.7-5 3.7-2.6 0-4.5-1-5.3-2.6"/>',
+    money: '<rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/><path d="M6 9.5v5M18 9.5v5"/>',
     gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.6 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.6-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/>',
     plus: '<path d="M12 5v14M5 12h14"/>',
     more: '<circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/>',
@@ -91,6 +91,7 @@ import './styles.css';
     error: null, warnings: [], loadedAt: null,
     session: null,
     presensi: null,
+    kalender: null,
     gaji: null, gajiBulan: null, gajiCache: {}, gajiRiwayat: null, pengajuan: null, insight: null,
     perfEditor: null, perfPeriode: 30, trenCh: 'all',
     periode: 7, channel: 'all', day: null,
@@ -153,7 +154,7 @@ import './styles.css';
   const optional = (p, label) => p.catch((e) => { S.warnings.push(label + ': ' + e.message); return null; });
 
   // One request brings everything every page needs, so switching pages never waits for the network.
-  const BAGIAN = { aktivitas: 'Aktivitas', channels: 'Daftar channel', scan: 'Status sinkronisasi', oauth: 'Status YouTube Analytics', goal: 'Target omzet', daily: 'YouTube Analytics', presensi: 'Presensi', gaji: 'Gaji', pengajuan: 'Izin & klaim' };
+  const BAGIAN = { kalender: 'Jam kerja & libur', aktivitas: 'Aktivitas', channels: 'Daftar channel', scan: 'Status sinkronisasi', oauth: 'Status YouTube Analytics', goal: 'Target omzet', daily: 'YouTube Analytics', presensi: 'Presensi', gaji: 'Gaji', pengajuan: 'Izin & klaim' };
   // The last data is kept on this device so the app opens instantly and still shows something
   // on a weak signal. Payroll is left out; signing out clears it.
   const CACHE_KEY = 'pt_data';
@@ -182,7 +183,7 @@ import './styles.css';
     Object.assign(S, {
       editors: b.editors, content: b.content, aktivitas: b.aktivitas || [], channels: b.channels || [], scan: b.scan, oauth: b.oauth,
       goal: b.goal, daily: b.daily || [], presensi: b.presensi || (b.gagal && b.gagal.presensi ? { error: b.gagal.presensi } : null),
-      pengajuan: b.pengajuan || null,
+      pengajuan: b.pengajuan || null, kalender: b.kalender || null,
       error: null, loadedAt: Date.now(),
     });
     const bln = today().slice(0, 7);
@@ -299,11 +300,13 @@ import './styles.css';
     S.byEdDay = new Map();
     S.akByEdDay = new Map();
     S.unmatched = 0;
-    S.content.forEach((c) => { if (S.edMap.has(c.editor_id)) push(S.byEdDay, c.editor_id + '|' + c._day, c); else S.unmatched++; });
+    S.content.forEach((c) => { if (S.edMap.has(c.editor_id)) push(S.byEdDay, c.editor_id + '|' + c._day, c); else if (belumDikenali(c)) S.unmatched++; });
     S.aktivitas.forEach((a) => push(S.akByEdDay, a.editor_id + '|' + a.tanggal, a));
   }
 
   const editorById = (id) => S.edMap.get(+id) || null;
+  // editor_id 0 = made by a colleague (employees are not told who).
+  const belumDikenali = (c) => c.editor_id == null || (c.editor_id !== 0 && !S.edMap.has(+c.editor_id));
   const activeEditors = () => S.editors.filter((e) => e.status !== 'nonaktif');
   const chName = (id) => (S.channels.find((c) => c.id === id) || {}).nama || 'Channel utama';
   const chColor = (id) => (S.channels.find((c) => c.id === id) || {})._color || 'var(--muted)';
@@ -342,7 +345,7 @@ import './styles.css';
       const sl = slotsOf(e);
       frac = sl.length ? sl.filter((x) => toMin(x) + TOL <= now).length / sl.length : Math.min(1, Math.max(0, (now - 300) / (22 * 60 - 300)));
     }
-    const target = Math.round(targetOf(e) * frac);
+    const target = jamKerja(day) ? Math.round(targetOf(e) * frac) : 0;
     const tTarget = Object.fromEntries(TUGAS.map((t) => [t.nama, t.target(target, frac)]));
     const vids = (S.byEdDay.get(e.id + '|' + day) || []).slice().sort((a, b) => a._jam.localeCompare(b._jam));
     vids.forEach((v) => { const m = slotFor(e, v._jam); v._slot = m && m.slot; v._late = m ? m.late : null; v._tepat = m ? m.late <= TOL : null; });
@@ -362,7 +365,7 @@ import './styles.css';
     if (S.aktivitas.length && due.length) parts.push({ key: 'tugas', max: 20, pts: (sum(due, (t) => Math.min(done(t.nama) / tTarget[t.nama], 1)) / due.length) * 20 });
     const skor = day > today() || !parts.length ? null : Math.round((sum(parts, (p) => p.pts) / sum(parts, (p) => p.max)) * 100);
     const res = {
-      e, day, target, tTarget, partial, vids, n, tepat, telat: withSlot.length - tepat, withSlot: withSlot.length, tasks, done,
+      e, day, libur: !jamKerja(day), target, tTarget, partial, vids, n, tepat, telat: withSlot.length - tepat, withSlot: withSlot.length, tasks, done,
       views: sum(vids, (v) => v.views), ratio, parts, skor, nilai: gradeOf(skor),
     };
     S.cache.set(key, res);
@@ -383,6 +386,15 @@ import './styles.css';
     };
   }
   const daysBack = (n, end = today()) => Array.from({ length: n }, (_, i) => addDays(end, i - n + 1));
+
+  // ============ office calendar ============
+  // Opening hours per weekday and days off come from the server (Presensi → Jam kerja & libur).
+  const JADWAL_BAWAAN = [null, ...Array(4).fill({ masuk: '08:00', pulang: '16:00' }), { masuk: '08:00', pulang: '15:00' }, { masuk: '08:00', pulang: '15:00' }];
+  const kalender = () => S.kalender || { jadwal: JADWAL_BAWAAN, toleransi: 10, libur: {} };
+  const liburNama = (d) => kalender().libur[d] || null;
+  // Opening hours on a date, or null on a day off.
+  const jamKerja = (d) => (liburNama(d) ? null : (kalender().jadwal || JADWAL_BAWAAN)[asDate(d).getUTCDay()] || null);
+  const ketLibur = (d) => liburNama(d) || (asDate(d).getUTCDay() === 0 ? 'Minggu' : 'Hari libur');
 
   // ============ shared bits ============
   function avatar(e, size = '') {
@@ -406,7 +418,11 @@ import './styles.css';
   const peranLabel = (p) => (p === 'terbatas' ? 'Editor terbatas' : 'Editor');
   const thumb = (c) => (c.post_id ? `https://i.ytimg.com/vi/${encodeURIComponent(c.post_id)}/mqdefault.jpg` : '');
   const vidCell = (c) => `<div class="vid">${thumb(c) ? `<img src="${thumb(c)}" alt="" loading="lazy">` : '<span class="ph"></span>'}<div class="tx"><b>${esc(c.judul)}</b><div>${esc(c._chNama)} · ${c.tipe_video === 'short' ? 'Shorts' : 'Video panjang'}</div></div></div>`;
-  const editorCell = (c) => { const e = editorById(c.editor_id); return e ? `<span class="ed">${avatar(e, 'xs')}${esc(e.nama)}</span>` : '<span class="pill warn">Belum dikenali</span>'; };
+  const editorCell = (c) => {
+    const e = editorById(c.editor_id);
+    if (e) return me() ? '<span class="pill leaf">Anda</span>' : `<span class="ed">${avatar(e, 'xs')}${esc(e.nama)}</span>`;
+    return belumDikenali(c) ? '<span class="pill warn">Belum dikenali</span>' : '<span class="muted">Tim</span>';
+  };
 
   function toast(msg, bad = false) {
     const t = document.createElement('div');
@@ -530,9 +546,9 @@ import './styles.css';
   // ============ navigation ============
   const ROUTES = [
     { id: 'hari-ini', label: 'Hari ini', icon: 'home', karyawan: true },
-    { id: 'ringkasan', label: 'Ringkasan', icon: 'home' },
+    { id: 'ringkasan', label: 'Ringkasan', icon: 'home', admin: true },
     { id: 'harian', label: 'Harian', icon: 'day' },
-    { id: 'performa', label: 'Performa', icon: 'target' },
+    { id: 'performa', label: 'Performa', short: 'Performa', icon: 'target' },
     { id: 'tren', label: 'Tren channel', short: 'Tren', icon: 'trend' },
     { id: 'konten', label: 'Konten', icon: 'video' },
     { id: 'analytics', label: 'Analytics', icon: 'chart' },
@@ -540,7 +556,7 @@ import './styles.css';
     { id: 'pengajuan', label: 'Izin & klaim', short: 'Izin', icon: 'inbox' },
     { id: 'gaji', label: 'Gaji', icon: 'wallet' },
     { id: 'identifikasi', label: 'Belum dikenali', icon: 'help' },
-    { id: 'karyawan', label: 'Karyawan', icon: 'team' },
+    { id: 'karyawan', label: 'Karyawan', icon: 'team', admin: true },
     { id: 'panduan', label: 'Panduan', icon: 'book' },
     { id: 'monetisasi', label: 'Pendapatan', icon: 'money', admin: true },
     { id: 'pengaturan', label: 'Pengaturan', icon: 'gear', admin: true },
@@ -548,8 +564,8 @@ import './styles.css';
   // The menu in groups, ordered by what each role uses most. The bottom bar on phones shows the first four.
   function menuGroups() {
     if (me()) return [
-      { label: 'Kerja saya', ids: ['hari-ini', 'presensi', 'performa', 'pengajuan', 'gaji'] },
-      { label: 'Channel & tim', ids: ['ringkasan', 'harian', 'tren', 'konten', 'analytics', 'identifikasi', 'karyawan'] },
+      { label: 'Kerja saya', ids: ['hari-ini', 'harian', 'performa', 'presensi', 'pengajuan', 'gaji'] },
+      { label: 'Channel', ids: ['tren', 'analytics', 'konten', 'identifikasi'] },
       { label: 'Bantuan', ids: ['panduan'] },
     ];
     return [
@@ -559,7 +575,9 @@ import './styles.css';
     ];
   }
   const TABS = () => (me() ? ['hari-ini', 'presensi', 'performa', 'pengajuan'] : ['ringkasan', 'harian', 'pengajuan', 'gaji']);
-  const routeLabel = (r) => (r.id === 'ringkasan' && me() ? 'Ringkasan tim' : r.id === 'karyawan' && me() ? 'Tim' : r.label);
+  const routeLabel = (r) => (me() && r.id === 'harian' ? 'Harian saya' : me() && r.id === 'performa' ? 'Performa saya' : me() && r.id === 'konten' ? 'Video channel' : r.label);
+  // Each menu group has its own colour, so it is clear at a glance which part of the app is open.
+  const grupOf = (id) => { const i = menuGroups().findIndex((g) => g.ids.includes(id)); return ['a', 'b', 'c'][Math.max(0, i)]; };
   const bisaBuka = (r) => (!r.admin || isAdmin()) && (!r.karyawan || !!me());
   const badgeOf = (id) => (id === 'identifikasi' ? S.unmatched : id === 'pengajuan' ? menunggu() : 0);
   // Pages live at real paths (/harian, /presensi, /harian/3); "/" is the home page of each role.
@@ -581,8 +599,8 @@ import './styles.css';
 
   function renderNav() {
     const cur = route();
-    $('#nav').innerHTML = S.session ? menuGroups().map((g) => `<div class="nav-label">${g.label}</div>` + g.ids.map((id) => ROUTES.find((x) => x.id === id)).filter(bisaBuka).map((r) =>
-      `<a href="${pathOf(r.id)}" ${r.id === cur ? 'aria-current="page"' : ''}>${icon(r.icon)}<span>${routeLabel(r)}</span>${badgeOf(r.id) ? `<span class="count">${badgeOf(r.id)}</span>` : ''}</a>`
+    $('#nav').innerHTML = S.session ? menuGroups().map((g, gi) => `<div class="nav-label" data-grup="${'abc'[gi]}">${g.label}</div>` + g.ids.map((id) => ROUTES.find((x) => x.id === id)).filter(bisaBuka).map((r) =>
+      `<a href="${pathOf(r.id)}" data-grup="${'abc'[gi]}" ${r.id === cur ? 'aria-current="page"' : ''}>${icon(r.icon)}<span>${routeLabel(r)}</span>${badgeOf(r.id) ? `<span class="count">${badgeOf(r.id)}</span>` : ''}</a>`
     ).join('')).join('') : '';
     const who = me();
     const theme = document.documentElement.dataset.theme;
@@ -597,7 +615,7 @@ import './styles.css';
     const tabs = TABS();
     const moreActive = !tabs.includes(cur);
     const sisa = sum(ROUTES.filter((r) => !tabs.includes(r.id) && bisaBuka(r)), (r) => badgeOf(r.id));
-    $('#tabbar').innerHTML = !S.session ? '' : tabs.map((id) => { const r = ROUTES.find((x) => x.id === id); return `<a href="${pathOf(id)}" ${id === cur ? 'aria-current="page"' : ''}>${icon(r.icon)}<span>${r.short || routeLabel(r)}</span>${badgeOf(id) ? `<span class="count">${badgeOf(id) > 99 ? '99+' : badgeOf(id)}</span>` : ''}</a>`; }).join('') +
+    $('#tabbar').innerHTML = !S.session ? '' : tabs.map((id) => { const r = ROUTES.find((x) => x.id === id); return `<a href="${pathOf(id)}" data-grup="${grupOf(id)}" ${id === cur ? 'aria-current="page"' : ''}>${icon(r.icon)}<span>${r.short || routeLabel(r)}</span>${badgeOf(id) ? `<span class="count">${badgeOf(id) > 99 ? '99+' : badgeOf(id)}</span>` : ''}</a>`; }).join('') +
       `<button data-act="lainnya" ${moreActive ? 'aria-current="page"' : ''}>${icon('more')}<span>Lainnya</span>${sisa ? `<span class="count">${sisa > 99 ? '99+' : sisa}</span>` : ''}</button>`;
     $('#side-foot').innerHTML = `
       <div class="fresh" title="Data YouTube ditarik otomatis tiap 15 menit selama aplikasi terbuka">${last || syncing ? `<span class="dot${syncing ? ' live' : ''}"></span>` : ''}${freshText}</div>
@@ -635,6 +653,10 @@ import './styles.css';
     }
     page.innerHTML = (['ringkasan', 'harian', 'hari-ini'].includes(r) ? sambutan() : '') + PAGES[r]();
     page.dataset.route = r;
+    page.dataset.grup = grupOf(r);
+    const h1 = $('.head h1', page);
+    const rt = ROUTES.find((x) => x.id === r);
+    if (h1 && rt) h1.insertAdjacentHTML('beforebegin', `<span class="page-ico" aria-hidden="true">${icon(rt.icon)}</span>`);
     (AFTER[r] || (() => {}))();
     document.title = routeLabel(ROUTES.find((x) => x.id === r) || {}) + ' · Pantau Tokder';
   }
@@ -726,7 +748,7 @@ import './styles.css';
       const day = S.day;
       const team = activeEditors();
       const mine = me();
-      const order = mine ? [mine, ...team.filter((e) => e.id !== mine.id)] : team;
+      const order = mine ? [mine] : team;
       const list = order.map((e) => dayStats(e, day));
       const gaps = (st) => {
         const g = [];
@@ -736,12 +758,13 @@ import './styles.css';
         return g;
       };
       const sentence = list.length
-        ? list.map((st) => { const g = gaps(st); return `${esc(st.e.nama)}: <b>${st.n}</b> dari ${st.target} video, skor <b>${st.skor ?? '—'}</b>${g.length ? ' (' + esc(g.slice(0, 3).join(', ')) + ')' : ', semua beres'}`; }).join('. ') + '.'
+        ? !jamKerja(day) ? `<b>Libur: ${esc(ketLibur(day))}.</b> Tidak ada target; video yang tetap tayang tetap tercatat.`
+        : list.map((st) => { const g = gaps(st); return `${mine ? 'Anda' : esc(st.e.nama)}: <b>${st.n}</b> dari ${st.target} video, skor <b>${st.skor ?? '—'}</b>${g.length ? ' (' + esc(g.slice(0, 3).join(', ')) + ')' : ', semua beres'}`; }).join('. ') + '.'
         : 'Belum ada karyawan aktif.';
       const isToday = day === today();
       return `
         <header class="head">
-          <div><h1>${mine ? 'Halo, ' + esc(mine.nama) : 'Harian'}</h1><p><span class="muted">${tglPanjang(day)}${isToday ? ' · hari ini, sampai jam ' + nowJam() : ''}.</span> ${sentence}</p></div>
+          <div><h1>${mine ? 'Harian saya' : 'Harian'}</h1><p><span class="muted">${tglPanjang(day)}${isToday ? ' · hari ini, sampai jam ' + nowJam() : ''}.</span> ${sentence}</p></div>
           <div class="tools">
             <div class="daynav">
               <button class="btn icon" data-act="hari" data-v="-1" aria-label="Hari sebelumnya">${icon('left')}</button>
@@ -766,14 +789,14 @@ import './styles.css';
       const th = (key, label, cls = '') => `<th class="${cls}" aria-sort="${k.sort === key ? (k.dir === 'asc' ? 'ascending' : 'descending') : 'none'}"><button data-act="sort" data-k="${key}">${label}</button></th>`;
       return `
         <header class="head">
-          <div><h1>Konten</h1><p>${nf.format(rows.length)} video sesuai filter, total <b>${fmt(sum(rows, (c) => c.views))}</b> views.</p></div>
+          <div><h1>${me() ? 'Video channel' : 'Konten'}</h1><p>${nf.format(rows.length)} video sesuai filter, total <b>${fmt(sum(rows, (c) => c.views))}</b> views.</p></div>
           <div class="tools"><button class="btn" data-act="csv">${icon('download')}Unduh CSV</button></div>
         </header>
         <section class="card">
           <div class="tools" style="margin-bottom:12px">
             <label class="search">${icon('search')}<input class="input" type="search" id="k-q" placeholder="Cari judul" value="${esc(k.q)}" aria-label="Cari judul"></label>
             <select class="input" id="k-channel" style="width:auto" aria-label="Channel"><option value="all">Semua channel</option>${S.channels.map((c) => `<option value="${esc(c.id)}" ${k.channel === c.id ? 'selected' : ''}>${esc(c.nama)}</option>`).join('')}</select>
-            <select class="input" id="k-editor" style="width:auto" aria-label="Pembuat"><option value="all">Semua pembuat</option>${S.editors.map((e) => `<option value="${e.id}" ${k.editor === String(e.id) ? 'selected' : ''}>${esc(e.nama)}</option>`).join('')}<option value="none" ${k.editor === 'none' ? 'selected' : ''}>Belum dikenali</option></select>
+            <select class="input" id="k-editor" style="width:auto" aria-label="Pembuat"><option value="all">${me() ? 'Semua video channel' : 'Semua pembuat'}</option>${S.editors.map((e) => `<option value="${e.id}" ${k.editor === String(e.id) ? 'selected' : ''}>${me() ? 'Video saya' : esc(e.nama)}</option>`).join('')}<option value="none" ${k.editor === 'none' ? 'selected' : ''}>Belum dikenali</option></select>
             <select class="input" id="k-tipe" style="width:auto" aria-label="Jenis"><option value="all">Semua jenis</option><option value="short" ${k.tipe === 'short' ? 'selected' : ''}>Shorts</option><option value="long" ${k.tipe === 'long' ? 'selected' : ''}>Video panjang</option></select>
             <select class="input" id="k-periode" style="width:auto" aria-label="Periode"><option value="7" ${k.periode === '7' ? 'selected' : ''}>7 hari</option><option value="30" ${k.periode === '30' ? 'selected' : ''}>30 hari</option><option value="90" ${k.periode === '90' ? 'selected' : ''}>90 hari</option><option value="all" ${k.periode === 'all' ? 'selected' : ''}>Semua</option></select>
           </div>
@@ -787,7 +810,7 @@ import './styles.css';
     },
 
     identifikasi() {
-      const rows = S.content.filter((c) => !editorById(c.editor_id)).sort((a, b) => b.tanggal_upload.localeCompare(a.tanggal_upload));
+      const rows = S.content.filter(belumDikenali).sort((a, b) => b.tanggal_upload.localeCompare(a.tanggal_upload));
       const allowed = canAssign();
       const codes = activeEditors().map((e) => `<span class="slot">#${esc(e.kode_identifikasi)}</span> ${esc(e.nama)}`).join(' · ');
       return `
@@ -876,7 +899,7 @@ import './styles.css';
           <div class="kpi"><span class="l">Jam tonton</span><span class="v">${show(jamMenit(cur.menit))}</span>${has ? change(cur.menit, pv.menit) : ''}</div>
           <div class="kpi"><span class="l">Subscriber bersih</span><span class="v ${cur.naik - cur.turun < 0 ? 'bad' : ''}">${show(signed(cur.naik - cur.turun))}</span>${has ? `<span class="d">+${nf.format(cur.naik)} baru, −${nf.format(cur.turun)} berhenti</span>` : ''}</div>
           <div class="kpi"><span class="l">Rata-rata ditonton</span><span class="v mono" style="font-size:24px">${show(avgDur(cur))}</span><span class="d">menit:detik per view</span></div>
-          ${showRev ? `<div class="kpi"><span class="l">Perkiraan pendapatan</span><span class="v">${usd(cur.rev)}</span>${change(cur.rev, pv.rev)}</div>` : ''}
+          ${showRev ? `<div class="kpi"><span class="l">Perkiraan pendapatan</span><span class="v">${rpOrDash(cur.rev)}</span>${change(cur.rev, pv.rev)}</div>` : ''}
         </section>
         ${strategiHtml(days, chans)}
         <section class="card" id="kartu-views-harian">
@@ -893,7 +916,7 @@ import './styles.css';
                 <div class="mini"><h3>Views</h3><div class="v">${fmt(t.views)}</div>${change(t.views, p.views)}</div>
                 <div class="mini"><h3>Jam tonton</h3><div class="v">${jamMenit(t.menit)}</div><div class="d">${avgDur(t)} per view</div></div>
                 <div class="mini"><h3>Subscriber bersih</h3><div class="v">${signed(t.naik - t.turun)}</div><div class="d">+${nf.format(t.naik)} / −${nf.format(t.turun)}</div></div>
-                ${isAdmin() && t.rev != null ? `<div class="mini"><h3>Pendapatan</h3><div class="v">${usd(t.rev)}</div>${change(t.rev, p.rev)}</div>` : `<div class="mini"><h3>Video baru</h3><div class="v">${nf.format(S.content.filter((x) => x._ch === c.id && days.includes(x._day)).length)}</div><div class="d">di periode ini</div></div>`}
+                ${isAdmin() && t.rev != null ? `<div class="mini"><h3>Pendapatan</h3><div class="v">${rpOrDash(t.rev)}</div>${change(t.rev, p.rev)}</div>` : `<div class="mini"><h3>Video baru</h3><div class="v">${nf.format(S.content.filter((x) => x._ch === c.id && days.includes(x._day)).length)}</div><div class="d">di periode ini</div></div>`}
               </div>
               <div class="chart an-spark" data-ch="${esc(c.id)}" style="margin-top:12px"></div>`
             : `<div class="empty"><b>${c.connected ? 'Menunggu data' : 'Belum ada data'}</b>${c.connected ? 'Klik Sinkronkan sekarang di Pengaturan.' : 'Hubungkan channel ini di Pengaturan.'}</div>`}
@@ -902,7 +925,7 @@ import './styles.css';
         <section class="card">
           <div class="card-h"><h2>Perbandingan channel</h2><p>${S.anPeriode} hari sampai ${latest ? tglPendek(latest) : '—'}.</p></div>
           <div class="table-wrap"><table class="t stack"><thead><tr><th>Channel</th><th class="num">Views</th><th class="num">Jam tonton</th><th class="num">Ditonton / view</th><th class="num">Sub baru</th><th class="num">Berhenti</th><th class="num">Bersih</th>${showRev ? '<th class="num">Pendapatan</th>' : ''}<th class="num">Video baru</th></tr></thead><tbody>
-            ${chans.map((c) => { const t = tot(pick([c.id], days)); if (!pick([c.id], days).length) return `<tr><td class="full"><span class="ed"><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${chColor(c.id)}"></i>${esc(c.nama)}</span></td><td colspan="${showRev ? 8 : 7}" class="muted full">Belum ada data${c.connected ? '' : ' · belum tersambung'}</td></tr>`; return `<tr><td class="full"><b><span class="ed"><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${chColor(c.id)}"></i>${esc(c.nama)}</span></b></td><td class="num" data-label="Views">${nf.format(t.views)}</td><td class="num" data-label="Jam tonton">${jamMenit(t.menit)}</td><td class="num mono" data-label="Ditonton / view">${avgDur(t)}</td><td class="num" data-label="Sub baru">${nf.format(t.naik)}</td><td class="num" data-label="Berhenti">${nf.format(t.turun)}</td><td class="num" data-label="Bersih">${signed(t.naik - t.turun)}</td>${showRev ? `<td class="num" data-label="Pendapatan">${t.rev == null ? '—' : usd(t.rev)}</td>` : ''}<td class="num" data-label="Video baru">${nf.format(S.content.filter((x) => x._ch === c.id && days.includes(x._day)).length)}</td></tr>`; }).join('')}
+            ${chans.map((c) => { const t = tot(pick([c.id], days)); if (!pick([c.id], days).length) return `<tr><td class="full"><span class="ed"><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${chColor(c.id)}"></i>${esc(c.nama)}</span></td><td colspan="${showRev ? 8 : 7}" class="muted full">Belum ada data${c.connected ? '' : ' · belum tersambung'}</td></tr>`; return `<tr><td class="full"><b><span class="ed"><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${chColor(c.id)}"></i>${esc(c.nama)}</span></b></td><td class="num" data-label="Views">${nf.format(t.views)}</td><td class="num" data-label="Jam tonton">${jamMenit(t.menit)}</td><td class="num mono" data-label="Ditonton / view">${avgDur(t)}</td><td class="num" data-label="Sub baru">${nf.format(t.naik)}</td><td class="num" data-label="Berhenti">${nf.format(t.turun)}</td><td class="num" data-label="Bersih">${signed(t.naik - t.turun)}</td>${showRev ? `<td class="num" data-label="Pendapatan">${t.rev == null ? '—' : rpOrDash(t.rev)}</td>` : ''}<td class="num" data-label="Video baru">${nf.format(S.content.filter((x) => x._ch === c.id && days.includes(x._day)).length)}</td></tr>`; }).join('')}
           </tbody></table></div>
         </section>`;
     },
@@ -969,7 +992,7 @@ import './styles.css';
   function strategiHtml(days, chans) {
     const admin = isAdmin();
     const out = [];
-    const money = usd;
+    const money = rpOrDash;
     const period = S.anPeriode + ' hari';
     const recent = (n) => S.content.filter((c) => c._age >= 2 && c._age <= n);
     const dayRows = (id) => S.daily.filter((d) => d.channel_id === id && days.includes(d.tanggal));
@@ -1163,7 +1186,7 @@ import './styles.css';
     const q = k.q.trim().toLowerCase();
     const rows = S.content.filter((c) => c._day >= from
       && (k.channel === 'all' || c._ch === k.channel)
-      && (k.editor === 'all' || (k.editor === 'none' ? !editorById(c.editor_id) : String(c.editor_id) === k.editor))
+      && (k.editor === 'all' || (k.editor === 'none' ? belumDikenali(c) : String(c.editor_id) === k.editor))
       && (k.tipe === 'all' || c.tipe_video === k.tipe)
       && (!q || (c.judul || '').toLowerCase().includes(q)));
     const val = {
@@ -1218,7 +1241,9 @@ import './styles.css';
       const inp = $('#f-day');
       if (inp) inp.addEventListener('change', () => { if (inp.value && inp.value <= today()) { S.day = inp.value; render(); } });
       const target = location.pathname.split('/')[2];
-      if (target) { const el = $('#orang-' + target); if (el) el.scrollIntoView({ block: 'start' }); }
+      // Employees have only their own page: /harian/<someone> is just /harian.
+      if (target && me()) history.replaceState(null, '', '/harian');
+      else if (target) { const el = $('#orang-' + target); if (el) el.scrollIntoView({ block: 'start' }); }
     },
     konten() {
       const k = S.konten;
@@ -1253,11 +1278,27 @@ import './styles.css';
     return { masuk: r.find((x) => x.jenis === 'masuk') || null, pulang: r.find((x) => x.jenis === 'pulang') || null };
   };
   function statusPresensi(h, cfg, d) {
-    if (!h.masuk) return d === today() ? '<span class="pill warn">Belum absen</span>' : '<span class="pill bad">Tidak absen</span>';
+    const j = jamKerja(d);
+    if (!h.masuk) return !j ? `<span class="pill">Libur · ${esc(ketLibur(d))}</span>` : d === today() ? '<span class="pill warn">Belum absen</span>' : '<span class="pill bad">Tidak absen</span>';
+    if (!j) return '<span class="pill leaf">Masuk di hari libur (lembur)</span>';
     const out = [h.masuk.telat_menit > 0 ? `<span class="pill bad">Telat ${h.masuk.telat_menit} mnt</span>` : '<span class="pill ok">Tepat waktu</span>'];
-    if (h.pulang) { const cepat = toMin(cfg.jam_pulang) - toMin(jamWib(h.pulang.waktu)); if (cepat > 0) out.push(`<span class="pill warn">Pulang ${cepat} mnt lebih awal</span>`); }
+    if (h.pulang) { const cepat = toMin(j.pulang) - toMin(jamWib(h.pulang.waktu)); if (cepat > 0) out.push(`<span class="pill warn">Pulang ${cepat} mnt lebih awal</span>`); }
     return out.join(' ');
   }
+  // "Senin–Kamis 08:00–16:00 · Jumat–Sabtu 08:00–15:00 · Minggu libur"
+  function ringkasJadwal(jadwal) {
+    const urut = [1, 2, 3, 4, 5, 6, 0];
+    const kelompok = [];
+    urut.forEach((i) => {
+      const x = jadwal[i];
+      const k = x ? x.masuk + '–' + x.pulang : 'libur';
+      const last = kelompok[kelompok.length - 1];
+      if (last && last.k === k) last.hari.push(i); else kelompok.push({ k, hari: [i] });
+    });
+    return kelompok.map((g) => (g.hari.length > 1 ? HARI[g.hari[0]] + '–' + HARI[g.hari[g.hari.length - 1]] : HARI[g.hari[0]]) + ' ' + g.k).join(' · ');
+  }
+  // The next red dates, for the owner's settings and the guide.
+  const liburBerikutnya = (n = 6) => Object.entries(kalender().libur).filter(([d]) => d >= today()).sort(([a], [b]) => a.localeCompare(b)).slice(0, n);
   function ditolakTable(list, owner) {
     if (!list.length) return '<div class="empty"><b>Tidak ada percobaan yang ditolak</b>30 hari terakhir.</div>';
     return `<div class="table-wrap"><table class="t stack"><thead><tr><th>Waktu</th>${owner ? '<th>Karyawan</th>' : ''}<th>Alasan</th>${owner ? '<th>IP</th><th class="num">Akurasi</th><th class="num">Jarak</th>' : ''}</tr></thead><tbody>
@@ -1283,7 +1324,8 @@ import './styles.css';
     if (P.error) return `<section class="card empty" style="padding:48px 20px" role="alert"><b style="font-size:16px">Presensi belum bisa dimuat</b><p style="margin:6px 0 16px">${esc(P.error)}</p><button class="btn primary" data-act="presensi-muat">${icon('sync')}Coba lagi</button></section>`;
     const cfg = P.config;
     const net = cfg.ip_kantor ? '<span class="pill ok">Wi-Fi kantor</span>' : '<span class="pill bad">Bukan Wi-Fi kantor</span>';
-    const syarat = `Absen diterima bila tersambung ke Wi-Fi kantor, GPS menyala dengan akurasi ≤ ${cfg.akurasi_maks} m, dan posisi dalam ${cfg.radius} m dari kantor. Jam masuk ${esc(cfg.jam_masuk)} (toleransi ${cfg.toleransi} menit), jam pulang ${esc(cfg.jam_pulang)}.`;
+    const jh = jamKerja(today());
+    const syarat = `Absen diterima bila tersambung ke Wi-Fi kantor, GPS menyala dengan akurasi ≤ ${cfg.akurasi_maks} m, dan posisi dalam ${cfg.radius} m dari kantor. Jam kerja: ${esc(ringkasJadwal(cfg.jadwal || kalender().jadwal))} (toleransi telat ${cfg.toleransi} menit). Tanggal merah libur.`;
     if (!isAdmin()) {
       const who = me();
       if (!who) return '<section class="card empty"><b>Masuk sebagai karyawan untuk absen</b></section>';
@@ -1293,8 +1335,8 @@ import './styles.css';
         <header class="head"><div><h1>Presensi</h1><p><span class="muted">${tglPanjang(today())}.</span> ${h.pulang ? 'Absen hari ini sudah lengkap.' : h.masuk ? 'Sudah absen masuk. Jangan lupa absen pulang.' : 'Belum absen masuk hari ini.'}</p></div><div class="tools">${bantuan('presensi')}</div></header>
         ${!cfg.siap ? '<div class="notice" role="status" style="margin:0;max-width:none"><b>Presensi belum diatur.</b> Pemilik perlu mengisi lokasi kantor dan IP Wi-Fi kantor dulu.</div>' : ''}
         <section class="kpis">
-          <div class="kpi"><span class="l">Masuk</span><span class="v mono">${jamWib(h.masuk && h.masuk.waktu)}</span><span class="d">jadwal ${esc(cfg.jam_masuk)}</span></div>
-          <div class="kpi"><span class="l">Pulang</span><span class="v mono">${jamWib(h.pulang && h.pulang.waktu)}</span><span class="d">jadwal ${esc(cfg.jam_pulang)}</span></div>
+          <div class="kpi"><span class="l">Masuk</span><span class="v mono">${jamWib(h.masuk && h.masuk.waktu)}</span><span class="d">${jh ? 'jadwal ' + esc(jh.masuk) : 'libur: ' + esc(ketLibur(today()))}</span></div>
+          <div class="kpi"><span class="l">Pulang</span><span class="v mono">${jamWib(h.pulang && h.pulang.waktu)}</span><span class="d">${jh ? 'jadwal ' + esc(jh.pulang) : 'tidak ada jadwal'}</span></div>
           <div class="kpi"><span class="l">Status hari ini</span><span class="v" style="font-size:15px">${statusPresensi(h, cfg, today())}</span><span class="d">${net} <span class="mono">IP ${esc(cfg.ip_anda)}</span></span></div>
         </section>
         <section class="card">
@@ -1322,7 +1364,7 @@ import './styles.css';
       ${ipBaruCard()}
       <section class="kpis">
         <div class="kpi"><span class="l">Hadir hari ini</span><span class="v">${hadir} <small>/ ${eds.length}</small></span><span class="d">absen masuk tercatat</span></div>
-        <div class="kpi"><span class="l">Telat hari ini</span><span class="v ${telat ? 'bad' : ''}">${telat}</span><span class="d">lewat ${esc(cfg.jam_masuk)} + ${cfg.toleransi} mnt</span></div>
+        <div class="kpi"><span class="l">Telat hari ini</span><span class="v ${telat ? 'bad' : ''}">${telat}</span><span class="d">${jh ? `lewat ${esc(jh.masuk)} + ${cfg.toleransi} mnt` : 'hari ini libur'}</span></div>
         <div class="kpi ${ditolakHariIni ? 'alert' : ''}"><span class="l">Ditolak hari ini</span><span class="v">${ditolakHariIni}</span><span class="d">${P.ditolak.length} dalam 30 hari</span></div>
       </section>
       <div class="grid-2">
@@ -1350,11 +1392,18 @@ import './styles.css';
           <label class="field"><span>IP publik Wi-Fi kantor</span><textarea class="input mono" name="ips" rows="3" required placeholder="203.0.113.7">${esc((cfg.ips || []).join('\n'))}</textarea>
             <small>Satu per baris; rentang seperti 203.0.113.0/24 juga bisa. IP Anda sekarang: <b class="mono">${esc(cfg.ip_anda)}</b> ${cfg.ip_kantor ? '(sudah terdaftar)' : '(belum terdaftar)'}. Buka halaman ini dari Wi-Fi kantor lalu klik Tambahkan IP saya.</small></label>
           <div class="tools"><button type="button" class="btn sm" data-act="presensi-ip" data-ip="${esc(cfg.ip_saran || cfg.ip_anda)}">${icon('plus')}Tambahkan IP saya</button></div>
-          <div class="row">
-            <label class="field"><span>Jam masuk (WIB)</span><input class="input" name="jam_masuk" type="time" value="${esc(cfg.jam_masuk)}" required></label>
-            <label class="field"><span>Toleransi telat (menit)</span><input class="input" name="toleransi" type="number" min="0" max="120" value="${cfg.toleransi}" required></label>
-            <label class="field"><span>Jam pulang (WIB)</span><input class="input" name="jam_pulang" type="time" value="${esc(cfg.jam_pulang)}" required></label>
-          </div>
+          <fieldset class="jam-kerja"><legend>Jam kerja (WIB)</legend>
+            ${[1, 2, 3, 4, 5, 6, 0].map((i) => { const x = (cfg.jadwal || JADWAL_BAWAAN)[i]; return `<div class="jk-row" data-hari="${i}">
+              <label class="chk"><input type="checkbox" name="kerja-${i}" ${x ? 'checked' : ''}> ${HARI[i]}</label>
+              <input class="input" type="time" name="masuk-${i}" value="${esc(x ? x.masuk : '08:00')}" aria-label="Jam masuk ${HARI[i]}" ${x ? '' : 'disabled'}>
+              <span class="muted">–</span>
+              <input class="input" type="time" name="pulang-${i}" value="${esc(x ? x.pulang : '16:00')}" aria-label="Jam pulang ${HARI[i]}" ${x ? '' : 'disabled'}></div>`; }).join('')}
+          </fieldset>
+          <label class="field"><span>Toleransi telat (menit)</span><input class="input" name="toleransi" type="number" min="0" max="120" value="${cfg.toleransi}" required style="max-width:160px"></label>
+          <div class="field"><span>Hari libur</span>
+            <label class="chk"><input type="checkbox" name="cuti_bersama" ${cfg.cuti_bersama ? 'checked' : ''}> Ikut cuti bersama pemerintah</label>
+            <small>Tanggal merah (libur nasional) selalu libur. Berikutnya: ${liburBerikutnya().map(([d, n]) => `${tglPendek(d)} ${esc(n)}`).join(' · ') || '—'}.</small></div>
+          <label class="field"><span>Libur kantor tambahan</span><textarea class="input mono" name="libur_kantor" rows="2" placeholder="2026-12-31">${esc((cfg.libur_kantor || []).join('\n'))}</textarea><small>Satu tanggal per baris (YYYY-MM-DD), untuk libur khusus kantor di luar tanggal merah.</small></label>
           <div class="err" id="presensi-err" role="alert" style="color:var(--bad);font-size:13px"></div>
           <div><button class="btn primary">Simpan aturan</button></div>
         </form></section>`;
@@ -1397,17 +1446,22 @@ import './styles.css';
   AFTER.presensi = () => {
     const f = $('#presensi-form');
     if (!f) return;
+    $$('.jk-row', f).forEach((row) => { const cb = $('input[type=checkbox]', row); cb.addEventListener('change', () => { $$('input[type=time]', row).forEach((t) => { t.disabled = !cb.checked; }); }); });
     f.addEventListener('submit', async (ev) => {
       ev.preventDefault();
-      const body = Object.fromEntries(new FormData(f));
-      body.ips = String(body.ips || '').split(/\s+/).filter(Boolean);
-      ['radius', 'akurasi_maks', 'toleransi'].forEach((k) => { body[k] = Number(body[k]); });
+      const fd = Object.fromEntries(new FormData(f));
+      const body = { lat: fd.lat, lng: fd.lng, ips: String(fd.ips || '').split(/\s+/).filter(Boolean), cuti_bersama: !!fd.cuti_bersama,
+        libur_kantor: String(fd.libur_kantor || '').split(/\s+/).filter(Boolean),
+        jadwal: [0, 1, 2, 3, 4, 5, 6].map((i) => (fd['kerja-' + i] ? { masuk: fd['masuk-' + i], pulang: fd['pulang-' + i] } : null)) };
+      ['radius', 'akurasi_maks', 'toleransi'].forEach((k) => { body[k] = Number(fd[k]); });
       const btn = $('button.primary', f);
       btn.disabled = true;
       try {
         S.presensi.config = await api('/api/presensi/config', { method: 'PUT', body });
         toast('Aturan presensi tersimpan');
-        render();
+        // Working days move payroll, leave and video targets: everything again.
+        S.gajiCache = {};
+        await muatUlang();
       } catch (e) { $('#presensi-err').textContent = e.message; btn.disabled = false; }
     });
   };
@@ -1424,15 +1478,17 @@ import './styles.css';
     const cfg = P && P.config;
     const h = P ? hariPresensi(P.rows, e.id, d) : {};
     const now = toMin(nowJam());
+    const jamHariIni = jamKerja(d);
     const salam = now < 660 ? 'Selamat pagi' : now < 900 ? 'Selamat siang' : now < 1080 ? 'Selamat sore' : 'Selamat malam';
 
     // Check-in: the one action that matters first thing.
     const absenLangkah = !cfg ? '' : !cfg.siap
       ? '<p class="muted" style="margin:0">Presensi belum diatur pemilik.</p>'
+      : !jamHariIni && !h.masuk ? `<p style="margin:0"><b>Hari ini libur: ${esc(ketLibur(d))}.</b> Tidak perlu absen. Bila tetap bekerja, absen seperti biasa dan dihitung lembur.</p><div class="tools" style="margin-top:10px"><button class="btn" data-act="absen" data-jenis="masuk">${icon('pin')}Tetap absen masuk</button></div><p class="muted" id="absen-status" role="status" style="margin:10px 0 0;font-size:13px"></p>`
       : h.pulang ? `<p style="margin:0">Masuk <b class="mono">${jamWib(h.masuk.waktu)}</b> · pulang <b class="mono">${jamWib(h.pulang.waktu)}</b>. Absen hari ini lengkap.</p>`
       : `<div class="tools">${h.masuk
-        ? `<button class="btn primary big" data-act="absen" data-jenis="pulang">${icon('out')}Absen pulang</button><span class="muted">Masuk ${jamWib(h.masuk.waktu)} · jadwal pulang ${esc(cfg.jam_pulang)}</span>`
-        : `<button class="btn primary big" data-act="absen" data-jenis="masuk">${icon('pin')}Absen masuk</button><span class="muted">Jadwal masuk ${esc(cfg.jam_masuk)}</span>`}</div>
+        ? `<button class="btn primary big" data-act="absen" data-jenis="pulang">${icon('out')}Absen pulang</button><span class="muted">Masuk ${jamWib(h.masuk.waktu)}${jamHariIni ? ' · jadwal pulang ' + esc(jamHariIni.pulang) : ''}</span>`
+        : `<button class="btn primary big" data-act="absen" data-jenis="masuk">${icon('pin')}Absen masuk</button><span class="muted">Jam kerja hari ini ${esc(jamHariIni.masuk)}–${esc(jamHariIni.pulang)}</span>`}</div>
         <p class="muted" id="absen-status" role="status" style="margin:10px 0 0;font-size:13px">${cfg.ip_kantor ? 'Tersambung ke Wi-Fi kantor.' : 'Belum tersambung ke Wi-Fi kantor. Sambungkan dulu, matikan data seluler dan VPN.'} Nyalakan GPS.</p>`;
 
     // Upload schedule: each slot done, due now, or later.
@@ -1448,7 +1504,7 @@ import './styles.css';
     const lepas = st.vids.filter((v) => !terpakai.has(v._slot) || !v._slot);
 
     // Tasks besides uploads, against the full-day target.
-    const tugas = TUGAS.map((t) => ({ t, butuh: t.target(target, 1), sudah: st.done(t.nama) })).filter((x) => x.butuh > 0);
+    const tugas = jamHariIni ? TUGAS.map((t) => ({ t, butuh: t.target(target, 1), sudah: st.done(t.nama) })).filter((x) => x.butuh > 0) : [];
 
     // Waiting on someone.
     const aju = S.pengajuan ? S.pengajuan.list.filter((p) => p.editor_id === e.id) : [];
@@ -1465,18 +1521,18 @@ import './styles.css';
       </section>
       <div class="grid-2">
         <section class="card">
-          <div class="card-h"><h2>Video hari ini</h2><span class="pill ${st.n >= target ? 'ok' : ''}">${st.n} / ${target}</span></div>
-          ${slots.length ? `<ul class="slots">${jadwal}</ul>` : `<p class="muted" style="margin:0">Belum ada jadwal tayang. Minta pemilik mengisinya di menu Tim.</p>`}
+          <div class="card-h"><h2>Video hari ini</h2><span class="pill ${st.n >= target ? 'ok' : ''}">${jamHariIni ? st.n + ' / ' + target : st.n + ' · libur'}</span></div>
+          ${!jamHariIni ? '<p class="muted" style="margin:0">Hari libur: tidak ada target video. Video yang tetap tayang tetap tercatat.</p>' : slots.length ? `<ul class="slots">${jadwal}</ul>` : `<p class="muted" style="margin:0">Belum ada jadwal tayang. Minta pemilik mengisinya di menu Tim.</p>`}
           ${lepas.length ? `<p class="muted" style="margin:10px 0 0;font-size:13px">${lepas.length} video di luar jadwal juga terhitung.</p>` : ''}
           <p class="muted" style="margin:10px 0 0;font-size:13px">Tulis <b class="mono">#${esc(e.kode_identifikasi || '')}</b> di deskripsi. Video muncul paling lama 1 jam setelah tayang.</p>
         </section>
         <section class="card">
           <div class="card-h"><h2>Tugas lain</h2><button class="btn sm" data-act="catat" data-id="${e.id}">${icon('plus')}Catat</button></div>
-          <ul class="todo">${tugas.map((x) => `<li class="${x.sudah >= x.butuh ? 'done' : ''}"><span class="tick" aria-hidden="true">${x.sudah >= x.butuh ? '✓' : ''}</span><span>${esc(x.t.nama)}</span><b class="num">${nf.format(x.sudah)} / ${nf.format(x.butuh)}</b></li>`).join('')}</ul>
+          ${tugas.length ? '' : '<p class="muted" style="margin:0">Tidak ada target tugas hari ini.</p>'}<ul class="todo">${tugas.map((x) => `<li class="${x.sudah >= x.butuh ? 'done' : ''}"><span class="tick" aria-hidden="true">${x.sudah >= x.butuh ? '✓' : ''}</span><span>${esc(x.t.nama)}</span><b class="num">${nf.format(x.sudah)} / ${nf.format(x.butuh)}</b></li>`).join('')}</ul>
         </section>
       </div>
       <section class="kpis">
-        <a class="kpi" href="/harian/${e.id}"><span class="l">Skor ${st.partial ? 'sementara' : 'hari ini'}</span><span class="v">${st.skor ?? '—'} ${st.nilai ? `<span class="grade ${st.nilai}">${st.nilai}</span>` : ''}</span><span class="d">Lihat rinciannya →</span></a>
+        <a class="kpi" href="/harian"><span class="l">Skor ${st.partial ? 'sementara' : 'hari ini'}</span><span class="v">${st.skor ?? '—'} ${st.nilai ? `<span class="grade ${st.nilai}">${st.nilai}</span>` : ''}</span><span class="d">Lihat rinciannya →</span></a>
         <a class="kpi ${tunggu ? 'alert' : ''}" href="/pengajuan"><span class="l">Izin & klaim</span><span class="v">${tunggu}</span><span class="d">${tunggu ? 'menunggu keputusan' : putus.length ? putus.map((p) => (p.status === 'disetujui' ? 'disetujui' : 'ditolak')).join(', ') + ' baru-baru ini' : 'tidak ada yang menunggu'}</span></a>
         <a class="kpi" href="/gaji"><span class="l">Gaji ${bulanLabel(d.slice(0, 7)).split(' ')[0]}</span><span class="v">${gajiSaya && gajiSaya.aturan_diisi ? idr(gajiSaya.total) : '—'}</span><span class="d">${!gajiSaya ? 'belum termuat' : !gajiSaya.aturan_diisi ? 'aturan gaji belum diisi pemilik' : gajiSaya.dibayar_at ? 'sudah dibayar' : gajiSaya.status === 'final' ? 'sudah final' : 'perkiraan sampai hari ini'}</span></a>
       </section>
@@ -1567,6 +1623,7 @@ import './styles.css';
 
   function perfSaran(e, mine, others, st) {
     const out = [];
+    const banding = me() ? 'video lain di channel' : 'rekan setim';
     const mature = mine.filter((c) => ratioOf(c) != null);
     const medOf = (l) => median(l.map(ratioOf).filter((r) => r != null));
     // Topics
@@ -1578,13 +1635,13 @@ import './styles.css';
     if (worst && worst !== best && worst.r <= 0.8) out.push({ title: `Topik ${esc(worst.t)} kurang ditonton`, why: `Median views <b>${kali(worst.r)}</b> median channel (${worst.l.length} video).`, act: 'Coba judul dan thumbnail yang lebih spesifik (angka, masalah nyata petani), atau kurangi topik ini.' });
     // Retention
     const [ra, oa] = [avgRet(mine, 'awal'), avgRet(others, 'awal')];
-    if (ra && oa && ra.v < oa.v - 5) out.push({ title: 'Penonton cepat pergi di awal video', why: `Rata-rata yang masih menonton di 10% awal video: <b>${Math.round(ra.v)}%</b>, rekan setim ${Math.round(oa.v)}% (${ra.n} video dengan data retensi).`, act: 'Perkuat 3 detik pertama: langsung tunjukkan hasil atau masalahnya, tanpa pembuka atau logo yang panjang.' });
-    else if (ra && oa && ra.v > oa.v + 5) out.push({ good: true, title: 'Pembuka video sudah kuat', why: `Masih menonton di 10% awal: <b>${Math.round(ra.v)}%</b>, rekan setim ${Math.round(oa.v)}%.`, act: 'Pertahankan gaya pembuka ini dan bagikan caranya ke tim.' });
+    if (ra && oa && ra.v < oa.v - 5) out.push({ title: 'Penonton cepat pergi di awal video', why: `Rata-rata yang masih menonton di 10% awal video: <b>${Math.round(ra.v)}%</b>, ${banding} ${Math.round(oa.v)}% (${ra.n} video dengan data retensi).`, act: 'Perkuat 3 detik pertama: langsung tunjukkan hasil atau masalahnya, tanpa pembuka atau logo yang panjang.' });
+    else if (ra && oa && ra.v > oa.v + 5) out.push({ good: true, title: 'Pembuka video sudah kuat', why: `Masih menonton di 10% awal: <b>${Math.round(ra.v)}%</b>, ${banding} ${Math.round(oa.v)}%.`, act: 'Pertahankan gaya pembuka ini dan bagikan caranya ke tim.' });
     const [rt, ot] = [avgRet(mine, 'akhir'), avgRet(others, 'akhir')];
-    if (rt && ot && rt.v < ot.v - 5) out.push({ title: 'Banyak yang berhenti sebelum akhir', why: `Masih menonton di akhir video: <b>${Math.round(rt.v)}%</b>, rekan setim ${Math.round(ot.v)}%.`, act: 'Pangkas bagian yang berulang, simpan satu informasi penting untuk akhir, dan untuk Shorts buat akhir yang menyambung ke awal supaya ditonton ulang.' });
+    if (rt && ot && rt.v < ot.v - 5) out.push({ title: 'Banyak yang berhenti sebelum akhir', why: `Masih menonton di akhir video: <b>${Math.round(rt.v)}%</b>, ${banding} ${Math.round(ot.v)}%.`, act: 'Pangkas bagian yang berulang, simpan satu informasi penting untuk akhir, dan untuk Shorts buat akhir yang menyambung ke awal supaya ditonton ulang.' });
     // Likes
     const [lm, lo] = [likeRate(mine), likeRate(others)];
-    if (lm != null && lo != null && lm < lo * 0.8) out.push({ title: 'Like per views lebih rendah dari rekan', why: `<b>${nf.format(Math.round(lm))}</b> like per 1.000 views, rekan setim ${nf.format(Math.round(lo))}.`, act: 'Ajak penonton menekan like atau menjawab pertanyaan di komentar, di tengah video, bukan hanya di akhir.' });
+    if (lm != null && lo != null && lm < lo * 0.8) out.push({ title: me() ? 'Like per views lebih rendah dari video lain' : 'Like per views lebih rendah dari rekan', why: `<b>${nf.format(Math.round(lm))}</b> like per 1.000 views, ${banding} ${nf.format(Math.round(lo))}.`, act: 'Ajak penonton menekan like atau menjawab pertanyaan di komentar, di tengah video, bukan hanya di akhir.' });
     // Format
     const sh = mature.filter((c) => c.tipe_video === 'short'), lg = mature.filter((c) => c.tipe_video !== 'short');
     if (sh.length >= 3 && lg.length >= 3) {
@@ -1620,12 +1677,13 @@ import './styles.css';
     if (!e) return `<header class="head"><div><h1>Performa video</h1><p>Belum ada karyawan.</p></div>${tools}</header>`;
     const from = addDays(today(), -n + 1);
     const mine = S.content.filter((c) => c.editor_id === e.id && c._day >= from);
-    const others = S.content.filter((c) => c.editor_id && c.editor_id !== e.id && editorById(c.editor_id) && c._day >= from);
+    // Owner: the rest of the team. Employee: every other video on the channels (makers not shown).
+    const others = S.content.filter((c) => c.editor_id !== e.id && c._day >= from && (me() ? true : c.editor_id && editorById(c.editor_id)));
     const st = periodStats(e, daysBack(n));
     const rM = median(mine.map(ratioOf).filter((r) => r != null)), rO = median(others.map(ratioOf).filter((r) => r != null));
     const tM = avgRet(mine, 'tengah'), tO = avgRet(others, 'tengah');
     const lM = likeRate(mine), lO = likeRate(others);
-    const cmp = (a, b, f) => (a == null || b == null ? '' : `<span class="d ${a >= b ? 'ok' : 'bad'}">rekan setim ${f(b)}</span>`);
+    const cmp = (a, b, f) => (a == null || b == null ? '' : `<span class="d ${a >= b ? 'ok' : 'bad'}">${me() ? 'video lain' : 'rekan setim'} ${f(b)}</span>`);
     const saran = perfSaran(e, mine, others, st);
     const ranked = mine.filter((c) => ratioOf(c) != null).sort((a, b) => ratioOf(b) - ratioOf(a));
     const loadingRet = !S.insight;
@@ -1634,7 +1692,7 @@ import './styles.css';
     const thead = '<thead><tr><th>Video</th><th>Tayang</th><th class="num">Views</th><th class="num">Dibanding median</th><th class="num">Like / 1.000</th><th class="num">Retensi tengah</th></tr></thead>';
     return `
       <header class="head">
-        <div><h1>${me() ? 'Performa videomu' : 'Performa ' + esc(e.nama)}</h1><p>${n} hari terakhir: <b>${nf.format(mine.length)}</b> video${mine.length ? `, median views <b>${kali(rM)}</b> median channel` : ''}. 1× berarti sama dengan video biasa di channel dan jenis yang sama; di atas 1× berarti lebih ramai.</p></div>
+        <div><h1>${me() ? 'Performa saya' : 'Performa ' + esc(e.nama)}</h1><p>${n} hari terakhir: <b>${nf.format(mine.length)}</b> video${mine.length ? `, median views <b>${kali(rM)}</b> median channel` : ''}. 1× berarti sama dengan video biasa di channel dan jenis yang sama; di atas 1× berarti lebih ramai.</p></div>
         ${tools}
       </header>
       <section class="kpis">
@@ -1645,7 +1703,7 @@ import './styles.css';
         <div class="kpi"><span class="l">Tepat jadwal</span><span class="v ${st.tepat == null ? '' : st.tepat >= 0.85 ? 'ok' : 'bad'}">${pct(st.tepat)}</span><span class="d">skor rata-rata ${st.skor ?? '—'}</span></div>
       </section>
       <section class="card" id="kartu-saran">
-        <div class="card-h"><h2>Yang bisa ditingkatkan</h2><p>Dihitung dari video ${me() ? 'Anda' : esc(e.nama)} sendiri dibanding channel dan rekan setim. Saran hanya muncul bila datanya cukup.</p></div>
+        <div class="card-h"><h2>Yang bisa ditingkatkan</h2><p>Dihitung dari video ${me() ? 'Anda' : esc(e.nama)} sendiri dibanding ${me() ? 'video lain di channel yang sama' : 'channel dan rekan setim'}. Saran hanya muncul bila datanya cukup.</p></div>
         ${saran.length ? `<ol class="advice">${saran.map((x) => `<li><div class="t"><b>${x.good ? '<span class="pill ok">Sudah bagus</span> ' : ''}${x.title}</b><div class="why">${x.why}</div><div class="act">${icon('bulb')}<span>${x.act}</span></div></div></li>`).join('')}</ol>`
           : `<div class="empty"><b>Belum cukup data untuk saran</b>Butuh beberapa video berumur 2 hari atau lebih${S.insight && S.insight.error ? '. Data retensi gagal dimuat: ' + esc(S.insight.error) : ''}.</div>`}
       </section>
@@ -1714,8 +1772,8 @@ import './styles.css';
     const gK = group(last30, (c) => kataOf(c.judul));
     const kata = Object.entries(gK).filter(([, l]) => l.length >= 3 && l.length <= last30.length * 0.6).map(([k, l]) => ({ k, n: l.length, r: median(l.map((c) => r30.get(c.id)).filter((x) => x != null)) })).sort((a, b) => b.r - a.r);
     const kuat = kata.filter((x) => x.r >= 1.15).slice(0, 8), lemah = kata.filter((x) => x.r <= 0.85).slice(-4).reverse();
-    const fmtNaik = (x) => `<tr class="click" data-act="video" data-id="${x.c.id}"><td class="full">${vidCell(x.c)}</td><td data-label="Pembuat">${editorCell(x.c)}</td><td class="mono" data-label="Tayang">${tglPendek(x.c._day)}</td><td class="num" data-label="Naik / 24 jam"><b>+${fmt(x.per)}</b></td><td class="num" data-label="Total views">${fmt(x.c.views)}</td></tr>`;
-    const naikHead = '<thead><tr><th>Video</th><th>Pembuat</th><th>Tayang</th><th class="num">Naik / 24 jam</th><th class="num">Total views</th></tr></thead>';
+    const fmtNaik = (x) => `<tr class="click" data-act="video" data-id="${x.c.id}"><td class="full">${vidCell(x.c)}</td>${me() ? '' : `<td data-label="Pembuat">${editorCell(x.c)}</td>`}<td class="mono" data-label="Tayang">${tglPendek(x.c._day)}</td><td class="num" data-label="Naik / 24 jam"><b>+${fmt(x.per)}</b></td><td class="num" data-label="Total views">${fmt(x.c.views)}</td></tr>`;
+    const naikHead = '<thead><tr><th>Video</th>' + (me() ? '' : '<th>Pembuat</th>') + '<th>Tayang</th><th class="num">Naik / 24 jam</th><th class="num">Total views</th></tr></thead>';
     const naikEmpty = !S.insight ? '<div class="skeleton" style="height:120px"></div>' : S.insight.error ? `<div class="empty"><b>Belum bisa dimuat</b>${esc(S.insight.error)}</div>` : '<div class="empty"><b>Belum ada catatan kenaikan</b>Kenaikan dihitung dari dua sinkronisasi yang berjarak 12–72 jam. Data muncul setelah aplikasi dibuka atau sinkron otomatis berjalan di dua hari berbeda.</div>';
     return `
       <header class="head">
@@ -1768,7 +1826,6 @@ import './styles.css';
   const JENIS = { izin: 'Izin', sakit: 'Sakit', cuti: 'Cuti', klaim: 'Klaim biaya' };
   const statusPill = (s) => `<span class="pill ${s === 'disetujui' ? 'ok' : s === 'ditolak' ? 'bad' : 'warn'}">${s === 'menunggu' ? 'Menunggu' : s === 'disetujui' ? 'Disetujui' : 'Ditolak'}</span>`;
   const rentangTgl = (p) => (p.jenis === 'klaim' || p.dari === p.sampai ? tglPanjang(p.dari) : tglPendek(p.dari) + ' – ' + tglPanjang(p.sampai));
-  const hariKerjaDari = () => ((S.gajiCache[today().slice(0, 7)] || {}).config || { hari_kerja: [1, 2, 3, 4, 5, 6], libur: [] });
 
   function pengajuanRow(p, owner) {
     const e = editorById(p.editor_id);
@@ -1827,7 +1884,6 @@ import './styles.css';
 
   function ajukanDialog(jenis) {
     const klaim = jenis === 'klaim';
-    const cfg = hariKerjaDari();
     openDialog(`<h2>${klaim ? 'Klaim biaya' : 'Ajukan izin, sakit atau cuti'}</h2>
       <form id="aj-form" style="display:flex;flex-direction:column;gap:12px">
         ${klaim ? '<input type="hidden" name="jenis" value="klaim">' : `<label class="field"><span>Jenis</span><select class="input" name="jenis"><option value="izin">Izin (keperluan pribadi)</option><option value="sakit">Sakit</option><option value="cuti">Cuti (memakai jatah tahunan)</option></select></label>`}
@@ -1844,7 +1900,7 @@ import './styles.css';
       const hitungHari = () => {
         if (!info) return;
         if (!f.dari.value || !f.sampai.value || f.sampai.value < f.dari.value) { info.textContent = ''; return; }
-        let n = 0; for (let x = f.dari.value; x <= f.sampai.value && n < 400; x = addDays(x, 1)) if (cfg.hari_kerja.includes(asDate(x).getUTCDay()) && !cfg.libur.includes(x)) n++;
+        let n = 0; for (let x = f.dari.value; x <= f.sampai.value && n < 400; x = addDays(x, 1)) if (jamKerja(x)) n++;
         info.textContent = `${n} hari kerja.`;
       };
       if (info) { f.dari.addEventListener('change', () => { if (f.sampai.value < f.dari.value) f.sampai.value = f.dari.value; hitungHari(); }); f.sampai.addEventListener('change', hitungHari); hitungHari(); }
@@ -1958,8 +2014,7 @@ import './styles.css';
       if (pilih === 'umum') {
         const c = A.config;
         return `<form id="ag-form" style="display:flex;flex-direction:column;gap:12px">
-          <div class="field"><span>Hari kerja</span><div class="tools">${[1, 2, 3, 4, 5, 6, 0].map((d) => `<label class="chk"><input type="checkbox" name="hari" value="${d}" ${c.hari_kerja.includes(d) ? 'checked' : ''}> ${HARI_PDK[d]}</label>`).join('')}</div></div>
-          <label class="field"><span>Tanggal libur (tidak dihitung hari kerja)</span><textarea class="input mono" name="libur" rows="3" placeholder="2026-12-25">${esc(c.libur.join('\n'))}</textarea><small>Satu tanggal per baris, format YYYY-MM-DD. Untuk libur nasional dan cuti bersama.</small></label>
+          <div class="field"><span>Hari kerja dan libur</span><div>${esc(ringkasJadwal(kalender().jadwal))}. Tanggal merah libur.</div><small>Diubah di <a href="/presensi">Presensi → Aturan presensi</a>; dipakai juga untuk gaji, cuti dan target video.</small></div>
           <label class="field"><span>Jatah cuti per tahun (hari kerja)</span><input class="input" type="number" name="jatah_cuti" min="0" max="60" value="${c.jatah_cuti}" required></label>
           <div class="err" id="ag-err" role="alert"></div>
           <div class="actions"><button type="button" class="btn ghost" data-act="close-overlay">Tutup</button><button class="btn primary">Simpan</button></div></form>`;
@@ -1972,7 +2027,7 @@ import './styles.css';
         <div class="actions"><button type="button" class="btn ghost" data-act="close-overlay">Tutup</button><button class="btn primary">Simpan</button></div></form>`;
     };
     openDialog(`<h2>Atur gaji</h2>
-      <label class="field"><span>Bagian</span><select class="input" id="ag-pilih"><option value="umum">Aturan umum (hari kerja, libur, cuti)</option>${eds.map((e) => `<option value="${e.id}" ${+pilih === e.id ? 'selected' : ''}>Gaji ${esc(e.nama)}</option>`).join('')}</select></label>
+      <label class="field"><span>Bagian</span><select class="input" id="ag-pilih"><option value="umum">Aturan umum (jatah cuti)</option>${eds.map((e) => `<option value="${e.id}" ${+pilih === e.id ? 'selected' : ''}>Gaji ${esc(e.nama)}</option>`).join('')}</select></label>
       ${form()}`, (d) => {
       d.classList.add('wide');
       $('#ag-pilih', d).addEventListener('change', (ev) => aturGajiDialog(ev.target.value));
@@ -1980,7 +2035,7 @@ import './styles.css';
         ev.preventDefault();
         const f = ev.target;
         try {
-          if (pilih === 'umum') await api('/api/gaji/config', { method: 'PUT', body: { hari_kerja: $$('[name=hari]:checked', f).map((x) => +x.value), libur: f.libur.value.split(/\s+/).filter(Boolean), jatah_cuti: +f.jatah_cuti.value } });
+          if (pilih === 'umum') await api('/api/gaji/config', { method: 'PUT', body: { jatah_cuti: +f.jatah_cuti.value } });
           else await api('/api/gaji/aturan/' + pilih, { method: 'PUT', body: Object.fromEntries(ATURAN.map(([k]) => [k, +f[k].value || 0])) });
           toast('Aturan gaji tersimpan');
           S.gajiCache = {};
@@ -2079,25 +2134,25 @@ import './styles.css';
     const noRev = '<div class="empty"><b>Belum ada angka pendapatan</b>Muncul setelah channel tersambung ke YouTube Analytics dan sudah dimonetisasi.</div>';
     const ch28 = p28.length && revIn(p28) ? Math.round(((revIn(d28) - revIn(p28)) / revIn(p28)) * 100) : null;
     return `
-      <header class="head"><div><h1>Pendapatan</h1><p>Pendapatan iklan adalah <b>perkiraan dari YouTube Analytics</b> (US$), angka yang sama dengan di YouTube Studio; pembayaran akhir AdSense bisa sedikit berbeda. Omzet afiliasi berasal dari laporan CSV yang diimpor atau diisi manual oleh pemilik.</p></div><div class="tools">${bantuan('pendapatan')}</div></header>
+      <header class="head"><div><h1>Pendapatan</h1><p>Pendapatan iklan adalah <b>perkiraan dari YouTube Analytics</b> dalam rupiah (dikonversi YouTube dengan kurs harian), angka yang sama dengan di YouTube Studio; pembayaran akhir AdSense bisa sedikit berbeda. Omzet afiliasi berasal dari laporan CSV yang diimpor atau diisi manual oleh pemilik.</p></div><div class="tools">${bantuan('pendapatan')}</div></header>
       <section class="kpis">
-        <div class="kpi"><span class="l">Iklan bulan ini</span><span class="v">${hasDaily ? usd(revMonth) : '—'}</span><span class="d">${hasDaily ? 'semua video, sampai ' + tglPendek(latest) : 'belum ada data channel'}</span></div>
-        <div class="kpi"><span class="l">Iklan 28 hari</span><span class="v">${hasDaily ? usd(revIn(d28)) : '—'}</span><span class="d ${ch28 == null ? '' : ch28 >= 0 ? 'ok' : 'bad'}">${ch28 == null ? 'belum ada pembanding' : signed(ch28, (v) => nf.format(v) + '%') + ' dari 28 hari sebelumnya'}</span></div>
-        <div class="kpi"><span class="l">Total per video tercatat</span><span class="v">${hasVid ? usd(sum(withRev, (c) => c.revenue)) : '—'}</span><span class="d">${hasVid ? nf.format(withRev.filter((c) => c.revenue > 0).length) + ' video menghasilkan, seumur video' : 'belum ada data per video'}</span></div>
+        <div class="kpi"><span class="l">Iklan bulan ini</span><span class="v">${hasDaily ? rpOrDash(revMonth) : '—'}</span><span class="d">${hasDaily ? 'semua video, sampai ' + tglPendek(latest) : 'belum ada data channel'}</span></div>
+        <div class="kpi"><span class="l">Iklan 28 hari</span><span class="v">${hasDaily ? rpOrDash(revIn(d28)) : '—'}</span><span class="d ${ch28 == null ? '' : ch28 >= 0 ? 'ok' : 'bad'}">${ch28 == null ? 'belum ada pembanding' : signed(ch28, (v) => nf.format(v) + '%') + ' dari 28 hari sebelumnya'}</span></div>
+        <div class="kpi"><span class="l">Total per video tercatat</span><span class="v">${hasVid ? rpOrDash(sum(withRev, (c) => c.revenue)) : '—'}</span><span class="d">${hasVid ? nf.format(withRev.filter((c) => c.revenue > 0).length) + ' video menghasilkan, seumur video' : 'belum ada data per video'}</span></div>
         <div class="kpi"><span class="l">Omzet afiliasi bulan ini</span><span class="v">${idr(g.tercapai)}</span><span class="d">${g.impor && g.impor.bulan.includes(month) ? 'dari impor ' + esc(g.impor.sumber) : 'diisi manual'} · ${g.target_omset ? 'target ' + idr(g.target_omset) : 'target belum diatur'}</span></div>
       </section>
       <section class="card"><div class="card-h"><h2>Sumber angka</h2></div>
-        <div class="checklist">${chans.map((c) => { const r = revDaily.filter((d) => d.channel_id === c.id); const ok = c.connected && r.length > 0; return `<div class="ck"><span class="st ${ok ? 'ok' : 'bad'}">${ok ? '✓' : '!'}</span><div><b>${esc(c.nama)}</b><div>${!c.connected ? (r.length ? `Tidak tersambung lagi ke YouTube Analytics. Angka yang tampil adalah data lama sampai ${tglPendek(r.reduce((m, d) => (d.tanggal > m ? d.tanggal : m), ''))}; hubungkan ulang di Pengaturan.` : 'Belum tersambung ke YouTube Analytics: pendapatannya tidak terbaca.') : r.length ? `Pendapatan terbaca, ${usd(sum(r.filter((d) => d.tanggal.slice(0, 7) === month), (d) => d.revenue))} bulan ini.` : 'Tersambung, tapi YouTube tidak mengirim angka pendapatan (channel belum dimonetisasi atau akun tidak punya akses pendapatan).'}</div></div></div>`; }).join('') || '<div class="empty">Belum ada channel.</div>'}</div>
+        <div class="checklist">${chans.map((c) => { const r = revDaily.filter((d) => d.channel_id === c.id); const ok = c.connected && r.length > 0; return `<div class="ck"><span class="st ${ok ? 'ok' : 'bad'}">${ok ? '✓' : '!'}</span><div><b>${esc(c.nama)}</b><div>${!c.connected ? (r.length ? `Tidak tersambung lagi ke YouTube Analytics. Angka yang tampil adalah data lama sampai ${tglPendek(r.reduce((m, d) => (d.tanggal > m ? d.tanggal : m), ''))}; hubungkan ulang di Pengaturan.` : 'Belum tersambung ke YouTube Analytics: pendapatannya tidak terbaca.') : r.length ? `Pendapatan terbaca, ${rpOrDash(sum(r.filter((d) => d.tanggal.slice(0, 7) === month), (d) => d.revenue))} bulan ini.` : 'Tersambung, tapi YouTube tidak mengirim angka pendapatan (channel belum dimonetisasi atau akun tidak punya akses pendapatan).'}</div></div></div>`; }).join('') || '<div class="empty">Belum ada channel.</div>'}</div>
       </section>
       <div class="grid-2">
         <section class="card"><div class="card-h"><h2>Target omzet afiliasi</h2><div class="tools"><button class="btn sm" data-act="impor-afiliasi">${icon('download')}Impor CSV</button><button class="btn sm" data-act="goal">Ubah</button></div></div>
           <div class="goal-v">${gp == null ? idr(g.tercapai) : pct(gp)}</div><div class="goal-bar"><i style="width:${(gp || 0) * 100}%"></i></div>
           <div class="muted">${gp == null ? 'Target bulan ini belum diatur. Klik Ubah untuk mengisinya.' : `${idr(g.tercapai)} dari ${idr(g.target_omset)} · sisa ${idr(Math.max(0, g.target_omset - g.tercapai))}`}</div>
           <p class="muted" style="font-size:12.5px;margin:10px 0 0">${g.impor ? `Impor terakhir: ${esc(g.impor.sumber)}, ${esc(g.impor.file)} (${g.impor.bulan.map(bulanLabel).join(', ')}), ${new Date(g.impor.waktu).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}.` : 'Belum pernah diimpor. Isi manual lewat Ubah, atau impor laporan komisi CSV dari dashboard afiliasi.'}</p></section>
-        <section class="card"><div class="card-h"><h2>Per karyawan</h2><p>Jumlah pendapatan seumur video buatan tiap orang.</p></div>${hasVid ? `<div class="rank">${perEditor.map((x) => `<div class="rank-row">${avatar(editorById(x.k), 'sm')}<div class="tx"><b>${esc(x.nama)}</b><div class="bar"><i style="width:${(x.v / maxE) * 100}%"></i></div></div><b>${usd(x.v)}</b></div>`).join('')}</div>` : noRev}</section>
-        <section class="card"><div class="card-h"><h2>Per channel</h2><p>Jumlah pendapatan seumur video yang tercatat.</p></div>${hasVid ? `<div class="rank">${perCh.map((x) => `<div class="rank-row"><span></span><div class="tx"><b>${esc(x.nama)}</b><div class="bar"><i style="width:${(x.v / maxC) * 100}%"></i></div></div><b>${usd(x.v)}</b></div>`).join('')}</div>` : noRev}</section>
+        <section class="card"><div class="card-h"><h2>Per karyawan</h2><p>Jumlah pendapatan seumur video buatan tiap orang.</p></div>${hasVid ? `<div class="rank">${perEditor.map((x) => `<div class="rank-row">${avatar(editorById(x.k), 'sm')}<div class="tx"><b>${esc(x.nama)}</b><div class="bar"><i style="width:${(x.v / maxE) * 100}%"></i></div></div><b>${rpOrDash(x.v)}</b></div>`).join('')}</div>` : noRev}</section>
+        <section class="card"><div class="card-h"><h2>Per channel</h2><p>Jumlah pendapatan seumur video yang tercatat.</p></div>${hasVid ? `<div class="rank">${perCh.map((x) => `<div class="rank-row"><span></span><div class="tx"><b>${esc(x.nama)}</b><div class="bar"><i style="width:${(x.v / maxC) * 100}%"></i></div></div><b>${rpOrDash(x.v)}</b></div>`).join('')}</div>` : noRev}</section>
         <section class="card"><div class="card-h"><h2>Video dengan pendapatan tertinggi</h2></div>
-          ${withRev.some((c) => c.revenue > 0) ? `<div class="table-wrap"><table class="t"><tbody>${[...withRev].filter((c) => c.revenue > 0).sort((a, b) => b.revenue - a.revenue).slice(0, 8).map((c) => `<tr class="click" data-act="video" data-id="${c.id}"><td>${vidCell(c)}</td><td class="num"><b>${usd(c.revenue)}</b></td></tr>`).join('')}</tbody></table></div>` : noRev}</section>
+          ${withRev.some((c) => c.revenue > 0) ? `<div class="table-wrap"><table class="t"><tbody>${[...withRev].filter((c) => c.revenue > 0).sort((a, b) => b.revenue - a.revenue).slice(0, 8).map((c) => `<tr class="click" data-act="video" data-id="${c.id}"><td>${vidCell(c)}</td><td class="num"><b>${rpOrDash(c.revenue)}</b></td></tr>`).join('')}</tbody></table></div>` : noRev}</section>
       </div>`;
   };
 
@@ -2107,17 +2162,17 @@ import './styles.css';
   const MENU_INFO = {
     'hari-ini': 'Halaman utama karyawan: absen, jadwal video, tugas, izin dan gaji hari ini.',
     ringkasan: 'Gambaran tim: video tayang, views, tepat jadwal, siapa paling bagus.',
-    harian: 'Kerja tiap orang per hari: video, jam tayang, tugas lain, skor.',
-    performa: 'Video mana yang berhasil, dibanding channel dan rekan, plus saran.',
+    harian: 'Kerja per hari: video, jam tayang, tugas lain, skor. Karyawan hanya melihat miliknya sendiri.',
+    performa: 'Video mana yang berhasil dibanding video lain di channel, plus saran perbaikan.',
     tren: 'Apa yang sedang naik di channel: video, topik, kata di judul.',
-    konten: 'Semua video: cari, saring, lihat retensi, unduh CSV.',
+    konten: 'Semua video channel: cari, saring, lihat retensi, unduh CSV.',
     analytics: 'Angka resmi YouTube per channel: views, jam tonton, subscriber.',
-    presensi: 'Absen masuk dan pulang dari Wi-Fi kantor.',
+    presensi: 'Absen masuk dan pulang dari Wi-Fi kantor. Pemilik mengatur jam kerja dan libur di sini.',
     pengajuan: 'Ajukan izin, sakit, cuti atau ganti uang (klaim).',
     gaji: 'Slip gaji yang dihitung otomatis dari presensi dan video.',
     identifikasi: 'Video tanpa kode karyawan, untuk ditetapkan pembuatnya.',
     karyawan: 'Data karyawan: kode, jadwal, target, PIN.',
-    monetisasi: 'Pendapatan iklan YouTube dan omzet afiliasi.',
+    monetisasi: 'Pendapatan iklan YouTube (rupiah) dan omzet afiliasi.',
     pengaturan: 'Sambungan YouTube, sinkronisasi, notifikasi, password.',
   };
 
@@ -2125,14 +2180,16 @@ import './styles.css';
     { id: 'harian', q: 'Bagaimana skor harian dihitung?', a: `<p>Skor 0–100 dari empat hal:</p><ul><li><b>Jumlah video</b> dibanding target: 35 poin</li><li><b>Tepat jadwal</b> (telat lebih dari ${TOL} menit = telat): 25 poin</li><li><b>Views</b> dibanding video lain di channel: 20 poin</li><li><b>Tugas lain</b> yang dicatat: 20 poin</li></ul><p>Nilai A ≥ 85, B ≥ 70, C ≥ 55, sisanya D.</p>` },
     { id: 'performa', q: 'Apa arti angka 1,3× atau 0,8×?', a: '<p>Views video dibanding video biasa di channel yang sama (Shorts dibanding Shorts). <b>1×</b> = biasa, <b>1,3×</b> = 30% lebih ramai, <b>0,8×</b> = 20% lebih sepi.</p><p>Video yang belum 2 hari belum dinilai karena views-nya masih naik.</p>' },
     { id: 'tren', q: 'Dari mana “Sedang naik sekarang” dihitung?', a: '<p>Dari selisih views antara dua kali sinkronisasi (data diambil tiap jam), lalu disetarakan per 24 jam. Topik dan kata judul dibandingkan dengan video lain di periode yang sama.</p>' },
+    { id: 'jam-kerja', q: 'Jam kerja dan hari libur', get a() { return `<ul>${ringkasJadwal(kalender().jadwal).split(' · ').map((x) => `<li>${esc(x)}</li>`).join('')}<li><b>Tanggal merah</b> libur${kalender().cuti_bersama ? ', termasuk cuti bersama' : ''}</li></ul><p>Telat dihitung dari jam masuk hari itu. Di hari libur tidak ada target video dan tidak dihitung tidak hadir; bila tetap masuk, jam kerjanya dihitung lembur. Pemilik bisa mengubah jam kerja, ikut cuti bersama, atau menambah libur kantor di Presensi → Aturan presensi.</p>${liburBerikutnya().length ? `<p>Libur berikutnya: ${liburBerikutnya().map(([d, n]) => `${tglPendek(d)} (${esc(n)})`).join(', ')}.</p>` : ''}`; } },
+    { id: 'privasi', q: 'Siapa yang bisa melihat data saya?', a: '<p>Karyawan hanya melihat <b>datanya sendiri</b> (absen, aktivitas, skor, gaji, izin) dan angka <b>channel secara umum</b>. Data karyawan lain tidak ditampilkan; video buatan rekan tertulis “Tim”. Pemilik melihat semuanya.</p>' },
     { id: 'presensi', q: 'Kenapa absen saya ditolak?', a: '<p>Absen hanya diterima bila <b>tersambung ke Wi-Fi kantor</b>, <b>GPS menyala dan akurat</b>, dan <b>berada di area kantor</b>. Alasannya tertulis di tabel “Percobaan yang ditolak”.</p><p>Coba: matikan data seluler dan VPN, sambung ke Wi-Fi kantor, nyalakan GPS, tunggu beberapa detik, lalu absen lagi.</p>' },
     { id: 'video', q: 'Video saya tidak muncul atau tidak terhitung', a: '<p>Pastikan <b>kode Anda</b> (misal #AL) ada di deskripsi video. Video baru muncul paling lama 1 jam setelah tayang. Video tanpa kode bisa ditetapkan pembuatnya di menu Belum dikenali.</p>' },
     { id: 'retensi', q: 'Kenapa retensi video kosong?', a: '<p>YouTube baru memberi data retensi 2–3 hari setelah video tayang, dan tidak memberikannya untuk video yang penontonnya sangat sedikit. Channel juga harus tersambung ke YouTube Analytics.</p>' },
     { id: 'pengajuan', q: 'Apa pengaruh izin, cuti dan klaim ke gaji?', a: '<ul><li><b>Sakit</b> dan <b>cuti</b> yang disetujui tidak dipotong.</li><li><b>Izin</b> dipotong hanya bila pemilik mengaturnya.</li><li><b>Klaim</b> yang disetujui ditambahkan ke gaji bulan itu.</li><li>Tidak absen tanpa izin = tidak hadir.</li></ul>' },
-    { id: 'gaji', q: 'Bagaimana gaji dihitung?', a: '<p><b>Ditambah:</b> gaji pokok, tunjangan, lembur (pulang ≥ 30 menit setelah jam pulang), bonus video di atas target, bonus views, klaim, bonus dari pemilik.</p><p><b>Dikurangi:</b> hari tidak hadir, izin (bila diatur), telat, potongan tetap seperti BPJS.</p><p>Nominal tiap komponen diatur pemilik di Gaji → Atur gaji.</p>' },
+    { id: 'gaji', q: 'Bagaimana gaji dihitung?', a: '<p><b>Ditambah:</b> gaji pokok, tunjangan, lembur (pulang ≥ 30 menit setelah jam pulang hari itu, atau seluruh jam kerja di hari libur), bonus video di atas target, bonus views, klaim, bonus dari pemilik.</p><p><b>Dikurangi:</b> hari tidak hadir, izin (bila diatur), telat, potongan tetap seperti BPJS.</p><p>Nominal tiap komponen diatur pemilik di Gaji → Atur gaji.</p>' },
     { id: 'status-gaji', q: 'Apa beda Perkiraan, Final dan Dibayar?', a: '<ul><li><b>Perkiraan</b>: bulan masih berjalan, angka masih bisa berubah.</li><li><b>Final</b>: dikunci pemilik, angka tidak berubah lagi.</li><li><b>Dibayar</b>: pemilik sudah mentransfer.</li></ul>' },
     { id: 'notifikasi', q: 'Cara menyalakan notifikasi di HP', a: '<p><b>Android / laptop:</b> buka menu Pengaturan (pemilik) atau Izin & klaim (karyawan), lalu tekan <b>Aktifkan notifikasi</b>.</p><p><b>iPhone:</b> buka di Safari → <b>Bagikan</b> → <b>Tambah ke Layar Utama</b>. Buka Pantau Tokder dari ikon itu, lalu tekan Aktifkan notifikasi.</p>' },
-    { id: 'pendapatan', q: 'Apakah angka pendapatan asli?', a: '<p>Ya. Pendapatan iklan diambil dari YouTube Analytics, sama dengan di YouTube Studio (bisa sedikit beda dengan pembayaran AdSense). Channel yang belum tersambung tampil “—”. Omzet afiliasi dari file CSV yang diimpor atau diisi manual.</p>', owner: true },
+    { id: 'pendapatan', q: 'Apakah angka pendapatan asli?', a: '<p>Ya. Pendapatan iklan diambil dari YouTube Analytics dalam <b>rupiah</b> (YouTube mengonversinya dengan kurs harian), sama dengan di YouTube Studio bila mata uangnya rupiah. Pembayaran AdSense bisa sedikit beda karena kurs saat transfer. Channel yang belum tersambung tampil “—”. Omzet afiliasi dari file CSV yang diimpor atau diisi manual.</p>', owner: true },
     { id: 'afiliasi', q: 'Cara memasukkan omzet afiliasi', a: '<p>Unduh laporan komisi (CSV) dari dashboard afiliasi, lalu di menu Pendapatan tekan <b>Impor CSV</b>, pilih file, cek total per bulan, dan Simpan.</p>', owner: true },
     { id: 'data', q: 'Dari mana semua angka berasal?', a: '<ul><li>Video, views, like: YouTube, diperbarui tiap jam.</li><li>Retensi, jam tonton, pendapatan: YouTube Analytics, terlambat 2–3 hari.</li><li>Absen, aktivitas, izin: dicatat di aplikasi ini.</li></ul><p>Tidak ada angka contoh. Data yang belum ada ditulis “—”.</p>' },
     { id: 'ip-kantor', q: 'Semua karyawan ditolak “bukan Wi-Fi kantor”', a: '<p>Biasanya IP internet kantor berganti setelah modem dinyalakan ulang. Bila dua karyawan yang GPS-nya di dalam kantor ditolak dari jaringan baru yang sama, pemilik mendapat notifikasi dan kartu <b>IP Wi-Fi kantor tampaknya berubah</b> di Presensi. Tekan <b>Ganti IP lama dengan ini</b>; karyawan diberi kabar untuk absen lagi.</p>', owner: true },
@@ -2153,7 +2210,7 @@ import './styles.css';
       { ok: me() ? !!P.masuk : null, t: 'Absen masuk dan pulang', d: 'Dari Wi-Fi kantor dengan GPS menyala, langsung di halaman Hari ini.', btn: '<a class="btn sm" href="/">Hari ini</a>' },
       { ok: null, t: 'Catat tugas selain upload', d: 'Riset harga, thumbnail, cek SEO, balas komentar.', btn: '<a class="btn sm" href="/">Hari ini</a>' },
       { ok: !!(S.notif && S.notif.aktif), t: 'Nyalakan notifikasi', d: 'Supaya tahu izin disetujui, gaji dibayar, dan diingatkan absen.', btn: S.notif && S.notif.aktif ? '' : '<button class="btn sm" data-act="notif-aktif">Aktifkan</button>' },
-      { ok: null, t: 'Lihat Performa tiap minggu', d: 'Baca bagian “Yang bisa ditingkatkan”.', btn: '<a class="btn sm" href="/performa">Performa</a>' },
+      { ok: null, t: 'Lihat Performa tiap minggu', d: 'Baca bagian “Yang bisa ditingkatkan”: videomu dibanding video lain di channel.', btn: '<a class="btn sm" href="/performa">Performa</a>' },
     ];
   }
 
@@ -2165,7 +2222,7 @@ import './styles.css';
     const selesai = langkah.filter((x) => x.ok).length, dinilai = langkah.filter((x) => x.ok != null).length;
     const rutin = untukPemilik
       ? [['Setiap hari', ['Lihat Ringkasan dan Harian', 'Setujui atau tolak Izin & klaim']], ['Setiap minggu', ['Baca ringkasan Senin pagi di notifikasi', 'Buka Tren channel dan Performa', 'Tetapkan video di Belum dikenali']], ['Akhir bulan', ['Gaji → cek Rincian → Finalkan', 'Transfer, lalu Tandai dibayar', 'Unduh Excel untuk arsip', 'Impor omzet afiliasi']]]
-      : [['Setiap hari', ['Buka Hari ini, absen masuk', 'Upload sesuai jadwal, pakai kode', 'Centang tugas lain dengan Catat', 'Absen pulang']], ['Setiap minggu', ['Buka Performa', 'Lihat Tren channel untuk ide']], ['Akhir bulan', ['Cek slip di Gaji', 'Ajukan klaim sebelum gaji final']]];
+      : [['Setiap hari kerja', ['Buka Hari ini, absen masuk', 'Upload sesuai jadwal, pakai kode', 'Centang tugas lain dengan Catat', 'Absen pulang. Jam kerja: ' + ringkasJadwal(kalender().jadwal)]], ['Setiap minggu', ['Buka Performa saya', 'Lihat Tren channel untuk ide']], ['Akhir bulan', ['Cek slip di Gaji', 'Ajukan klaim sebelum gaji final']]];
     const menu = ROUTES.filter((r) => r.id !== 'panduan' && MENU_INFO[r.id] && (!r.admin || untukPemilik) && (!r.karyawan || !untukPemilik));
     const faq = FAQ.filter((f) => !f.owner || untukPemilik);
     return `
@@ -2291,7 +2348,7 @@ import './styles.css';
       { ok: !!(eds.length && eds.every((e) => e.punya_pin)), t: 'Tambah karyawan dan beri PIN', d: eds.length ? eds.filter((e) => !e.punya_pin).map((e) => e.nama).join(', ') + ' belum punya PIN untuk masuk.' : 'Belum ada karyawan.', cara: 'Isi nama, kode video (misal AL), jadwal tayang, target dan PIN.', href: '/karyawan' },
       { ok: !!(ch.length && ch.every((c) => c.connected)), t: 'Sambungkan YouTube Analytics', d: `${ch.filter((c) => c.connected).length} dari ${ch.length} channel tersambung. Retensi, jam tonton dan pendapatan hanya terbaca dari channel yang tersambung.`, cara: 'Pengaturan → Hubungkan, masuk dengan tokodeeres@gmail.com, pilih channel. Ulangi untuk tiap channel.', href: '/pengaturan' },
       { ok: !!(S.presensi && S.presensi.config && S.presensi.config.siap), t: 'Atur presensi', d: 'Isi lokasi kantor dan IP Wi-Fi kantor dari kantor.', cara: 'Buka dari Wi-Fi kantor: Pakai lokasi saya, Tambahkan IP saya, Simpan.', href: '/presensi' },
-      { ok: !!(G && G.config && G.config.tersimpan), t: 'Atur hari kerja dan cuti', d: 'Pastikan hari kerja (bawaan Senin–Sabtu), tanggal libur dan jatah cuti sudah benar.', cara: 'Hari kerja, tanggal libur, jatah cuti per tahun.', href: '/gaji', act: 'atur-gaji', id: 'umum' },
+      { ok: !!(G && G.config && G.config.tersimpan), t: 'Cek jam kerja dan jatah cuti', d: `Jam kerja: ${ringkasJadwal(kalender().jadwal)}; tanggal merah libur. Pastikan jatah cuti per tahun sudah benar.`, cara: 'Jam kerja di Presensi, jatah cuti di Gaji → Atur gaji.', href: '/gaji', act: 'atur-gaji', id: 'umum' },
       { ok: !!(G && G.list && G.list.length && !belumGaji.length), t: 'Isi gaji tiap karyawan', d: belumGaji.map((r) => r.nama).join(', ') + ' belum punya gaji pokok atau komponen lain.', cara: 'Gaji pokok, tunjangan, potongan, lembur, bonus.', href: '/gaji', act: 'atur-gaji', id: belumGaji.length ? belumGaji[0].editor_id : G && G.list && G.list[0] && G.list[0].editor_id },
       { ok: !!(S.notif && S.notif.aktif), t: 'Nyalakan notifikasi di HP', d: 'Supaya pengajuan izin dan klaim langsung terlihat.', cara: 'Supaya pengajuan izin dan klaim langsung masuk ke HP.', href: '/pengaturan', act: S.notif && S.notif.aktif ? null : 'notif-aktif' },
     ];
@@ -2673,10 +2730,10 @@ import './styles.css';
         <div class="drawer-top"><h2>${esc(c.judul)}</h2><button class="btn icon ghost" data-act="close-overlay" aria-label="Tutup">${icon('x')}</button></div>
         ${thumb(c) ? `<img class="hero" src="${thumb(c).replace('mqdefault', 'hqdefault')}" alt="">` : ''}
         <div class="muted">${esc(c._chNama)} · ${c.tipe_video === 'short' ? 'Shorts' : 'Video panjang'} · ${tglPanjang(c._day)} jam ${c._jam} WIB · durasi ${durasi(c.duration_secs)}</div>
-        <div class="stats"><div><span>Views</span><b>${nf.format(c.views)}</b></div><div><span>Like</span><b>${nf.format(c.likes)}</b></div><div><span>Komentar</span><b>${nf.format(c.comments)}</b></div>${isAdmin() ? `<div><span>Pendapatan</span><b>${usd(c.revenue)}</b></div>` : ''}</div>
+        <div class="stats"><div><span>Views</span><b>${nf.format(c.views)}</b></div><div><span>Like</span><b>${nf.format(c.likes)}</b></div><div><span>Komentar</span><b>${nf.format(c.comments)}</b></div>${isAdmin() ? `<div><span>Pendapatan</span><b>${rpOrDash(c.revenue)}</b></div>` : ''}</div>
         <div><div class="card-h" style="margin-bottom:6px"><h2>Pembuat</h2></div>
-          ${e ? `<span class="ed">${avatar(e, 'sm')}<b>${esc(e.nama)}</b></span>` : '<span class="pill warn">Belum dikenali</span>'}
-          ${canAssign() ? `<div class="tools" style="margin-top:10px"><select class="input" id="dr-assign" style="width:auto"><option value="">${e ? 'Ganti pembuat…' : 'Tetapkan pembuat…'}</option>${activeEditors().map((x) => `<option value="${x.id}">${esc(x.nama)}</option>`).join('')}</select></div>` : ''}
+          ${editorCell(c)}
+          ${canAssign() && (isAdmin() || belumDikenali(c)) ? `<div class="tools" style="margin-top:10px"><select class="input" id="dr-assign" style="width:auto"><option value="">${e ? 'Ganti pembuat…' : 'Tetapkan pembuat…'}</option>${activeEditors().map((x) => `<option value="${x.id}">${me() ? 'Ini video saya' : esc(x.nama)}</option>`).join('')}</select></div>` : ''}
         </div>
         <div><div class="card-h" style="margin-bottom:6px"><h2>Retensi penonton</h2><p>Dari YouTube Analytics.</p></div>
           <div class="chart" id="dr-ret" style="min-height:120px"><div class="skeleton" style="height:170px"></div></div></div>

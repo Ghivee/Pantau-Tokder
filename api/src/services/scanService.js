@@ -121,6 +121,9 @@ async function runFullScan() {
     console.warn('Could not load analytics tokens:', e.message);
   }
   const tokenFor = (vid) => tokens[vid.channelId] || null;
+  // Revenue in rupiah from now on (converts the stored US$ figures once).
+  let rupiah = { rupiah: false };
+  try { rupiah = await analyticsService.pastikanRupiah(); } catch (e) { console.warn('Konversi rupiah gagal:', e.message); }
   const budget = { backfill: 25 };
 
   let newPosts = 0;
@@ -199,7 +202,8 @@ async function runFullScan() {
   for (const [channelId, token] of Object.entries(tokens)) {
     if (Date.now() - startedAt > TIME_BUDGET_MS + 8000) break;
     try {
-      analyticsDays += await analyticsService.syncChannelDaily(channelId, token);
+      // Right after the switch to rupiah, the whole stored history is fetched again in rupiah.
+      analyticsDays += await analyticsService.syncChannelDaily(channelId, token, rupiah.baru ? 400 : 95);
     } catch (e) {
       errors.push(`Analytics ${channelId} gagal: ${e.response?.data?.error?.message || e.message}`);
     }

@@ -8,7 +8,8 @@ const { createAuditMiddleware, getClientIp, getUserAgent, logAudit } = require('
 router.get('/', async (req, res) => {
   try {
     const editors = await editorService.getAllEditors();
-    res.json(editors);
+    // Employees see only their own profile.
+    res.json(req.isAdmin ? editors : editors.filter((e) => e.id === req.editor.id));
   } catch (err) {
     fail(res, err);
   }
