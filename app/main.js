@@ -37,6 +37,7 @@ import './styles.css';
     money: '<rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/><path d="M6 9.5v5M18 9.5v5"/>',
     gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.6 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.6-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/>',
     plus: '<path d="M12 5v14M5 12h14"/>',
+    share: '<circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8.2 11l7.6-4M8.2 13l7.6 4"/>',
     more: '<circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/>',
     bulb: '<path d="M9 18h6M10 21h4M12 3a6 6 0 00-3.5 10.9c.6.5 1 1.2 1 2V16h5v-.1c0-.8.4-1.5 1-2A6 6 0 0012 3z"/>',
     chart: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
@@ -154,7 +155,7 @@ import './styles.css';
   const optional = (p, label) => p.catch((e) => { S.warnings.push(label + ': ' + e.message); return null; });
 
   // One request brings everything every page needs, so switching pages never waits for the network.
-  const BAGIAN = { kalender: 'Jam kerja & libur', aktivitas: 'Aktivitas', channels: 'Daftar channel', scan: 'Status sinkronisasi', oauth: 'Status YouTube Analytics', goal: 'Target omzet', daily: 'YouTube Analytics', presensi: 'Presensi', gaji: 'Gaji', pengajuan: 'Izin & klaim' };
+  const BAGIAN = { kalender: 'Jam kerja & libur', aktivitas: 'Aktivitas', channels: 'Daftar channel', scan: 'Status sinkronisasi', oauth: 'Status YouTube Analytics', sosmed: 'TikTok, Instagram & Facebook', goal: 'Target omzet', daily: 'YouTube Analytics', presensi: 'Presensi', gaji: 'Gaji', pengajuan: 'Izin & klaim' };
   // The last data is kept on this device so the app opens instantly and still shows something
   // on a weak signal. Payroll is left out; signing out clears it.
   const CACHE_KEY = 'pt_data';
@@ -181,7 +182,7 @@ import './styles.css';
     applySession(b.me);
     S.warnings = Object.keys(b.gagal || {}).map((k) => (BAGIAN[k] || k) + ': ' + b.gagal[k]);
     Object.assign(S, {
-      editors: b.editors, content: b.content, aktivitas: b.aktivitas || [], channels: b.channels || [], scan: b.scan, oauth: b.oauth,
+      editors: b.editors, content: b.content, aktivitas: b.aktivitas || [], channels: b.channels || [], scan: b.scan, oauth: b.oauth, sosmed: b.sosmed || null,
       goal: b.goal, daily: b.daily || [], presensi: b.presensi || (b.gagal && b.gagal.presensi ? { error: b.gagal.presensi } : null),
       pengajuan: b.pengajuan || null, kalender: b.kalender || null,
       error: null, loadedAt: Date.now(),
@@ -552,6 +553,7 @@ import './styles.css';
     { id: 'tren', label: 'Tren channel', short: 'Tren', icon: 'trend' },
     { id: 'konten', label: 'Konten', icon: 'video' },
     { id: 'analytics', label: 'Analytics', icon: 'chart' },
+    { id: 'sosmed', label: 'Sosmed', icon: 'share', admin: true },
     { id: 'presensi', label: 'Presensi', icon: 'pin' },
     { id: 'pengajuan', label: 'Izin & klaim', short: 'Izin', icon: 'inbox' },
     { id: 'gaji', label: 'Gaji', icon: 'wallet' },
@@ -569,7 +571,7 @@ import './styles.css';
       { label: 'Bantuan', ids: ['panduan'] },
     ];
     return [
-      { label: 'Pantau', ids: ['ringkasan', 'harian', 'performa', 'tren', 'konten', 'analytics'] },
+      { label: 'Pantau', ids: ['ringkasan', 'harian', 'performa', 'tren', 'konten', 'analytics', 'sosmed'] },
       { label: 'Tim', ids: ['presensi', 'pengajuan', 'gaji', 'karyawan', 'identifikasi'] },
       { label: 'Pemilik', ids: ['monetisasi', 'pengaturan', 'panduan'] },
     ];
@@ -828,6 +830,42 @@ import './styles.css';
           <div class="table-wrap"><table class="t stack"><thead><tr><th>${allowed ? '<label style="display:inline-flex;gap:10px;align-items:center"><input type="checkbox" id="sel-all" aria-label="Pilih semua"> Video</label>' : 'Video'}</th><th>Tayang (WIB)</th><th class="num">Views</th>${allowed ? '<th>Pembuat</th>' : ''}</tr></thead><tbody>
             ${rows.map((c) => `<tr><td class="full"><div style="display:flex;gap:10px;align-items:center">${allowed ? `<input type="checkbox" data-sel="${c.id}" ${S.sel.has(c.id) ? 'checked' : ''} aria-label="Pilih ${esc(c.judul)}" style="width:20px;height:20px;flex:none">` : ''}<a href="/identifikasi" data-act="video" data-id="${c.id}" style="text-decoration:none;min-width:0">${vidCell(c)}</a></div></td><td class="mono" data-label="Tayang">${tglPendek(c._day)} ${c._jam}</td><td class="num" data-label="Views">${nf.format(c.views)}</td>${allowed ? `<td class="full"><select class="input" data-assign="${c.id}" aria-label="Pembuat"><option value="">Tetapkan pembuat…</option>${activeEditors().map((e) => `<option value="${e.id}">${esc(e.nama)}</option>`).join('')}</select></td>` : ''}</tr>`).join('')}
           </tbody></table></div>` : '<div class="empty"><b>Semua video sudah dikenali</b>Video baru tanpa kode akan muncul di sini setelah sinkronisasi.</div>'}
+        </section>`;
+    },
+
+    sosmed() {
+      const d = S.sosmed;
+      const head = `<header class="head"><div><h1>Sosmed</h1><p>TikTok, Instagram dan Facebook: pengikut dan statistik posting 90 hari terakhir. Hanya dibaca, tidak ada yang diposting.</p></div>
+        <div class="tools"><button class="btn primary" data-act="sync-sosmed">${icon('sync')}Tarik data</button></div></header>`;
+      if (!d) return head + '<section class="card"><div class="empty"><b>Data sosmed belum termuat</b>Coba muat ulang halaman.</div></section>';
+      const hariWib = (iso) => new Date(new Date(iso).getTime() + WIB).toISOString().slice(0, 10);
+      const batas = Date.now() - 30 * 86400000;
+      const baru = d.posts.filter((p) => new Date(p.tanggal).getTime() >= batas);
+      const pengikut = sum(d.platforms.flatMap((p) => p.koneksi), (k) => k.followers || 0);
+      const edNama = (id) => { const e = S.editors.find((x) => x.id === id); return e ? esc(e.nama) : '<span class="muted">—</span>'; };
+      const kartu = (p) => `<section class="card"><div class="card-h"><h2>${esc(p.nama)}</h2><p>${p.siap ? (p.koneksi.length ? p.koneksi.length + ' akun tersambung' : 'Belum ada akun tersambung') : 'Belum disiapkan di server'}</p></div>
+        <div class="checklist">
+          ${p.koneksi.map((k) => `<div class="ck"><span class="st ${k.status === 'aktif' && !k.galat ? 'ok' : 'bad'}">${k.status === 'aktif' && !k.galat ? '✓' : '!'}</span><div><b>${esc(k.nama || k.akun_id)}${k.handle ? ' <span class="muted">' + esc(k.handle) + '</span>' : ''}</b>
+            <div>${k.followers != null ? nf.format(k.followers) + ' pengikut · ' : ''}${k.last_sync ? 'ditarik ' + waktuWib(k.last_sync) : 'belum pernah ditarik'}</div>
+            ${k.galat ? `<div style="color:var(--bad);font-size:13px">${esc(k.galat)}${k.status === 'putus' ? ' Hubungkan ulang.' : ''}</div>` : ''}</div>
+            <button class="btn sm ghost danger" data-act="putus-sosmed" data-id="${k.id}">Putuskan</button></div>`).join('')}
+          ${p.siap ? `<div class="ck"><span></span><div><div class="muted">Masuk dengan akun ${esc(p.nama)} milik channel, lalu setujui izin baca-saja.</div></div><a class="btn sm" href="/api/social/connect/${p.id}">${p.koneksi.length ? 'Tambah akun' : 'Hubungkan'}</a></div>`
+            : `<div class="ck"><span class="st bad">!</span><div><b>Isi di Vercel</b><div class="mono">${p.env.map(esc).join(' · ')}</div><div class="muted">Dari portal pengembang ${esc(p.nama)}; lalu deploy ulang. Lihat Panduan.</div></div></div>`}
+        </div></section>`;
+      return head + `
+        <section class="kpis" aria-label="Angka utama sosmed">
+          <div class="kpi"><span class="l">Pengikut</span><span class="v">${fmt(pengikut)}</span><span class="d">semua akun tersambung</span></div>
+          <div class="kpi"><span class="l">Posting 30 hari</span><span class="v">${nf.format(baru.length)}</span><span class="d">TikTok, Instagram, Facebook</span></div>
+          <div class="kpi"><span class="l">Views 30 hari</span><span class="v">${fmt(sum(baru, (x) => x.views || 0))}</span><span class="d">Instagram bisa kosong untuk foto</span></div>
+          <div class="kpi"><span class="l">Suka + komentar</span><span class="v">${fmt(sum(baru, (x) => (x.likes || 0) + (x.comments || 0)))}</span><span class="d">30 hari terakhir</span></div>
+        </section>
+        <div class="grid-2">${d.platforms.map(kartu).join('')}</div>
+        <section class="card"><div class="card-h"><h2>Posting terbaru</h2><p>Pembuat dikenali dari kode karyawan di keterangan posting, sama seperti video YouTube.</p></div>
+          ${d.posts.length ? `<div class="table-wrap"><table class="t stack"><thead><tr><th>Posting</th><th>Platform</th><th>Tanggal</th><th class="num">Views</th><th class="num">Suka</th><th class="num">Komentar</th><th class="num">Bagikan</th><th>Pembuat</th></tr></thead><tbody>
+            ${d.posts.slice(0, 60).map((x) => `<tr><td class="full">${x.url ? `<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.judul || '(tanpa judul)')}</a>` : esc(x.judul || '(tanpa judul)')}<div class="muted">${esc(x.akun_nama || '')}</div></td>
+              <td data-label="Platform">${esc((d.platforms.find((p) => p.id === x.platform) || {}).nama || x.platform)}</td><td data-label="Tanggal">${tglPendek(hariWib(x.tanggal))}</td>
+              <td class="num" data-label="Views">${x.views == null ? '—' : nf.format(x.views)}</td><td class="num" data-label="Suka">${x.likes == null ? '—' : nf.format(x.likes)}</td><td class="num" data-label="Komentar">${x.comments == null ? '—' : nf.format(x.comments)}</td><td class="num" data-label="Bagikan">${x.shares == null ? '—' : nf.format(x.shares)}</td><td data-label="Pembuat">${edNama(x.editor_id)}</td></tr>`).join('')}
+          </tbody></table></div>` : '<div class="empty"><b>Belum ada posting</b>Hubungkan akun di atas, lalu klik Tarik data.</div>'}
         </section>`;
     },
 
@@ -2918,6 +2956,19 @@ import './styles.css';
         confirmDialog('Putuskan ' + c.nama + '?', 'Angka YouTube Analytics yang sudah tersimpan tetap ada, tapi tidak diperbarui lagi sampai dihubungkan ulang.', 'Putuskan', async () => {
           try { await api('/api/auth/google/' + encodeURIComponent(c.id), { method: 'DELETE' }); S.oauth = await optional(api('/api/auth/status'), 'Status YouTube Analytics'); normalize(); toast(c.nama + ' diputuskan'); render(); } catch (e) { toast(e.message, true); }
         });
+        break;
+      }
+      case 'putus-sosmed': {
+        const k = ((S.sosmed && S.sosmed.platforms) || []).flatMap((p) => p.koneksi).find((x) => String(x.id) === el.dataset.id);
+        if (!k) break;
+        confirmDialog('Putuskan ' + (k.nama || 'akun') + '?', 'Token dihapus dan semua posting akun ini yang tersimpan di Pantau Tokder ikut dihapus. Akun aslinya tidak berubah.', 'Putuskan', async () => {
+          try { await api('/api/social/koneksi/' + encodeURIComponent(k.id), { method: 'DELETE' }); await refresh(); toast((k.nama || 'Akun') + ' diputuskan'); } catch (e) { toast(e.message, true); }
+        });
+        break;
+      }
+      case 'sync-sosmed': {
+        el.disabled = true; el.innerHTML = icon('sync') + 'Menarik…';
+        try { const r = await api('/api/social/sync', { method: 'POST', timeout: 60000 }); toast(r.akun ? `${r.akun} akun, ${r.posts} posting` + (r.galat.length ? ' · ' + r.galat[0] : '') : 'Belum ada akun tersambung'); await refresh(); } catch (e) { toast(e.message, true); render(); }
         break;
       }
       case 'sync': {

@@ -167,6 +167,46 @@ const STATEMENTS = [
   // get one from the same new network, the office's public IP has most likely changed.
   `ALTER TABLE presensi_ditolak ADD COLUMN IF NOT EXISTS gps_ok BOOLEAN DEFAULT FALSE`,
   `ALTER TABLE presensi_ditolak ADD COLUMN IF NOT EXISTS ip_jaringan VARCHAR(64)`,
+  // TikTok, Instagram and Facebook: one row per connected account, tokens stored encrypted.
+  `CREATE TABLE IF NOT EXISTS social_koneksi (
+    id SERIAL PRIMARY KEY,
+    platform VARCHAR(12) NOT NULL,
+    akun_id VARCHAR(80) NOT NULL,
+    pemilik_id VARCHAR(80),
+    nama VARCHAR(150),
+    handle VARCHAR(100),
+    avatar TEXT,
+    followers INTEGER,
+    access_token TEXT NOT NULL,
+    refresh_token TEXT,
+    expires_at TIMESTAMP,
+    refresh_expires_at TIMESTAMP,
+    scope TEXT,
+    status VARCHAR(10) DEFAULT 'aktif',
+    galat TEXT,
+    last_sync TIMESTAMP,
+    created_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE (platform, akun_id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS social_post (
+    id SERIAL PRIMARY KEY,
+    platform VARCHAR(12) NOT NULL,
+    akun_id VARCHAR(80) NOT NULL,
+    post_id VARCHAR(120) NOT NULL,
+    url TEXT,
+    judul VARCHAR(300),
+    tanggal TIMESTAMP NOT NULL,
+    views INTEGER,
+    likes INTEGER,
+    comments INTEGER,
+    shares INTEGER,
+    durasi INTEGER,
+    editor_id INTEGER REFERENCES editors(id) ON DELETE SET NULL,
+    stats_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE (platform, post_id)
+  )`,
+  `CREATE INDEX IF NOT EXISTS social_post_tanggal_idx ON social_post (tanggal DESC)`,
+  `CREATE INDEX IF NOT EXISTS social_post_akun_idx ON social_post (platform, akun_id)`,
 ];
 
 const CONNECTION_CODES = ['ECONNREFUSED', 'ENOTFOUND', 'ETIMEDOUT', '57P01', '53300'];
