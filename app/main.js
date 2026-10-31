@@ -623,7 +623,8 @@ import './styles.css';
       <div class="side-actions">
         ${S.session ? `<button class="btn sm ghost" data-act="logout">${icon('out')}Keluar</button>` : `<button class="btn sm primary" data-act="login">Masuk</button>`}
         <button class="btn sm ghost icon" data-act="theme" aria-label="${dark ? 'Mode terang' : 'Mode gelap'}">${icon(dark ? 'sun' : 'moon')}</button>
-      </div>`;
+      </div>
+      <div class="legal"><a href="/privacy.html" target="_blank" rel="noopener">Privasi</a> · <a href="/terms.html" target="_blank" rel="noopener">Syarat</a> · <a href="/data-deletion.html" target="_blank" rel="noopener">Hapus data</a></div>`;
     $('#notice').innerHTML = S.offline && S.session && !S.error
       ? `<div class="notice" role="status"><b>Tanpa koneksi.</b> Menampilkan data tersimpan jam ${new Date(S.offline + WIB).toISOString().slice(11, 16)} WIB. <button class="btn sm ghost" data-act="retry">Coba lagi</button></div>`
       : S.warnings.length && !S.error
