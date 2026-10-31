@@ -600,4 +600,4 @@ table.t { width: 100%; border-collapse: collapse; }
 }
 .jk-row input[type=time]:disabled { opacity: .45; }
 
-.legal { font-size: 11px; color: var(--mute, #888); } .legal a { color: inherit; text-decoration: underline; }
+.legal { font-size: 11px; color: var(--muted); } .legal a { color: inherit; text-decoration: underline; }
