@@ -280,6 +280,12 @@ Topik ditebak dari kata di judul, misalnya "harga", "thrips", "pupuk" atau "sema
 - File tampilan (JS/CSS) disimpan browser selama setahun; tiap rilis memakai nama file baru, jadi tidak pernah basi.
 - Pembaruan struktur database hanya berjalan sekali per versi, bukan di setiap server mulai.
 
+## Halaman hukum dan verifikasi TikTok/Meta
+
+- `assets/privacy.html`, `assets/terms.html`, `assets/data-deletion.html` tampil tanpa login di `/privacy.html`, `/terms.html`, `/data-deletion.html` (Indonesia + English). Ini yang didaftarkan sebagai Privacy Policy URL, Terms of Service URL, dan Data Deletion URL di TikTok for Developers dan Meta for Developers. Tautannya juga ada di bawah menu samping.
+- `assets/tiktok….txt` adalah berkas verifikasi kepemilikan URL dari TikTok; harus tetap bisa dibuka di `https://pantautokder.vercel.app/<nama-berkas>.txt`. Jangan dihapus atau diganti isinya.
+- Bila fitur baru mengumpulkan data baru (mis. sambungan TikTok/Meta sungguhan), perbarui `privacy.html` bagian 1 dan 3.
+
 ## Struktur file
 
 ```
