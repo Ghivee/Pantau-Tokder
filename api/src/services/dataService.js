@@ -6,6 +6,7 @@ const presensi = require('./presensiService');
 const gaji = require('./gajiService');
 const pengajuan = require('./pengajuanService');
 const kalender = require('./kalenderService');
+const social = require('./socialService');
 
 // Every list the app shows, in one place: the single routes and /api/bootstrap both use these,
 // so the numbers are the same whichever way they are loaded.
@@ -143,6 +144,7 @@ async function bootstrap({ isAdmin, editor, ip }) {
     channels: () => channels(),
     scan: () => scanStatus(),
     oauth: () => oauthStatus(),
+    sosmed: () => (isAdmin ? social.ringkasan() : null),
     goal: () => (isAdmin ? goal() : null),
     daily: () => daily({ isAdmin, dari: wib(190) }),
     presensi: () => presensiFor({ isAdmin, editor, ip }),
