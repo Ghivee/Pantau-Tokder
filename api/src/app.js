@@ -79,6 +79,9 @@ const PUBLIC = [
   ['GET', '/api/auth/me'],
   ['GET', '/api/auth/karyawan'],
   ['GET', '/api/auth/callback'],
+  ['GET', '/api/social/callback'],
+  ['POST', '/api/social/meta/deauthorize'],
+  ['POST', '/api/social/meta/data-deletion'],
   ['GET', '/api/scan/cron'],
   ['POST', '/api/csp-report'],
 ];
@@ -123,6 +126,7 @@ app.use('/api/gaji', require('./routes/gaji'));
 app.use('/api/pengajuan', require('./routes/pengajuan'));
 app.use('/api/insight', require('./routes/insight'));
 app.use('/api/push', require('./routes/push'));
+app.use('/api/social', require('./routes/social'));
 app.use('/api', cspReportRouter);
 
 app.use('/api', (req, res) => res.status(404).json({ error: 'Alamat API tidak ditemukan' }));
