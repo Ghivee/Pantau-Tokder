@@ -2,6 +2,7 @@ const db = require('../config/db');
 const { fetchNewVideos, fetchVideosByIds } = require('../integrations/youtube');
 const { getChannelIds } = require('./channelService');
 const analyticsService = require('./analyticsService');
+const social = require('./socialService');
 const { fetchRetentionData, fetchRevenueData, takeErrors } = require('../integrations/analytics');
 
 function matchEditorCode(captionText, editors) {
@@ -209,6 +210,15 @@ async function runFullScan() {
     }
   }
 
+  // TikTok, Instagram and Facebook accounts the owner connected (nothing happens when none are).
+  let sosmed = null;
+  try {
+    sosmed = await social.sinkronSemua({ editors, match: matchEditorCode, deadline: startedAt + TIME_BUDGET_MS + 12000 });
+    errors.push(...sosmed.galat);
+  } catch (e) {
+    errors.push(`Sosmed gagal: ${e.message}`);
+  }
+
   // Log scan
   try {
     await db.query(
@@ -220,7 +230,7 @@ async function runFullScan() {
   }
 
   errors.push(...analyticsService.takeTokenErrors(), ...takeErrors());
-  const summary = { newPosts, updatedPosts, unmatched, analyticsChannels: Object.keys(tokens).length, analyticsDays, errors: errors.length > 0 ? errors : undefined };
+  const summary = { newPosts, updatedPosts, unmatched, analyticsChannels: Object.keys(tokens).length, analyticsDays, sosmed: sosmed ? { akun: sosmed.akun, posts: sosmed.posts } : undefined, errors: errors.length > 0 ? errors : undefined };
   // Kept for the Pengaturan page, so problems are visible without opening server logs.
   try {
     await db.query(

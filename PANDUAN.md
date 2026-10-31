@@ -280,6 +280,21 @@ Topik ditebak dari kata di judul, misalnya "harga", "thrips", "pupuk" atau "sema
 - File tampilan (JS/CSS) disimpan browser selama setahun; tiap rilis memakai nama file baru, jadi tidak pernah basi.
 - Pembaruan struktur database hanya berjalan sekali per versi, bukan di setiap server mulai.
 
+## Halaman hukum dan verifikasi TikTok/Meta
+
+- `assets/privacy.html`, `assets/terms.html`, `assets/data-deletion.html` tampil tanpa login di `/privacy.html`, `/terms.html`, `/data-deletion.html` (Indonesia + English). Ini yang didaftarkan sebagai Privacy Policy URL, Terms of Service URL, dan Data Deletion URL di TikTok for Developers dan Meta for Developers. Tautannya juga ada di bawah menu samping.
+- `assets/tiktok….txt` adalah berkas verifikasi kepemilikan URL dari TikTok; harus tetap bisa dibuka di `https://pantautokder.vercel.app/<nama-berkas>.txt`. Jangan dihapus atau diganti isinya.
+- Bila fitur baru mengumpulkan data baru (mis. sambungan TikTok/Meta sungguhan), perbarui `privacy.html` bagian 1 dan 3.
+
+## Sosmed: TikTok, Instagram, Facebook
+
+- Menu **Sosmed** (khusus pemilik) menarik pengikut dan statistik posting 90 hari terakhir dari akun yang Anda hubungkan: views, suka, komentar, bagikan. Hanya membaca; tidak ada yang diposting.
+- Menghubungkan: klik **Hubungkan** pada platformnya → masuk di TikTok/Meta → setujui izin → kembali ke app. Sebelum itu kunci app harus diisi di Vercel dan app didaftarkan di portal pengembang. Langkahnya ada di `PENDAFTARAN_TIKTOK_META.md`.
+- Data ditarik otomatis di setiap sinkronisasi jam-an. Tombol **Tarik data** menariknya sekarang. Token diperbarui otomatis; kalau izin kedaluwarsa, akun diberi tanda ! dan perlu dihubungkan ulang.
+- **Putuskan** menghapus token dan semua posting akun itu dari Pantau Tokder. Menghapus aplikasi di pengaturan Instagram/Facebook juga menghapusnya otomatis lewat callback Meta.
+- Pembuat posting dikenali dari kode karyawan di keterangan, seperti video YouTube. Posting sosmed belum dihitung ke skor harian dan gaji; itu masih hanya video YouTube.
+- Kode: `api/src/integrations/sosmed.js` (pemanggil API), `api/src/services/socialService.js` (simpan, segarkan token, sinkron), `api/src/routes/social.js` (OAuth, putuskan, callback Meta). Tabel: `social_koneksi`, `social_post`.
+
 ## Struktur file
 
 ```

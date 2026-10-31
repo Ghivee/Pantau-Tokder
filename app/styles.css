@@ -599,3 +599,5 @@ table.t { width: 100%; border-collapse: collapse; }
   .jk-row input[type=time] { flex: 1 1 0; width: auto; padding-left: 8px; padding-right: 6px; }
 }
 .jk-row input[type=time]:disabled { opacity: .45; }
+
+.legal { font-size: 11px; color: var(--muted); } .legal a { color: inherit; text-decoration: underline; }

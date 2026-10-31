@@ -29,10 +29,10 @@ self.addEventListener('fetch', (e) => {
     e.respondWith((async () => {
       try {
         const res = await fetch(req);
-        if (res.ok) e.waitUntil(simpanHalaman(res.clone()));
+        if (res.ok && !/\.(html|txt)$/.test(url.pathname)) e.waitUntil(simpanHalaman(res.clone()));
         return res;
       } catch (err) {
-        return (await caches.match('/')) || Response.error();
+        return (/\.(html|txt)$/.test(url.pathname) ? null : await caches.match('/')) || Response.error();
       }
     })());
     return;
