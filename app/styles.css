@@ -633,7 +633,7 @@ b, strong, h1, h2, h3 { font-family: var(--font); }
 .page-ico { display: none !important; }
 .head { align-items: center; }
 .head h1 { font-size: 24px; font-weight: 500; letter-spacing: 0; }
-.head p, .card-h p { margin: 2px 0 0; font-size: 12.5px; color: var(--muted); max-width: 90ch;
+.head p, .card-h p { margin: 2px 0 0; font-size: 12.5px; color: var(--muted);
   display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
 .head p b { font-weight: 500; }
 .kpi .d { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; font-size: 12px; }
@@ -682,3 +682,7 @@ b, strong, h1, h2, h3 { font-family: var(--font); }
 #kartu-persiapan .ck { padding: 9px 0; }
 .t .mono, .t td.mono { font-family: var(--font); font-size: inherit; letter-spacing: 0; }
 @media (max-width: 900px) { .head p, .card-h p { -webkit-line-clamp: 2; } }
+
+.head p { max-width: 90ch; }
+.card-h p { flex: 0 0 100%; width: 100%; }
+.t td.mono { min-width: 84px; }
