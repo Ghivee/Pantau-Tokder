@@ -219,6 +219,9 @@ async function runFullScan() {
     errors.push(`Sosmed gagal: ${e.message}`);
   }
 
+  // Video files that every platform has taken are removed after a week.
+  try { await require('./postingService').rawat(); } catch (e) { console.warn('Perawatan posting gagal:', e.message); }
+
   // Log scan
   try {
     await db.query(

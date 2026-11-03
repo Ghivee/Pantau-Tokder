@@ -80,6 +80,10 @@ const PUBLIC = [
   ['GET', '/api/auth/karyawan'],
   ['GET', '/api/auth/callback'],
   ['GET', '/api/social/callback'],
+  ['POST', '/api/posting/blob'],
+  ['GET', /^\/api\/posting\/media\/\d+\/[\w-]+$/],
+  ['GET', '/api/posting/yt/antrean'],
+  ['POST', /^\/api\/posting\/yt\/\d+\/hasil$/],
   ['POST', '/api/social/meta/deauthorize'],
   ['POST', '/api/social/meta/data-deletion'],
   ['GET', '/api/scan/cron'],
@@ -88,7 +92,7 @@ const PUBLIC = [
 app.use('/api', (req, res, next) => {
   const path = req.originalUrl.split('?')[0].replace(/\/+$/, '');
   const method = req.method === 'HEAD' ? 'GET' : req.method;
-  if (method === 'OPTIONS' || PUBLIC.some(([m, p]) => m === method && p === path)) return next();
+  if (method === 'OPTIONS' || PUBLIC.some(([m, p]) => m === method && (p instanceof RegExp ? p.test(path) : p === path))) return next();
   return requireAnyAuth(req, res, next);
 });
 
@@ -127,6 +131,7 @@ app.use('/api/pengajuan', require('./routes/pengajuan'));
 app.use('/api/insight', require('./routes/insight'));
 app.use('/api/push', require('./routes/push'));
 app.use('/api/social', require('./routes/social'));
+app.use('/api/posting', require('./routes/posting'));
 app.use('/api', cspReportRouter);
 
 app.use('/api', (req, res) => res.status(404).json({ error: 'Alamat API tidak ditemukan' }));

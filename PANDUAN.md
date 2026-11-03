@@ -288,11 +288,14 @@ Topik ditebak dari kata di judul, misalnya "harga", "thrips", "pupuk" atau "sema
 
 ## Sosmed: TikTok, Instagram, Facebook
 
-- Menu **Sosmed** (khusus pemilik) menarik pengikut dan statistik posting 90 hari terakhir dari akun yang Anda hubungkan: views, suka, komentar, bagikan. Hanya membaca; tidak ada yang diposting.
+- Menu **Sosmed** (khusus pemilik) menarik pengikut dan statistik posting 90 hari terakhir dari akun yang Anda hubungkan: views, suka, komentar, bagikan. Statistiknya hanya dibaca.
 - Menghubungkan: klik **Hubungkan** pada platformnya → masuk di TikTok/Meta → setujui izin → kembali ke app. Sebelum itu kunci app harus diisi di Vercel dan app didaftarkan di portal pengembang. Langkahnya ada di `PENDAFTARAN_TIKTOK_META.md`.
 - Data ditarik otomatis di setiap sinkronisasi jam-an. Tombol **Tarik data** menariknya sekarang. Token diperbarui otomatis; kalau izin kedaluwarsa, akun diberi tanda ! dan perlu dihubungkan ulang.
 - **Putuskan** menghapus token dan semua posting akun itu dari Pantau Tokder. Menghapus aplikasi di pengaturan Instagram/Facebook juga menghapusnya otomatis lewat callback Meta.
 - Pembuat posting dikenali dari kode karyawan di keterangan, seperti video YouTube. Posting sosmed belum dihitung ke skor harian dan gaji; itu masih hanya video YouTube.
+- **Posting sekali upload** (Sosmed → kartu paling atas): isi judul dan deskripsi, pilih satu video, centang tujuan (TikTok, Instagram, Facebook, YouTube), klik **Unggah dan siapkan**. Semuanya masuk sebagai draf: Instagram dan Facebook tayang dengan tombol **Tayangkan**; TikTok diselesaikan di aplikasi TikTok; YouTube diunggah privat (antre sampai 1 jam) lalu dipublikasikan di YouTube Studio. Persiapan sekali jalan (Blob, CRON_SECRET, izin baru) ada di `PENDAFTARAN_TIKTOK_META.md` bagian F.
+- Berkas video hanya disimpan sementara: dihapus otomatis 7 hari setelah diunggah, atau saat posting dihapus.
+- Kode posting: `api/src/integrations/posting.js`, `api/src/services/postingService.js`, `api/src/routes/posting.js`, `scripts/youtube-unggah.cjs` dan `.github/workflows/posting-youtube.yml`. Tabel: `posting`, `posting_target`.
 - Kode: `api/src/integrations/sosmed.js` (pemanggil API), `api/src/services/socialService.js` (simpan, segarkan token, sinkron), `api/src/routes/social.js` (OAuth, putuskan, callback Meta). Tabel: `social_koneksi`, `social_post`.
 
 ## Struktur file

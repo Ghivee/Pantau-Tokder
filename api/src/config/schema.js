@@ -205,6 +205,29 @@ const STATEMENTS = [
     stats_at TIMESTAMP DEFAULT NOW(),
     UNIQUE (platform, post_id)
   )`,
+  // One upload, many platforms: a posting is the video and its text, a target is one account it goes to.
+  `CREATE TABLE IF NOT EXISTS posting (
+    id SERIAL PRIMARY KEY,
+    judul VARCHAR(200) NOT NULL,
+    deskripsi TEXT DEFAULT '',
+    blob_url TEXT,
+    ukuran BIGINT,
+    mime VARCHAR(60),
+    created_at TIMESTAMP DEFAULT NOW()
+  )`,
+  `CREATE TABLE IF NOT EXISTS posting_target (
+    id SERIAL PRIMARY KEY,
+    posting_id INTEGER NOT NULL REFERENCES posting(id) ON DELETE CASCADE,
+    platform VARCHAR(12) NOT NULL,
+    akun_id VARCHAR(80) NOT NULL,
+    akun_nama VARCHAR(150),
+    status VARCHAR(12) NOT NULL DEFAULT 'diproses',
+    ref_id VARCHAR(200),
+    hasil_url TEXT,
+    galat TEXT,
+    updated_at TIMESTAMP DEFAULT NOW()
+  )`,
+  `CREATE INDEX IF NOT EXISTS posting_target_posting_idx ON posting_target (posting_id)`,
   `CREATE INDEX IF NOT EXISTS social_post_tanggal_idx ON social_post (tanggal DESC)`,
   `CREATE INDEX IF NOT EXISTS social_post_akun_idx ON social_post (platform, akun_id)`,
 ];

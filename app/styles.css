@@ -686,3 +686,9 @@ b, strong, h1, h2, h3 { font-family: var(--font); }
 .head p { max-width: 90ch; }
 .card-h p { flex: 0 0 100%; width: 100%; }
 .t td.mono { min-width: 84px; }
+
+/* ---------- Posting sekali upload ---------- */
+.post-item { padding: 12px 0; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; }
+.post-item:first-child { border-top: 0; }
+.post-top { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; flex-wrap: wrap; }
+.post-chips { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; }
