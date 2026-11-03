@@ -42,4 +42,10 @@ function decrypt(value, key = keyFrom()) {
   }
 }
 
-module.exports = { encrypt, decrypt, isEncrypted, keyFrom };
+// Short signature for links that must work without a login (the video link TikTok pulls from).
+function sign(text, key = keyFrom()) {
+  if (!key) throw new Error('Kunci enkripsi tidak ada (isi ENCRYPTION_KEY atau GOOGLE_CLIENT_SECRET)');
+  return crypto.createHmac('sha256', key).update('media:' + String(text)).digest('base64url').slice(0, 32);
+}
+
+module.exports = { encrypt, decrypt, isEncrypted, keyFrom, sign };
