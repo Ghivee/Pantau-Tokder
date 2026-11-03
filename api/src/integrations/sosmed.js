@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 const axios = require('axios');
 
-// TikTok (Login Kit + Display API), Instagram (Instagram API with Instagram Login) and Facebook
+// TikTok (Login Kit + Display API + Content Posting), Instagram (Instagram API with Instagram Login) and Facebook
 // Pages (Facebook Login). Everything here is read-only: no scope that can post, edit or delete.
 // Field and metric names follow each platform's current documentation; they are the first thing
 // to check if a platform answers with an error after it changes its API.
@@ -12,17 +12,17 @@ const PLATFORMS = {
   tiktok: {
     nama: 'TikTok',
     env: ['TIKTOK_CLIENT_KEY', 'TIKTOK_CLIENT_SECRET'],
-    scope: 'user.info.basic,user.info.stats,video.list',
+    scope: 'user.info.basic,user.info.stats,video.list,video.upload',
   },
   instagram: {
     nama: 'Instagram',
     env: ['INSTAGRAM_APP_ID', 'INSTAGRAM_APP_SECRET'],
-    scope: 'instagram_business_basic,instagram_business_manage_insights',
+    scope: 'instagram_business_basic,instagram_business_manage_insights,instagram_business_content_publish',
   },
   facebook: {
     nama: 'Facebook',
     env: ['FACEBOOK_APP_ID', 'FACEBOOK_APP_SECRET'],
-    scope: 'pages_show_list,pages_read_engagement,read_insights',
+    scope: 'pages_show_list,pages_read_engagement,read_insights,pages_manage_posts',
   },
 };
 
@@ -203,7 +203,10 @@ function parseSignedRequest(signed, secrets) {
   return null;
 }
 
+const POSTING_SCOPE = /video\.upload|instagram_business_content_publish|pages_manage_posts/;
+
 module.exports = {
+  POSTING_SCOPE, GRAPH,
   PLATFORMS, configured, authUrl, parseSignedRequest,
   tiktok: { exchange: (code, redirectUri) => tiktokToken({ code, grant_type: 'authorization_code', redirect_uri: redirectUri }), refresh: (rt) => tiktokToken({ grant_type: 'refresh_token', refresh_token: rt }), profile: tiktokProfile, posts: tiktokPosts, post: tiktokPost },
   instagram: { exchange: instagramExchange, refresh: instagramRefresh, profile: instagramProfile, posts: instagramPosts, post: instagramPost },
