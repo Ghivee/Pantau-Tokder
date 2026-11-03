@@ -33,7 +33,7 @@ test('platform counts as configured only with both keys', () => {
   Object.assign(process.env, was);
 });
 
-test('authorize links carry only read-only scopes and the state', () => {
+test('authorize links carry the state and only the scopes we need (read, plus one upload scope per platform)', () => {
   process.env.TIKTOK_CLIENT_KEY = 'k'; process.env.INSTAGRAM_APP_ID = 'i'; process.env.FACEBOOK_APP_ID = 'f';
   const uri = 'https://x.test/api/social/callback';
   for (const p of ['tiktok', 'instagram', 'facebook']) {
@@ -42,7 +42,9 @@ test('authorize links carry only read-only scopes and the state', () => {
     assert.equal(u.searchParams.get('redirect_uri'), uri);
     const scope = u.searchParams.get('scope');
     assert.ok(scope.length > 0);
-    assert.ok(!/publish|manage_posts|content_publish|pages_manage|messag|comment|upload/i.test(scope.replace('manage_insights', '')), scope);
+    assert.ok(sosmed.POSTING_SCOPE.test(scope), 'posting scope missing: ' + scope);
+    assert.ok(!/messag|comment|manage_pages|ads_|business_management|user_videos|delete/i.test(scope), 'too broad: ' + scope);
+    assert.ok(!/video\.publish/.test(scope), 'direct post needs a TikTok audit: ' + scope);
   }
 });
 

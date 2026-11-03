@@ -10,6 +10,7 @@
     "test": "node --test api/test/*.test.cjs"
   },
   "dependencies": {
+    "@vercel/blob": "^2.8.2",
     "axios": "^1.18.1",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",

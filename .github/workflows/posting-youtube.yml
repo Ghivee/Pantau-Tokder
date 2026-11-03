@@ -1,0 +1,20 @@
+# Memindahkan video dari antrean "Posting" Pantau Tokder ke YouTube (status privat). Vercel tidak
+# bisa membawa berkas video besar, jadi pekerjaan ini dilakukan di sini.
+# Perlu repository secret CRON_SECRET (nilai sama dengan CRON_SECRET di Vercel).
+name: Unggah YouTube dari Posting
+on:
+  schedule:
+    - cron: '37 * * * *'
+  workflow_dispatch:
+jobs:
+  unggah:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node scripts/youtube-unggah.cjs
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}

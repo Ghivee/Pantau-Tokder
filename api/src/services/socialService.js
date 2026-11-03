@@ -20,10 +20,10 @@ async function simpan(k) {
   );
 }
 
-const publik = `id, platform, akun_id, nama, handle, avatar, followers, status, galat, last_sync, created_at, expires_at`;
+const publik = `id, platform, akun_id, nama, handle, avatar, followers, status, galat, last_sync, created_at, expires_at, scope`;
 
 async function daftar() {
-  return (await db.query(`SELECT ${publik} FROM social_koneksi ORDER BY platform, nama`)).rows;
+  return (await db.query(`SELECT ${publik} FROM social_koneksi ORDER BY platform, nama`)).rows.map((k) => ({ ...k, bisa_posting: sosmed.POSTING_SCOPE.test(k.scope || '') }));
 }
 
 async function hapus(id) {
@@ -113,15 +113,19 @@ async function sinkronSemua({ editors, match, deadline = Date.now() + 40000 } = 
 
 // What the Sosmed page shows: connections per platform and the last 90 days of posts.
 async function ringkasan() {
-  const [konek, posts] = await Promise.all([
+  const [konek, posts, kiriman] = await Promise.all([
     daftar(),
     db.query(`SELECT p.id, p.platform, p.akun_id, p.post_id, p.url, p.judul, p.tanggal, p.views, p.likes, p.comments, p.shares, p.editor_id, k.nama AS akun_nama
               FROM social_post p LEFT JOIN social_koneksi k ON k.platform = p.platform AND k.akun_id = p.akun_id
               WHERE p.tanggal > NOW() - INTERVAL '90 days' ORDER BY p.tanggal DESC LIMIT 400`),
+    // Cannot be required at the top: the posting service uses this one.
+    require('./postingService').daftar().catch(() => []),
   ]);
   return {
     platforms: Object.entries(sosmed.PLATFORMS).map(([id, p]) => ({ id, nama: p.nama, siap: sosmed.configured(id), env: p.env, koneksi: konek.filter((k) => k.platform === id) })),
     posts: posts.rows,
+    posting: kiriman,
+    blob: !!process.env.BLOB_READ_WRITE_TOKEN,
   };
 }
 
