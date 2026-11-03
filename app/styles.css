@@ -1,56 +1,56 @@
 /* Pantau Tokder — catatan kerja harian tim konten cabai.
-   Layout: sidebar tetap di kiri (atas di layar sempit), halaman satu kolom lebar dengan kartu seperlunya.
-   Warna terang: kertas hijau keabuan, tinta gelap, hijau daun sebagai aksen.
-   Warna gelap: abu arang netral dengan aksen putih, tanpa hijau kecuali penanda status.
-   Merah hanya untuk tanda telat/gagal. */
+   Tampilan mengikuti YouTube Studio: sidebar putih dengan blok channel, kartu datar berbingkai tipis,
+   huruf Roboto, aksen biru untuk tombol utama, merah hanya untuk menu aktif dan tanda telat/gagal.
+   Teks penjelas dibuat satu baris; teks lengkapnya muncul saat kursor diarahkan (atribut title). */
 :root {
-  --paper: #F4F6F2;
+  --paper: #F9F9F9;
   --surface: #FFFFFF;
-  --sunken: #ECEFEA;
-  --ink: #17201B;
-  --ink-2: #44524A;
-  --muted: #6F7C74;
-  --line: #E0E5DE;
-  --line-2: #C9D1C7;
-  --leaf: #1E6B45;
+  --sunken: #F2F2F2;
+  --ink: #0F0F0F;
+  --ink-2: #3F3F3F;
+  --muted: #606060;
+  --line: #E5E5E5;
+  --line-2: #CCCCCC;
+  --leaf: #065FD4;
   --leaf-ink: #FFFFFF;
-  --leaf-soft: #E2EEE6;
-  --ok: #1F7A4C;
-  --ok-soft: #DDEFE4;
-  --warn: #A15C07;
-  --warn-soft: #F8EBD3;
-  --bad: #B42318;
-  --bad-soft: #F9E1DE;
+  --leaf-soft: #E8F0FE;
+  --ok: #188038;
+  --ok-soft: #E6F4EA;
+  --warn: #9A5B00;
+  --warn-soft: #FEF1D6;
+  --bad: #CC0000;
+  --bad-soft: #FDE7E7;
   --s1: #2F6FAB;
   --s2: #C2410C;
   --s3: #6D5BD0;
   --s4: #0F7A75;
   --s5: #9A6B00;
-  --chart-grid: #E6EAE4;
-  --shadow: 0 1px 2px rgba(23, 32, 27, .05), 0 8px 24px -12px rgba(23, 32, 27, .12);
-  --font: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
-  --r: 10px;
-  --r-lg: 14px;
-  --side: 232px;
+  --chart-grid: #EBEBEB;
+  --shadow: 0 1px 3px rgba(0, 0, 0, .12), 0 8px 24px -10px rgba(0, 0, 0, .25);
+  --font: Roboto, "Segoe UI", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --mono: "Roboto Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --r: 8px;
+  --r-lg: 10px;
+  --side: 240px;
+  --yt-red: #CC0000;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --paper: #0F1012; --surface: #17181B; --sunken: #1F2124; --ink: #ECEDEF; --ink-2: #B8BBC1; --muted: #8B8F97;
-    --line: #26282D; --line-2: #35383E; --leaf: #ECEDEF; --leaf-ink: #111214; --leaf-soft: #2A2C31;
-    --ok: #86C9A2; --ok-soft: #1D2A23; --warn: #E6AE52; --warn-soft: #30261A; --bad: #F08A7E; --bad-soft: #36201E;
+    --paper: #0F0F0F; --surface: #1F1F1F; --sunken: #2A2A2A; --ink: #F1F1F1; --ink-2: #D0D0D0; --muted: #A0A0A0;
+    --line: #343434; --line-2: #4D4D4D; --leaf: #3EA6FF; --leaf-ink: #0F0F0F; --leaf-soft: #1C2B3D; --yt-red: #FF5A52;
+    --ok: #6FCF8E; --ok-soft: #1B2E22; --warn: #F4B740; --warn-soft: #3A2E14; --bad: #FF6B6B; --bad-soft: #3A1D1D;
     --s1: #7EB2EE; --s2: #F2925A; --s3: #B1A3F2; --s4: #5CC6D0; --s5: #DDB64E;
-    --chart-grid: #222428; --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 10px 28px -12px rgba(0, 0, 0, .6);
+    --chart-grid: #2C2C2C; --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 10px 28px -12px rgba(0, 0, 0, .6);
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --paper: #0F1012; --surface: #17181B; --sunken: #1F2124; --ink: #ECEDEF; --ink-2: #B8BBC1; --muted: #8B8F97;
-  --line: #26282D; --line-2: #35383E; --leaf: #ECEDEF; --leaf-ink: #111214; --leaf-soft: #2A2C31;
-  --ok: #86C9A2; --ok-soft: #1D2A23; --warn: #E6AE52; --warn-soft: #30261A; --bad: #F08A7E; --bad-soft: #36201E;
+  --paper: #0F0F0F; --surface: #1F1F1F; --sunken: #2A2A2A; --ink: #F1F1F1; --ink-2: #D0D0D0; --muted: #A0A0A0;
+  --line: #343434; --line-2: #4D4D4D; --leaf: #3EA6FF; --leaf-ink: #0F0F0F; --leaf-soft: #1C2B3D; --yt-red: #FF5A52;
+  --ok: #6FCF8E; --ok-soft: #1B2E22; --warn: #F4B740; --warn-soft: #3A2E14; --bad: #FF6B6B; --bad-soft: #3A1D1D;
   --s1: #7EB2EE; --s2: #F2925A; --s3: #B1A3F2; --s4: #5CC6D0; --s5: #DDB64E;
-  --chart-grid: #222428; --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 10px 28px -12px rgba(0, 0, 0, .6);
+  --chart-grid: #2C2C2C; --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 10px 28px -12px rgba(0, 0, 0, .6);
   color-scheme: dark;
 }
 
@@ -570,7 +570,7 @@ table.t { width: 100%; border-collapse: collapse; }
 [data-grup="a"] { --g: var(--g-a); } [data-grup="b"] { --g: var(--g-b); } [data-grup="c"] { --g: var(--g-c); }
 .nav-label[data-grup] { display: flex; align-items: center; gap: 7px; }
 .nav-label[data-grup]::before { content: ""; width: 8px; height: 8px; border-radius: 2px; background: var(--g); }
-.nav a[data-grup][aria-current="page"] { background: color-mix(in srgb, var(--g) 14%, transparent); color: var(--g); box-shadow: inset 3px 0 0 var(--g); }
+.nav a[data-grup][aria-current="page"] { background: var(--sunken); color: var(--yt-red); box-shadow: none; }
 .nav a[data-grup]:not([aria-current="page"]):hover svg { color: var(--g); }
 .page-ico { display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: 11px; flex: none;
   background: color-mix(in srgb, var(--g, var(--ink)) 14%, transparent); color: var(--g, var(--ink)); }
@@ -600,4 +600,85 @@ table.t { width: 100%; border-collapse: collapse; }
 }
 .jk-row input[type=time]:disabled { opacity: .45; }
 
+
 .legal { font-size: 11px; color: var(--muted); } .legal a { color: inherit; text-decoration: underline; }
+
+/* ======================= Gaya YouTube Studio =======================
+   Dipasang paling akhir supaya menimpa gaya lama tanpa mengubah susunan halaman. */
+body { font: 400 14px/1.45 var(--font); }
+b, strong, h1, h2, h3 { font-family: var(--font); }
+
+/* Sidebar: blok channel di atas, menu rata kiri tinggi 40px, tanpa warna per kelompok */
+.side { padding: 0 0 12px; gap: 0; background: var(--surface); }
+.brand { flex-direction: column; text-align: center; gap: 8px; padding: 26px 16px 18px; }
+.brand img { width: 84px; height: 84px; border-radius: 50%; background: var(--sunken); }
+.brand b { font-size: 16px; font-weight: 500; }
+.brand small { font-size: 12.5px; color: var(--muted); }
+.nav { gap: 0; }
+.nav-label { font-size: 0; padding: 0; margin: 8px 0; height: 1px; background: var(--line); }
+.nav-label:first-child { display: none; }
+.nav-label[data-grup]::before { display: none; }
+.nav a { padding: 0 24px; height: 40px; border-radius: 0; font-weight: 400; font-size: 14px; color: var(--ink); gap: 20px; }
+.nav a svg { width: 22px; height: 22px; stroke-width: 1.5; color: var(--muted); }
+.nav a:hover { background: var(--sunken); }
+.nav a[aria-current="page"], .nav a[data-grup][aria-current="page"] { background: var(--sunken); color: var(--yt-red); font-weight: 500; box-shadow: none; }
+.nav a[aria-current="page"] svg { color: var(--yt-red); }
+.nav a[data-grup]:not([aria-current="page"]):hover svg { color: var(--muted); }
+.nav .count { background: var(--yt-red); color: #fff; }
+.side-foot { padding: 14px 20px 0; margin-top: auto; }
+
+/* Halaman: judul besar seperti Studio, ikon berwarna dibuang, penjelasan satu baris */
+.main { padding-top: 24px; }
+.page { max-width: 1180px; gap: 16px; }
+.page-ico { display: none !important; }
+.head { align-items: center; }
+.head h1 { font-size: 24px; font-weight: 500; letter-spacing: 0; }
+.head p, .card-h p { margin: 2px 0 0; font-size: 12.5px; color: var(--muted); max-width: 90ch;
+  display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.head p b { font-weight: 500; }
+.kpi .d { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; font-size: 12px; }
+.notice.tip-card { display: none; }
+
+/* Kartu datar berbingkai tipis, tombol bulat, biru untuk aksi utama */
+.card, .kpis { border-radius: var(--r-lg); box-shadow: none; }
+.card { padding: 16px 20px 18px; }
+.card-h { margin-bottom: 12px; }
+.card-h h2 { font-size: 16px; font-weight: 500; letter-spacing: 0; }
+.kpi .l { font-size: 13px; font-weight: 500; color: var(--ink-2); }
+.kpi .v { font-size: 24px; font-weight: 500; letter-spacing: 0; }
+.btn { height: 36px; border-radius: 18px; font-weight: 500; border-color: var(--line-2); }
+.btn:hover { border-color: var(--line-2); background: var(--sunken); }
+.btn.primary { background: var(--leaf); border-color: var(--leaf); color: var(--leaf-ink); }
+.btn.primary:hover { background: var(--leaf); filter: brightness(1.1); }
+.btn.ghost { color: var(--leaf); }
+.btn.ghost:hover { background: var(--leaf-soft); }
+.btn.danger, .btn.ghost.danger { color: var(--bad); }
+.btn.sm { height: 30px; border-radius: 15px; }
+.seg { background: transparent; padding: 0; gap: 6px; }
+.seg button { border: 1px solid var(--line-2); border-radius: 8px; padding: 5px 12px; font-weight: 500; color: var(--ink); background: var(--surface); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); box-shadow: none; }
+.input, select.input, textarea.input { border-radius: 8px; }
+.pill { font-weight: 500; }
+
+/* Tabel: judul kolom kecil, baris lega */
+.t th { font-weight: 500; font-size: 12px; padding: 10px; }
+.t td { padding: 12px 10px; }
+.t tbody tr.click:hover td { background: var(--sunken); }
+
+/* Tab bawah (HP): aktif hitam, bukan berwarna */
+@media (max-width: 900px) {
+  .appbar { background: var(--surface); }
+  .tabbar [aria-current="page"], .tabbar [data-grup][aria-current="page"] { color: var(--ink); }
+  .tabbar [aria-current="page"]::before { background: var(--yt-red); }
+  .tabbar .count { background: var(--yt-red); color: #fff; }
+  .head h1 { font-size: 21px; }
+  .btn { height: 40px; border-radius: 20px; }
+  .btn.sm { height: 34px; border-radius: 17px; }
+  .card { padding: 14px; }
+}
+
+/* Kartu Persiapan: hanya judul langkah dan tombolnya; rincian ada di halaman yang dibuka tombol itu. */
+#kartu-persiapan .ck > div > div, #kartu-persiapan .card-h p { display: none; }
+#kartu-persiapan .ck { padding: 9px 0; }
+.t .mono, .t td.mono { font-family: var(--font); font-size: inherit; letter-spacing: 0; }
+@media (max-width: 900px) { .head p, .card-h p { -webkit-line-clamp: 2; } }
