@@ -660,6 +660,8 @@ import './styles.css';
     const h1 = $('.head h1', page);
     const rt = ROUTES.find((x) => x.id === r);
     if (h1 && rt) h1.insertAdjacentHTML('beforebegin', `<span class="page-ico" aria-hidden="true">${icon(rt.icon)}</span>`);
+    // Penjelasan dipangkas satu baris lewat CSS; teks lengkapnya tetap bisa dibaca dengan mengarahkan kursor.
+    $$('.head p, .card-h p, .kpi .d', page).forEach((el) => { el.title = el.textContent.trim(); });
     (AFTER[r] || (() => {}))();
     document.title = routeLabel(ROUTES.find((x) => x.id === r) || {}) + ' · Pantau Tokder';
   }
