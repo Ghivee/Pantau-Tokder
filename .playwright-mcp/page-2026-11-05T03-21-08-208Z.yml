@@ -1,0 +1,186 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - link "Logo Tokder Pantau Tokder pantautokder.vercel.app" [ref=e4] [cursor=pointer]:
+        - /url: /
+        - img "Logo Tokder" [ref=e5]
+        - generic [ref=e6]:
+          - generic [ref=e7]: Pantau Tokder
+          - generic [ref=e8]: pantautokder.vercel.app
+      - navigation "Halaman informasi / Information pages" [ref=e9]:
+        - link "Syarat" [ref=e10] [cursor=pointer]:
+          - /url: /terms.html
+        - link "Privasi" [ref=e11] [cursor=pointer]:
+          - /url: /privacy.html
+        - link "Hapus data" [ref=e12] [cursor=pointer]:
+          - /url: /data-deletion.html
+      - link "Buka aplikasi" [ref=e13] [cursor=pointer]:
+        - /url: /
+  - main [ref=e14]:
+    - navigation "Bahasa / Language" [ref=e15]:
+      - generic [ref=e16]: "Bahasa / Language:"
+      - link "Indonesia" [ref=e17] [cursor=pointer]:
+        - /url: "#id"
+      - link "English" [ref=e18] [cursor=pointer]:
+        - /url: "#en"
+    - generic [ref=e19]:
+      - heading "Kebijakan Privasi" [level=1] [ref=e20]
+      - paragraph [ref=e21]: Berlaku sejak 31 Oktober 2026 · Pembaruan terakhir 31 Oktober 2026
+      - paragraph [ref=e22]:
+        - text: "Pantau Tokder (“Aplikasi”, “kami”) adalah alat internal tim Tokder untuk memantau pekerjaan harian tim konten dan performa channel video cabai kami di YouTube, TikTok, Instagram dan Facebook. Aplikasi dioperasikan oleh Tokder (kontak:"
+        - link "tokodeeres@gmail.com" [ref=e23] [cursor=pointer]:
+          - /url: mailto:tokodeeres@gmail.com
+        - text: "). Aplikasi tidak untuk umum: tidak ada pendaftaran terbuka, hanya pemilik dan karyawan yang diberi akses yang bisa masuk."
+      - heading "1. Data yang kami kumpulkan" [level=2] [ref=e24]
+      - table [ref=e26]:
+        - rowgroup [ref=e27]:
+          - row [ref=e28]:
+            - columnheader "Kelompok" [ref=e29]
+            - columnheader "Isi" [ref=e30]
+            - columnheader "Sumber" [ref=e31]
+          - row [ref=e32]:
+            - cell "Akun karyawan" [ref=e33]
+            - cell "Nama, peran, jadwal kerja, PIN (disimpan sebagai hash scrypt, bukan teks asli)" [ref=e34]
+            - cell "Diisi pemilik" [ref=e35]
+          - row [ref=e36]:
+            - cell "Presensi" [ref=e37]
+            - cell "Waktu absen masuk/pulang, koordinat lokasi dan akurasinya saat absen, jarak ke kantor, alamat IP; untuk absen yang ditolak juga jenis perangkat (user agent)" [ref=e38]
+            - cell "Perangkat karyawan, dengan izin lokasi dari browser" [ref=e39]
+          - row [ref=e40]:
+            - cell "Kerja dan SDM" [ref=e41]
+            - cell "Aktivitas harian, pengajuan izin/sakit/cuti/klaim, aturan dan rincian gaji" [ref=e42]
+            - cell "Karyawan dan pemilik" [ref=e43]
+          - row [ref=e44]:
+            - cell "Data platform video" [ref=e45]
+            - 'cell "Dari channel/akun milik kami sendiri yang disambungkan pemilik: nama dan ID akun, daftar video, jumlah tayangan, suka, komentar, bagikan, durasi tonton, retensi, jumlah pengikut, dan (YouTube) estimasi pendapatan" [ref=e46]'
+            - cell "API resmi YouTube, TikTok dan Meta, setelah pemilik memberi izin (OAuth)" [ref=e47]
+          - row [ref=e48]:
+            - cell "Video untuk diposting" [ref=e49]
+            - cell "Berkas video, judul, dan deskripsi yang pemilik unggah lewat fitur Posting. Disimpan sementara di Vercel Blob dan dikirim ke platform yang dipilih; berkas dihapus paling lama 7 hari setelah diunggah (atau saat posting dihapus)" [ref=e50]
+            - cell "Pemilik" [ref=e51]
+          - row [ref=e52]:
+            - cell "Teknis" [ref=e53]
+            - cell "Cookie sesi masuk (HttpOnly, SameSite=Lax), langganan notifikasi Web Push, laporan pelanggaran keamanan browser (CSP), log audit" [ref=e54]
+            - cell "Browser dan server" [ref=e55]
+      - paragraph [ref=e56]: Kami tidak mengumpulkan data pengunjung umum, tidak memasang pelacak iklan, dan tidak membaca pesan pribadi, kontak, atau data penonton secara individu (nama, akun, atau identitas penonton video kami) dari platform mana pun.
+      - heading "2. Cara kami memakai data" [level=2] [ref=e57]
+      - list [ref=e58]:
+        - listitem [ref=e59]: Menampilkan dan menghitung kinerja video, target upload, presensi, dan penggajian tim.
+        - listitem [ref=e60]: Mengirim pengingat dan ringkasan lewat notifikasi bila diizinkan.
+        - listitem [ref=e61]: Menjaga keamanan akun (batas percobaan masuk, deteksi penyalahgunaan).
+      - paragraph [ref=e62]: Kami tidak menjual data, tidak membagikannya untuk iklan, tidak memakainya untuk melatih model kecerdasan buatan, dan tidak memakainya untuk profil atau keputusan otomatis tentang orang di luar tim.
+      - heading "3. Data dari TikTok, Meta (Instagram/Facebook) dan Google" [level=2] [ref=e63]
+      - list [ref=e64]:
+        - listitem [ref=e65]: Akses hanya untuk akun yang pemiliknya sendiri menyambungkan. Untuk statistik, aplikasi hanya membaca. Untuk fitur Posting, aplikasi mengirim video yang pemilik unggah sendiri ke akun itu sebagai draf, hanya atas perintah pemilik dan tayang hanya setelah pemilik menekan Tayangkan (TikTok dan YouTube diselesaikan pemilik di aplikasinya). Kami tidak mengubah atau menghapus konten yang sudah ada, tidak membaca pesan, dan tidak memposting otomatis atau tanpa perintah.
+        - listitem [ref=e66]:
+          - text: "Kami hanya meminta izin (scope) yang perlu: profil dasar dan statistik video akun itu, serta satu izin unggah per platform (TikTok"
+          - code [ref=e67]: video.upload
+          - text: ", Instagram"
+          - code [ref=e68]: instagram_business_content_publish
+          - text: ", Facebook"
+          - code [ref=e69]: pages_manage_posts
+          - text: ", YouTube"
+          - code [ref=e70]: youtube.upload
+          - text: ) untuk fitur Posting.
+        - listitem [ref=e71]: Token akses dan penyegaran disimpan terenkripsi (AES-256-GCM) di basis data dan tidak pernah dikirim ke browser.
+        - listitem [ref=e72]: Data tersebut hanya terlihat oleh pemilik dan karyawan yang berwenang, tidak dibagikan ke pihak ketiga, dan dihapus bila koneksi diputus atau diminta (lihat bagian 6).
+        - listitem [ref=e73]:
+          - text: Penggunaan dan pemindahan informasi yang diterima dari Google API oleh Aplikasi mematuhi
+          - link "Kebijakan Data Pengguna Layanan API Google" [ref=e74] [cursor=pointer]:
+            - /url: https://developers.google.com/terms/api-services-user-data-policy
+          - text: ", termasuk persyaratan Penggunaan Terbatas (Limited Use). Kami mematuhi pula Ketentuan Pengembang dan Kebijakan Platform TikTok dan Meta."
+      - heading "4. Penyimpanan, keamanan dan lokasi" [level=2] [ref=e75]
+      - list [ref=e76]:
+        - listitem [ref=e77]: Aplikasi di-hosting di Vercel (wilayah Singapura); data disimpan di basis data PostgreSQL pihak penyedia cloud; jadwal sinkronisasi memakai GitHub Actions. Karena itu data dapat diproses di luar Indonesia, dengan perlindungan yang kami upayakan setara.
+        - listitem [ref=e78]: Semua lalu lintas memakai HTTPS. Akses dibatasi sesi masuk dan peran (pemilik / karyawan; karyawan hanya melihat datanya sendiri).
+        - listitem [ref=e79]: Tidak ada sistem yang 100% aman; bila terjadi kebocoran yang berdampak pada Anda, kami akan memberi tahu pihak terkait sesuai hukum.
+      - heading "5. Lama penyimpanan" [level=2] [ref=e80]
+      - list [ref=e81]:
+        - listitem [ref=e82]: "Berkas video fitur Posting: dihapus paling lama 7 hari setelah diunggah; catatan posting 90 hari."
+        - listitem [ref=e83]: "Snapshot statistik per jam: 14 hari, sesudahnya diringkas menjadi satu catatan per hari per video."
+        - listitem [ref=e84]: "Absen yang ditolak: 1 tahun. Penanda notifikasi: 60 hari. Sesi masuk: kedaluwarsa otomatis."
+        - listitem [ref=e85]: "Data presensi, aktivitas, gaji dan statistik harian: selama hubungan kerja/penggunaan berjalan, atau sampai Anda meminta penghapusan."
+      - heading "6. Hak Anda dan penghapusan data" [level=2] [ref=e86]
+      - paragraph [ref=e87]: "Anda berhak mengakses, memperbaiki, membatasi, dan meminta penghapusan data pribadi Anda (sesuai UU No. 27 Tahun 2022 tentang Pelindungan Data Pribadi). Anda juga dapat mencabut izin kapan saja:"
+      - list [ref=e88]:
+        - listitem [ref=e89]: Putuskan koneksi dari menu Pengaturan di Aplikasi (pemilik), atau
+        - listitem [ref=e90]: Cabut izin langsung di TikTok (Pengaturan → Keamanan dan izin → Aplikasi), Meta (Pengaturan → Aplikasi dan situs web), atau Google (myaccount.google.com/permissions).
+      - paragraph [ref=e91]:
+        - text: "Cara meminta penghapusan: lihat"
+        - link "halaman Penghapusan Data" [ref=e92] [cursor=pointer]:
+          - /url: /data-deletion.html
+        - text: . Kami memprosesnya dalam 30 hari.
+      - heading "7. Anak-anak" [level=2] [ref=e93]
+      - paragraph [ref=e94]: Aplikasi ditujukan bagi orang dewasa yang bekerja di tim kami dan tidak dengan sengaja mengumpulkan data anak di bawah 18 tahun.
+      - heading "8. Perubahan" [level=2] [ref=e95]
+      - paragraph [ref=e96]: Kebijakan ini dapat diperbarui; tanggal pembaruan tertera di atas. Perubahan yang material akan diumumkan di Aplikasi.
+      - heading "9. Kontak" [level=2] [ref=e97]
+      - paragraph [ref=e98]:
+        - text: "Pertanyaan atau permintaan terkait data:"
+        - link "tokodeeres@gmail.com" [ref=e99] [cursor=pointer]:
+          - /url: mailto:tokodeeres@gmail.com
+        - text: .
+    - generic [ref=e100]:
+      - heading "Privacy Policy" [level=1] [ref=e101]
+      - paragraph [ref=e102]: Effective 31 October 2026 · Last updated 31 October 2026
+      - paragraph [ref=e103]:
+        - text: "Pantau Tokder (the “App”, “we”) is an internal tool of the Tokder team for monitoring daily work of our content team and the performance of our own chili-farming video channels on YouTube, TikTok, Instagram and Facebook. It is operated by Tokder (contact:"
+        - link "tokodeeres@gmail.com" [ref=e104] [cursor=pointer]:
+          - /url: mailto:tokodeeres@gmail.com
+        - text: "). The App is not public: there is no open sign-up; only the owner and employees who are given access can sign in."
+      - heading "1. Data we collect" [level=2] [ref=e105]
+      - list [ref=e106]:
+        - listitem [ref=e107]: "Employee accounts: name, role, work schedule, PIN (stored only as a scrypt hash)."
+        - listitem [ref=e108]: "Attendance: check-in/out times, location coordinates and accuracy at check-in (with browser permission), distance to the office, IP address; for rejected check-ins also the device user agent."
+        - listitem [ref=e109]: "Work and HR: daily activities, leave/sick/claim requests, salary rules and breakdowns."
+        - listitem [ref=e110]: "Video platform data from accounts that the owner connects and that belong to us: account name and ID, video list, views, likes, comments, shares, watch time, retention, follower counts and (YouTube) estimated revenue. Obtained through the official YouTube, TikTok and Meta APIs after the owner grants permission (OAuth)."
+        - listitem [ref=e111]: "Videos for posting: the video file, title and description the owner uploads through the Posting feature; kept temporarily in Vercel Blob and sent to the platforms chosen; the file is deleted within 7 days of upload (or when the posting is deleted)."
+        - listitem [ref=e112]: "Technical: sign-in session cookie (HttpOnly, SameSite=Lax), Web Push subscriptions, browser security (CSP) reports, audit logs."
+      - paragraph [ref=e113]: We do not run advertising trackers, and we do not read private messages, contacts, or data identifying individual viewers of our videos from any platform.
+      - heading "2. How we use data" [level=2] [ref=e114]
+      - paragraph [ref=e115]: To show and compute video performance, upload targets, attendance and payroll; to send reminders and summaries via notifications when allowed; and to keep accounts secure. We do not sell data, share it for advertising, use it to train AI models, or use it for profiling or automated decisions about people outside the team.
+      - heading "3. Data from TikTok, Meta and Google" [level=2] [ref=e116]
+      - list [ref=e117]:
+        - listitem [ref=e118]: Access is limited to accounts the owner connects. For statistics the App only reads. For the Posting feature the App sends a video that the owner uploaded to that account as a draft, only on the owner's command, and it goes public only after the owner presses Publish (TikTok and YouTube drafts are finished by the owner in those apps). We do not edit or delete existing content, read messages, or post automatically or without a command.
+        - listitem [ref=e119]:
+          - text: "We request only the scopes needed: basic profile information and video statistics of those accounts, plus one upload scope per platform (TikTok"
+          - code [ref=e120]: video.upload
+          - text: ", Instagram"
+          - code [ref=e121]: instagram_business_content_publish
+          - text: ", Facebook"
+          - code [ref=e122]: pages_manage_posts
+          - text: ", YouTube"
+          - code [ref=e123]: youtube.upload
+          - text: ) for the Posting feature.
+        - listitem [ref=e124]: Access and refresh tokens are stored encrypted (AES-256-GCM) and are never sent to the browser.
+        - listitem [ref=e125]: This data is visible only to the owner and authorised employees, is not shared with third parties, and is deleted when the connection is removed or on request (see section 6).
+        - listitem [ref=e126]:
+          - text: The App's use and transfer of information received from Google APIs adheres to the
+          - link "Google API Services User Data Policy" [ref=e127] [cursor=pointer]:
+            - /url: https://developers.google.com/terms/api-services-user-data-policy
+          - text: ", including the Limited Use requirements. We also comply with the TikTok and Meta developer terms and platform policies."
+      - heading "4. Storage, security and location" [level=2] [ref=e128]
+      - paragraph [ref=e129]: The App is hosted on Vercel (Singapore region); data is stored in a cloud PostgreSQL database; scheduled syncs run on GitHub Actions. Data may therefore be processed outside Indonesia. All traffic uses HTTPS and access is limited by sign-in and role (employees see only their own data). No system is fully secure; if a breach affects you we will notify the relevant parties as required by law.
+      - heading "5. Retention" [level=2] [ref=e130]
+      - paragraph [ref=e131]: "Posting video files: deleted within 7 days of upload; posting records 90 days. Hourly metric snapshots: 14 days, then reduced to one record per day per video. Rejected check-ins: 1 year. Notification markers: 60 days. Sessions expire automatically. Attendance, activity, payroll and daily statistics are kept while the work relationship/use continues or until you request deletion."
+      - heading "6. Your rights and data deletion" [level=2] [ref=e132]
+      - paragraph [ref=e133]:
+        - text: "You may access, correct, restrict and request deletion of your personal data, and withdraw permission at any time: disconnect in the App's Settings (owner), or revoke access directly in TikTok (Settings → Security & permissions → Apps), Meta (Settings → Apps and Websites) or Google (myaccount.google.com/permissions). To request deletion see the"
+        - link "Data Deletion page" [ref=e134] [cursor=pointer]:
+          - /url: /data-deletion.html
+        - text: . We process requests within 30 days.
+      - heading "7. Children" [level=2] [ref=e135]
+      - paragraph [ref=e136]: The App is intended for adults on our team and does not knowingly collect data from anyone under 18.
+      - heading "8. Changes and contact" [level=2] [ref=e137]
+      - paragraph [ref=e138]:
+        - text: "We may update this policy; the date above shows the latest revision. Contact:"
+        - link "tokodeeres@gmail.com" [ref=e139] [cursor=pointer]:
+          - /url: mailto:tokodeeres@gmail.com
+        - text: .
+    - generic [ref=e140]:
+      - text: © 2026 Tokder ·
+      - link "tokodeeres@gmail.com" [ref=e141] [cursor=pointer]:
+        - /url: mailto:tokodeeres@gmail.com
+      - text: ·
+      - link "Kembali ke aplikasi / Back to app" [ref=e142] [cursor=pointer]:
+        - /url: /

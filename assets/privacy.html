@@ -6,26 +6,26 @@
 <title>Kebijakan Privasi · Pantau Tokder</title>
 <meta name="description" content="Kebijakan Privasi / Privacy Policy — Pantau Tokder (https://pantautokder.vercel.app)">
 <link rel="icon" type="image/png" href="/icon-32.png">
-<style>*{box-sizing:border-box}body{margin:0;background:#faf8f3;color:#1f2a1f;font:16px/1.65 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-@media(prefers-color-scheme:dark){body{background:#141a14;color:#e6ece4}a{color:#8fd19a}.box{background:#1c241c!important;border-color:#2c382c!important}}
-main{max-width:760px;margin:0 auto;padding:24px 16px 64px}header{display:flex;align-items:center;gap:12px;margin-bottom:8px}header img{width:44px;height:44px;border-radius:10px}
-header b{font-size:18px}header small{display:block;opacity:.7}h1{font-size:28px;line-height:1.25;margin:20px 0 4px}h2{font-size:20px;margin:32px 0 8px}
-a{color:#1f7a3a}.meta{opacity:.7;font-size:14px}.box{background:#fff;border:1px solid #e3ded0;border-radius:12px;padding:12px 16px;margin:12px 0}
-table{border-collapse:collapse;width:100%;font-size:15px}td,th{border-bottom:1px solid #e3ded0;padding:8px 6px;text-align:left;vertical-align:top}
-nav.lang{font-size:14px;margin:8px 0 0}footer{margin-top:40px;font-size:14px;opacity:.8}li{margin:4px 0}</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400&display=swap">
+<link rel="stylesheet" href="/legal.css">
 </head>
 <body>
+<header class="top"><div class="top-in">
+<a class="brand" href="/"><img src="/tokderlogo.png" alt="Logo Tokder"><span><b>Pantau Tokder</b><small>pantautokder.vercel.app</small></span></a>
+<nav class="tabs" aria-label="Halaman informasi / Information pages"><a href="/terms.html">Syarat</a><a href="/privacy.html" aria-current="page">Privasi</a><a href="/data-deletion.html">Hapus data</a></nav>
+<a class="btn-app" href="/">Buka aplikasi</a>
+</div></header>
 <main>
-<header><img src="/tokderlogo.png" alt="Logo Tokder"><div><b>Pantau Tokder</b><small>pantautokder.vercel.app</small></div></header>
-<nav class="lang"><a href="#id">Bahasa Indonesia</a> · <a href="#en">English</a> · <a href="/terms.html">Syarat / Terms</a> · <a href="/privacy.html">Privasi / Privacy</a> · <a href="/data-deletion.html">Hapus data / Data deletion</a></nav>
-
-<section id="id">
+<nav class="lang" aria-label="Bahasa / Language"><span>Bahasa / Language:</span><a href="#id">Indonesia</a><a href="#en">English</a></nav>
+<section id="id" class="doc">
 <h1>Kebijakan Privasi</h1>
 <p class="meta">Berlaku sejak 31 Oktober 2026 · Pembaruan terakhir 31 Oktober 2026</p>
 <p>Pantau Tokder (“Aplikasi”, “kami”) adalah alat internal tim Tokder untuk memantau pekerjaan harian tim konten dan performa channel video cabai kami di YouTube, TikTok, Instagram dan Facebook. Aplikasi dioperasikan oleh Tokder (kontak: <a href="mailto:tokodeeres@gmail.com">tokodeeres@gmail.com</a>). Aplikasi <b>tidak untuk umum</b>: tidak ada pendaftaran terbuka, hanya pemilik dan karyawan yang diberi akses yang bisa masuk.</p>
 
 <h2>1. Data yang kami kumpulkan</h2>
-<table>
+<div class="table-wrap"><table>
 <tr><th>Kelompok</th><th>Isi</th><th>Sumber</th></tr>
 <tr><td>Akun karyawan</td><td>Nama, peran, jadwal kerja, PIN (disimpan sebagai hash scrypt, bukan teks asli)</td><td>Diisi pemilik</td></tr>
 <tr><td>Presensi</td><td>Waktu absen masuk/pulang, koordinat lokasi dan akurasinya saat absen, jarak ke kantor, alamat IP; untuk absen yang ditolak juga jenis perangkat (user agent)</td><td>Perangkat karyawan, dengan izin lokasi dari browser</td></tr>
@@ -33,7 +33,7 @@ nav.lang{font-size:14px;margin:8px 0 0}footer{margin-top:40px;font-size:14px;opa
 <tr><td>Data platform video</td><td>Dari channel/akun milik kami sendiri yang disambungkan pemilik: nama dan ID akun, daftar video, jumlah tayangan, suka, komentar, bagikan, durasi tonton, retensi, jumlah pengikut, dan (YouTube) estimasi pendapatan</td><td>API resmi YouTube, TikTok dan Meta, setelah pemilik memberi izin (OAuth)</td></tr>
 <tr><td>Video untuk diposting</td><td>Berkas video, judul, dan deskripsi yang pemilik unggah lewat fitur Posting. Disimpan sementara di Vercel Blob dan dikirim ke platform yang dipilih; berkas dihapus paling lama 7 hari setelah diunggah (atau saat posting dihapus)</td><td>Pemilik</td></tr>
 <tr><td>Teknis</td><td>Cookie sesi masuk (HttpOnly, SameSite=Lax), langganan notifikasi Web Push, laporan pelanggaran keamanan browser (CSP), log audit</td><td>Browser dan server</td></tr>
-</table>
+</table></div>
 <p>Kami <b>tidak</b> mengumpulkan data pengunjung umum, tidak memasang pelacak iklan, dan tidak membaca pesan pribadi, kontak, atau data penonton secara individu (nama, akun, atau identitas penonton video kami) dari platform mana pun.</p>
 
 <h2>2. Cara kami memakai data</h2>
@@ -86,7 +86,7 @@ nav.lang{font-size:14px;margin:8px 0 0}footer{margin-top:40px;font-size:14px;opa
 <p>Pertanyaan atau permintaan terkait data: <a href="mailto:tokodeeres@gmail.com">tokodeeres@gmail.com</a>.</p>
 </section>
 
-<section id="en">
+<section id="en" class="doc">
 <h1>Privacy Policy</h1>
 <p class="meta">Effective 31 October 2026 · Last updated 31 October 2026</p>
 <p>Pantau Tokder (the “App”, “we”) is an internal tool of the Tokder team for monitoring daily work of our content team and the performance of our own chili-farming video channels on YouTube, TikTok, Instagram and Facebook. It is operated by Tokder (contact: <a href="mailto:tokodeeres@gmail.com">tokodeeres@gmail.com</a>). The App is <b>not public</b>: there is no open sign-up; only the owner and employees who are given access can sign in.</p>
