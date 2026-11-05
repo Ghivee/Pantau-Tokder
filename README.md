@@ -16,7 +16,7 @@ Dasbor internal tim konten Tokder: kerja harian, presensi, gaji, dan performa vi
 | `api/scripts/migrasi-lama` | Arsip skrip migrasi lama, tidak perlu dijalankan |
 | `scripts/` | Pemeriksa CSP dan pengunggah YouTube (dipakai GitHub Actions) |
 | `.github/workflows` | Sinkronisasi, posting YouTube, tes |
-| `docs/` | `PANDUAN.md` (pemakaian), `PENDAFTARAN_TIKTOK_META.md` (daftar TikTok/Meta), `ikon-app/` |
+| `docs/` | `PANDUAN.md` (pemakaian), `PENDAFTARAN_TIKTOK_META.md` (daftar TikTok/Meta), `TIKTOK_ISIAN.md` (isian formulir siap tempel), `ikon-app/` |
 
 ## Perintah
 
