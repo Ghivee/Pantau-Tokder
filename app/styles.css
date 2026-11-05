@@ -702,3 +702,7 @@ b, strong, h1, h2, h3 { font-family: var(--font); }
 .landing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin:28px 0 20px;text-align:left}
 .landing-grid p{margin:4px 0 0;font-size:14px;line-height:1.55}
 .landing-links{margin:8px 0 16px;font-size:14px}
+.landing-grid > div{background:var(--sunken);border:1px solid var(--line);border-radius:var(--r-lg);padding:14px 16px}
+.landing-grid b{display:block;font-size:14px;margin-bottom:2px}
+.landing-links a{color:var(--leaf);text-decoration:none;font-weight:500}
+.landing-links a:hover{text-decoration:underline}
