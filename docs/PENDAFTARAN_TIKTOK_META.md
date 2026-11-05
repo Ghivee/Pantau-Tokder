@@ -14,7 +14,8 @@ Alamat dasar di bawah memakai `https://pantautokder.vercel.app`. Kalau nanti pin
 | Data Deletion Instructions URL | `https://pantautokder.vercel.app/data-deletion.html` |
 | Data Deletion Request Callback URL (Meta) | `https://pantautokder.vercel.app/api/social/meta/data-deletion` |
 | Deauthorize Callback URL (Meta) | `https://pantautokder.vercel.app/api/social/meta/deauthorize` |
-| Ikon | `tokderlogo_1024x1024.png` (1024×1024) |
+| Ikon | `docs/ikon-app/tokderlogo_1024x1024.png` (1024×1024, sudah disiapkan di repo) |
+| URL situs / Web URL | `https://pantautokder.vercel.app` (halaman depan publik menjelaskan app dan menaut ke Privacy, Terms, Hapus data) |
 | Email kontak | `tokodeeres@gmail.com` |
 
 ## A. TikTok (developers.tiktok.com)
@@ -23,7 +24,7 @@ Alamat dasar di bawah memakai `https://pantautokder.vercel.app`. Kalau nanti pin
 2. Isi nama (jangan memuat kata "TikTok"), ikon, kategori *Business/Productivity*, deskripsi (di bawah), URL Privacy dan Terms.
 3. **Add products**: *Login Kit*, *Display API*, dan *Content Posting API* (hanya mode upload ke inbox/draf; jangan minta direct post).
 4. **Login Kit → Redirect URI**: alamat di tabel. Platform: *Web*, URL situs `https://pantautokder.vercel.app`.
-5. **Scopes** (empat): `user.info.basic`, `user.info.stats`, `video.list`, `video.upload`. Jangan minta `video.publish`: itu butuh audit TikTok.
+5. **Scopes** (empat, persis seperti di kode): `user.info.basic`, `user.info.stats`, `video.list`, `video.upload`. Jangan minta `video.publish`: itu butuh audit TikTok.
 6. **URL properties → URL prefix** `https://pantautokder.vercel.app/`, verifikasi memakai berkas `tiktokjd9X….txt` yang sudah ada di situs. Buka URL berkasnya di browser dulu, baru klik Verify.
 7. Di mode **Sandbox**: tambahkan akun TikTok channel Anda sebagai *target user*, lalu uji Hubungkan di menu Sosmed.
 8. Salin **Client key** dan **Client secret** ke Vercel: `TIKTOK_CLIENT_KEY`, `TIKTOK_CLIENT_SECRET`. Deploy ulang.
@@ -43,15 +44,16 @@ Penjelasan per scope (kolom review):
 1. **Create app** → tipe *Business* (atau *Other → Business*). Tambahkan produk **Instagram → API setup with Instagram login**.
 2. **App settings → Basic**: ikon, Privacy Policy URL, Terms of Service URL, kategori, **App Domains** `pantautokder.vercel.app`, **User data deletion**: pilih *Data deletion request URL* = alamat callback di tabel (atau *Instruction URL* = `data-deletion.html`).
 3. Instagram → **Business login settings**: Redirect URL = alamat di tabel; Deauthorize dan Data deletion callback = alamat di tabel.
-4. **App roles**: tambahkan akun Facebook Anda sebagai Admin, dan untuk tiap akun Instagram channel: **Instagram Testers** (Roles → Instagram Testers), lalu terima undangannya di Instagram (Setelan → Apps and websites → Tester invites).
-5. Akun Instagram channel harus **Professional** (Business atau Creator).
-6. Salin **Instagram app ID** dan **Instagram app secret** (bukan App ID utama) ke Vercel: `INSTAGRAM_APP_ID`, `INSTAGRAM_APP_SECRET`.
-7. Tetap di **Development mode**: cukup untuk akun milik Anda dan tidak butuh App Review. Review dan Business Verification baru perlu bila akun lain di luar tim ikut tersambung.
+4. Izin yang diminta kode untuk Instagram: `instagram_business_basic`, `instagram_business_manage_insights`, `instagram_business_content_publish`. Pastikan ketiganya aktif di *API setup with Instagram login*.
+5. **App roles**: tambahkan akun Facebook Anda sebagai Admin, dan untuk tiap akun Instagram channel: **Instagram Testers** (Roles → Instagram Testers), lalu terima undangannya di Instagram (Setelan → Apps and websites → Tester invites).
+6. Akun Instagram channel harus **Professional** (Business atau Creator).
+7. Salin **Instagram app ID** dan **Instagram app secret** (bukan App ID utama) ke Vercel: `INSTAGRAM_APP_ID`, `INSTAGRAM_APP_SECRET`.
+8. Tetap di **Development mode**: cukup untuk akun milik Anda dan tidak butuh App Review. Review dan Business Verification baru perlu bila akun lain di luar tim ikut tersambung.
 
 ## C. Facebook Pages (app Meta yang sama atau terpisah)
 
 1. Tambahkan produk **Facebook Login for Business** (atau Facebook Login). Valid OAuth Redirect URI = alamat di tabel.
-2. Izin yang dipakai: `pages_show_list`, `pages_read_engagement`, `read_insights`. Di Development mode izin ini bekerja untuk Admin/Developer/Tester app.
+2. Izin yang dipakai (sama dengan kode): `pages_show_list`, `pages_read_engagement`, `read_insights`, `pages_manage_posts`. Di Development mode izin ini bekerja untuk Admin/Developer/Tester app.
 3. Akun Facebook yang dipakai Hubungkan harus mengelola Page tersebut (peran Page admin).
 4. Salin **App ID** dan **App secret** utama ke Vercel: `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET`. `FACEBOOK_APP_SECRET` juga memverifikasi callback penghapusan data dari Meta.
 

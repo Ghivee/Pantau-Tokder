@@ -2,7 +2,9 @@ const crypto = require('crypto');
 const axios = require('axios');
 
 // TikTok (Login Kit + Display API + Content Posting), Instagram (Instagram API with Instagram Login) and Facebook
-// Pages (Facebook Login). Everything here is read-only: no scope that can post, edit or delete.
+// Pages (Facebook Login). Statistics are read-only. Each platform also asks for exactly one upload scope
+// (video.upload, instagram_business_content_publish, pages_manage_posts) for the Posting feature, which only
+// ever sends the owner's own video as a draft.
 // Field and metric names follow each platform's current documentation; they are the first thing
 // to check if a platform answers with an error after it changes its API.
 
