@@ -643,11 +643,23 @@ import { upload } from '@vercel/blob/client';
     const want = location.pathname.replace(/^\/+/, '').split('/')[0] || (me() ? 'hari-ini' : 'ringkasan');
     if (want !== r) history.replaceState(null, '', pathOf(r));
     if (!S.session && !S.error) {
-      page.innerHTML = `<section class="card empty" style="padding:56px 20px;max-width:520px;margin:24px auto">
-        <img src="/tokderlogo.png" alt="" style="width:56px;height:56px;border-radius:14px;margin:0 auto 12px">
-        <b style="font-size:18px">Masuk ke Pantau Tokder</b>
-        <p style="margin:6px 0 18px">Data kerja tim, konten, analytics dan presensi hanya untuk pemilik dan karyawan.</p>
-        <button class="btn primary" data-act="login">${icon('out')}Masuk</button></section>`;
+      // Halaman depan publik: dibaca juga oleh reviewer TikTok/Meta, jadi menjelaskan apa aplikasi ini,
+      // data apa yang dibaca dari tiap platform, dan menaut ke kebijakan privasi, syarat, dan hapus data.
+      page.innerHTML = `<section class="card landing">
+        <img src="/tokderlogo.png" alt="Logo Pantau Tokder" class="landing-logo">
+        <h1>Pantau Tokder</h1>
+        <p class="landing-lead">Dasbor internal tim konten Tokder (channel budidaya cabai) untuk memantau hasil kerja harian dan performa video di YouTube, TikTok, Instagram dan Facebook.</p>
+        <button class="btn primary" data-act="login">${icon('out')}Masuk</button>
+        <p class="muted landing-note">Hanya untuk pemilik dan karyawan Tokder. Tidak ada pendaftaran terbuka.</p>
+        <div class="landing-grid">
+          <div><b>Yang dilakukan</b><p>Pemilik menghubungkan akun milik tim sendiri. Aplikasi membaca nama akun, jumlah pengikut, serta daftar video beserta tayangan, suka, komentar dan bagikan, lalu menampilkannya berdampingan.</p></div>
+          <div><b>Posting sekali upload</b><p>Pemilik mengunggah satu video, lalu mengirimnya sebagai <em>draf</em> ke akun TikTok, Instagram, Facebook dan YouTube milik tim. Tidak ada yang tayang tanpa tindakan pemilik sendiri.</p></div>
+          <div><b>Yang tidak dilakukan</b><p>Tidak membaca pesan atau data penonton, tidak mengubah atau menghapus konten yang sudah ada, tidak menjual atau membagikan data.</p></div>
+        </div>
+        <nav class="landing-links" aria-label="Informasi hukum">
+          <a href="/privacy.html">Kebijakan Privasi</a> · <a href="/terms.html">Syarat Layanan</a> · <a href="/data-deletion.html">Hapus data</a> · <a href="mailto:tokodeeres@gmail.com">tokodeeres@gmail.com</a>
+        </nav>
+        <p class="muted landing-note" lang="en">Pantau Tokder is a private dashboard for the Tokder chili-farming video team. The owner connects the team's own TikTok, Instagram, Facebook and YouTube accounts to read the accounts' own profile and video statistics, and to send the owner's own videos to those accounts as drafts. See the Privacy Policy and Terms above.</p></section>`;
       document.title = 'Masuk · Pantau Tokder';
       return;
     }

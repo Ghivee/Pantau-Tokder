@@ -692,3 +692,13 @@ b, strong, h1, h2, h3 { font-family: var(--font); }
 .post-item:first-child { border-top: 0; }
 .post-top { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; flex-wrap: wrap; }
 .post-chips { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; }
+
+/* Halaman depan publik (sebelum masuk) */
+.landing{max-width:720px;margin:24px auto;padding:40px 24px;text-align:center}
+.landing-logo{width:64px;height:64px;border-radius:14px;margin:0 auto 12px;display:block}
+.landing h1{margin:0 0 8px;font-size:28px}
+.landing-lead{margin:0 auto 20px;max-width:560px;line-height:1.6}
+.landing-note{margin:12px auto 0;max-width:560px;font-size:13px;line-height:1.5}
+.landing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin:28px 0 20px;text-align:left}
+.landing-grid p{margin:4px 0 0;font-size:14px;line-height:1.55}
+.landing-links{margin:8px 0 16px;font-size:14px}
