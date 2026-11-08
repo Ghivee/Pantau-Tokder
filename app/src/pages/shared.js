@@ -86,8 +86,8 @@ export function notifCard() {
   const tombol = n.aktif
     ? `<span class="pill ok">Aktif di perangkat ini</span><button class="btn sm ghost" data-act="notif-coba">Kirim percobaan</button><button class="btn sm ghost" data-act="notif-mati">Matikan</button>`
     : !n.didukung && diIOS && !terpasang()
-      ? '<span class="muted" style="font-size:13px">Di iPhone: ketuk <b>Bagikan → Tambah ke Layar Utama</b>, buka dari ikon itu, lalu aktifkan di sini.</span>'
-      : n.izin === 'denied' ? '<span class="muted" style="font-size:13px">Notifikasi diblokir di browser ini. Izinkan untuk situs ini di pengaturan browser.</span>'
+      ? '<span class="muted fs-13">Di iPhone: ketuk <b>Bagikan → Tambah ke Layar Utama</b>, buka dari ikon itu, lalu aktifkan di sini.</span>'
+      : n.izin === 'denied' ? '<span class="muted fs-13">Notifikasi diblokir di browser ini. Izinkan untuk situs ini di pengaturan browser.</span>'
       : `<button class="btn primary sm" data-act="notif-aktif">${icon('plus')}Aktifkan notifikasi</button>`;
   return `<section class="card" id="kartu-notif"><div class="card-h"><h2>Notifikasi ke HP</h2><p>Kabar ${isi}. Aktifkan di tiap HP atau laptop yang dipakai.</p></div><div class="tools">${tombol}</div></section>`;
 }

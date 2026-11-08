@@ -74,7 +74,7 @@ function personCard(st) {
         return `<div class="check"><span class="l">${c.l}</span><span class="v">${nf.format(c.v)}<small> / ${nf.format(c.t)}</small></span><span class="meter"><i class="${cls}" style="width:${Math.min(1, r ?? 0) * 100}%"></i></span></div>`;
       }).join('')}</div>
       <div>
-        <div class="legend" style="margin-bottom:6px"><span><i class="slot"></i>Jadwal</span><span><i style="background:var(--ok)"></i>Tayang tepat</span><span><i style="background:var(--bad)"></i>Telat</span><span><i class="task"></i>Tugas lain</span></div>
+        <div class="legend mb-6"><span><i class="slot"></i>Jadwal</span><span><i style="background:var(--ok)"></i>Tayang tepat</span><span><i style="background:var(--bad)"></i>Telat</span><span><i class="task"></i>Tugas lain</span></div>
         <div class="ruler" data-ruler="${e.id}" style="min-height:74px"></div>
       </div>
       <div>
@@ -82,7 +82,7 @@ function personCard(st) {
         <div class="strip">${strip.map((x) => `<button class="${x.nilai || ''}" data-act="ke-hari" data-v="${x.day}" aria-pressed="${x.day === S.day}" title="${tglPendek(x.day)}: skor ${x.skor ?? '—'}" aria-label="${tglPendek(x.day)}, skor ${x.skor ?? 'tidak ada'}">${x.skor ?? '·'}</button>`).join('')}</div>
       </div>
       <div>
-        <div class="card-h" style="margin-bottom:4px"><h2>Yang dikerjakan</h2>${isAdmin() || isMe ? `<button class="btn sm ghost" data-act="catat" data-id="${e.id}">${icon('plus')}Catat</button>` : ''}</div>
+        <div class="card-h mb-4"><h2>Yang dikerjakan</h2>${isAdmin() || isMe ? `<button class="btn sm ghost" data-act="catat" data-id="${e.id}">${icon('plus')}Catat</button>` : ''}</div>
         <div class="timeline">${items.length ? items.map((it) => it.kind === 'up' ? `
           <div class="tl"><span class="time">${it.jam}</span><span class="dot ${it.v._tepat === false ? 'late' : 'up'}"></span>
             <div class="what"><b>Upload video</b> <a href="/harian" data-act="video" data-id="${it.v.id}" style="color:inherit">${esc(it.v.judul)}</a><div>${esc(it.v._chNama)} · ${fmt(it.v.views)} views</div></div>

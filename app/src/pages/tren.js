@@ -51,7 +51,7 @@ PAGES.tren = function () {
   return `
       <header class="head">
         <div><h1>Tren channel</h1><p>${latest ? `Angka YouTube Analytics sampai ${tglPanjang(latest)} (YouTube terlambat 2–3 hari). ` : 'Belum ada angka YouTube Analytics. '}Video yang sedang naik dihitung dari sinkronisasi terbaru.</p></div>
-        <div class="tools"><select class="input" id="tr-ch" style="width:auto" aria-label="Channel"><option value="all">Semua channel</option>${S.channels.map((c) => `<option value="${esc(c.id)}" ${ch === c.id ? 'selected' : ''}>${esc(c.nama)}</option>`).join('')}</select>${bantuan('tren')}</div>
+        <div class="tools"><select class="input w-auto" id="tr-ch" aria-label="Channel"><option value="all">Semua channel</option>${S.channels.map((c) => `<option value="${esc(c.id)}" ${ch === c.id ? 'selected' : ''}>${esc(c.nama)}</option>`).join('')}</select>${bantuan('tren')}</div>
       </header>
       <section class="kpis" aria-label="7 hari terakhir">
         <div class="kpi"><span class="l">Views 7 hari</span><span class="v">${latest ? fmt(vNow) : '—'}</span>${latest ? delta(vNow, vPrev) : '<span class="d">hubungkan YouTube Analytics</span>'}</div>
@@ -62,7 +62,7 @@ PAGES.tren = function () {
       <section class="card" id="kartu-tren-views">
         <div class="card-h"><h2>Views harian 28 hari</h2><p>Semua video di channel, termasuk video lama.</p></div>
         <div class="chart-legend">${ids.map((id) => `<span><i style="background:${chColor(id)}"></i>${esc(chName(id))}</span>`).join('')}</div>
-        ${latest ? '<div class="chart" id="tr-chart" style="min-height:230px"></div>' : '<div class="empty"><b>Belum ada angka dari YouTube Analytics</b>Hubungkan channel di Pengaturan.</div>'}
+        ${latest ? '<div class="chart minh-230" id="tr-chart"></div>' : '<div class="empty"><b>Belum ada angka dari YouTube Analytics</b>Hubungkan channel di Pengaturan.</div>'}
       </section>
       <section class="card" id="kartu-naik">
         <div class="card-h"><h2>Sedang naik sekarang</h2><p>Video 14 hari terakhir dengan tambahan views terbanyak, disetarakan per 24 jam.</p></div>
@@ -75,7 +75,7 @@ PAGES.tren = function () {
         </section>
         <section class="card" id="kartu-kata">
           <div class="card-h"><h2>Kata di judul yang laris</h2><p>Kata yang muncul di 3 video atau lebih dalam 30 hari, dengan median views dibanding video lain.</p></div>
-          ${kuat.length || lemah.length ? `<div class="kata">${kuat.map((x) => `<span class="pill ok" title="${x.n} video">${esc(x.k)} ${kali(x.r)}</span>`).join('')}${lemah.map((x) => `<span class="pill bad" title="${x.n} video">${esc(x.k)} ${kali(x.r)}</span>`).join('')}</div><p class="muted" style="font-size:12.5px;margin:10px 0 0">Hijau: judul dengan kata ini lebih ramai. Merah: lebih sepi. Angka di samping kata: median views dibanding video lain.</p>` : '<div class="empty"><b>Belum ada pola yang jelas</b>Butuh lebih banyak video dalam 30 hari terakhir.</div>'}
+          ${kuat.length || lemah.length ? `<div class="kata">${kuat.map((x) => `<span class="pill ok" title="${x.n} video">${esc(x.k)} ${kali(x.r)}</span>`).join('')}${lemah.map((x) => `<span class="pill bad" title="${x.n} video">${esc(x.k)} ${kali(x.r)}</span>`).join('')}</div><p class="muted fs-125 mt-10">Hijau: judul dengan kata ini lebih ramai. Merah: lebih sepi. Angka di samping kata: median views dibanding video lain.</p>` : '<div class="empty"><b>Belum ada pola yang jelas</b>Butuh lebih banyak video dalam 30 hari terakhir.</div>'}
         </section>
       </div>
       <section class="card" id="kartu-hidup-lagi">

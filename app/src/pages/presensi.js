@@ -76,7 +76,7 @@ function presensiPage() {
     loadPresensi().then(() => { if (route() === 'presensi') render(); }).catch((e) => { S.presensi = { error: e.message }; if (route() === 'presensi') render(); });
     return '<header class="head"><div><h1>Presensi</h1><p>Memuat…</p></div></header><div class="skeleton" style="height:220px"></div>';
   }
-  if (P.error) return `<section class="card empty" style="padding:48px 20px" role="alert"><b style="font-size:16px">Presensi belum bisa dimuat</b><p style="margin:6px 0 16px">${esc(P.error)}</p><button class="btn primary" data-act="presensi-muat">${icon('sync')}Coba lagi</button></section>`;
+  if (P.error) return `<section class="card empty" style="padding:48px 20px" role="alert"><b class="fs-16">Presensi belum bisa dimuat</b><p style="margin:6px 0 16px">${esc(P.error)}</p><button class="btn primary" data-act="presensi-muat">${icon('sync')}Coba lagi</button></section>`;
   const cfg = P.config;
   const net = cfg.ip_kantor ? '<span class="pill ok">Wi-Fi kantor</span>' : '<span class="pill bad">Bukan Wi-Fi kantor</span>';
   const jh = jamKerja(today());
@@ -88,7 +88,7 @@ function presensiPage() {
     const days = [...new Set(P.rows.map((r) => r.tanggal))].sort().reverse();
     return `
         <header class="head"><div><h1>Presensi</h1><p><span class="muted">${tglPanjang(today())}.</span> ${h.pulang ? 'Absen hari ini sudah lengkap.' : h.masuk ? 'Sudah absen masuk. Jangan lupa absen pulang.' : 'Belum absen masuk hari ini.'}</p></div><div class="tools">${bantuan('presensi')}</div></header>
-        ${!cfg.siap ? '<div class="notice" role="status" style="margin:0;max-width:none"><b>Presensi belum diatur.</b> Pemilik perlu mengisi lokasi kantor dan IP Wi-Fi kantor dulu.</div>' : ''}
+        ${!cfg.siap ? '<div class="notice m-0 mw-none" role="status"><b>Presensi belum diatur.</b> Pemilik perlu mengisi lokasi kantor dan IP Wi-Fi kantor dulu.</div>' : ''}
         <section class="kpis">
           <div class="kpi"><span class="l">Masuk</span><span class="v mono">${jamWib(h.masuk && h.masuk.waktu)}</span><span class="d">${jh ? 'jadwal ' + esc(jh.masuk) : 'libur: ' + esc(ketLibur(today()))}</span></div>
           <div class="kpi"><span class="l">Pulang</span><span class="v mono">${jamWib(h.pulang && h.pulang.waktu)}</span><span class="d">${jh ? 'jadwal ' + esc(jh.pulang) : 'tidak ada jadwal'}</span></div>
@@ -99,7 +99,7 @@ function presensiPage() {
             <button class="btn primary" data-act="absen" data-jenis="masuk" ${h.masuk || !cfg.siap ? 'disabled' : ''}>${icon('pin')}Absen masuk</button>
             <button class="btn" data-act="absen" data-jenis="pulang" ${!h.masuk || h.pulang || !cfg.siap ? 'disabled' : ''}>${icon('out')}Absen pulang</button>
           </div>
-          <p class="muted" id="absen-status" role="status" style="margin:12px 0 0;font-size:13px">${syarat} Izinkan akses lokasi saat browser memintanya.</p>
+          <p class="muted mt-12 fs-13" id="absen-status" role="status">${syarat} Izinkan akses lokasi saat browser memintanya.</p>
         </section>
         <section class="card"><div class="card-h"><h2>Riwayat 30 hari</h2></div>
           ${days.length ? `<div class="table-wrap"><table class="t stack"><thead><tr><th>Tanggal</th><th>Masuk</th><th>Pulang</th><th>Status</th></tr></thead><tbody>
@@ -115,7 +115,7 @@ function presensiPage() {
   const ditolakHariIni = P.ditolak.filter((x) => waktuWib(x.waktu).startsWith(tglPendek(today()) + ' ')).length;
   return `
       <header class="head"><div><h1>Presensi</h1><p><span class="muted">${tglPanjang(today())}.</span> <b>${hadir}</b> dari ${eds.length} karyawan sudah absen masuk${telat ? `, <b>${telat}</b> telat` : ''}.</p></div><div class="tools">${bantuan('presensi')}</div></header>
-      ${!cfg.siap ? '<div class="notice" role="status" style="margin:0;max-width:none"><b>Presensi belum bisa dipakai.</b> Isi lokasi kantor dan IP Wi-Fi kantor di kartu Aturan presensi.</div>' : ''}
+      ${!cfg.siap ? '<div class="notice m-0 mw-none" role="status"><b>Presensi belum bisa dipakai.</b> Isi lokasi kantor dan IP Wi-Fi kantor di kartu Aturan presensi.</div>' : ''}
       ${ipBaruCard()}
       <section class="kpis">
         <div class="kpi"><span class="l">Hadir hari ini</span><span class="v">${hadir} <small>/ ${eds.length}</small></span><span class="d">absen masuk tercatat</span></div>
@@ -139,7 +139,7 @@ function presensiPage() {
             <label class="field"><span>Lintang (lat) kantor</span><input class="input mono" name="lat" inputmode="decimal" value="${cfg.lat ?? ''}" placeholder="-6.200000" required></label>
             <label class="field"><span>Bujur (lng) kantor</span><input class="input mono" name="lng" inputmode="decimal" value="${cfg.lng ?? ''}" placeholder="106.816666" required></label>
           </div>
-          <div class="tools"><button type="button" class="btn sm" data-act="presensi-lokasi">${icon('pin')}Pakai lokasi saya sekarang</button><span class="muted" id="lokasi-info" style="font-size:13px"></span></div>
+          <div class="tools"><button type="button" class="btn sm" data-act="presensi-lokasi">${icon('pin')}Pakai lokasi saya sekarang</button><span class="muted fs-13" id="lokasi-info"></span></div>
           <div class="row">
             <label class="field"><span>Radius kantor (meter)</span><input class="input" name="radius" type="number" min="20" max="2000" value="${cfg.radius}" required></label>
             <label class="field"><span>Akurasi GPS maksimal (meter)</span><input class="input" name="akurasi_maks" type="number" min="5" max="500" value="${cfg.akurasi_maks}" required></label>
@@ -159,7 +159,7 @@ function presensiPage() {
             <label class="chk"><input type="checkbox" name="cuti_bersama" ${cfg.cuti_bersama ? 'checked' : ''}> Ikut cuti bersama pemerintah</label>
             <small>Tanggal merah (libur nasional) selalu libur. Berikutnya: ${liburBerikutnya().map(([d, n]) => `${tglPendek(d)} ${esc(n)}`).join(' · ') || '—'}.</small></div>
           <label class="field"><span>Libur kantor tambahan</span><textarea class="input mono" name="libur_kantor" rows="2" placeholder="2026-12-31">${esc((cfg.libur_kantor || []).join('\n'))}</textarea><small>Satu tanggal per baris (YYYY-MM-DD), untuk libur khusus kantor di luar tanggal merah.</small></label>
-          <div class="err" id="presensi-err" role="alert" style="color:var(--bad);font-size:13px"></div>
+          <div class="err text-bad fs-13" id="presensi-err" role="alert"></div>
           <div><button class="btn primary">Simpan aturan</button></div>
         </form></section>`;
 }

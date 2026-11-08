@@ -10,7 +10,7 @@ export const ROUTES = [
   { id: 'tren', label: 'Tren channel', short: 'Tren', icon: 'trend' },
   { id: 'konten', label: 'Konten', icon: 'video' },
   { id: 'analytics', label: 'Analytics', icon: 'chart' },
-  { id: 'sosmed', label: 'Sosmed', icon: 'share', admin: true },
+  { id: 'sosmed', label: 'Media sosial', icon: 'share', admin: true },
   { id: 'presensi', label: 'Presensi', icon: 'pin' },
   { id: 'pengajuan', label: 'Izin & klaim', short: 'Izin', icon: 'inbox' },
   { id: 'gaji', label: 'Gaji', icon: 'wallet' },
@@ -39,8 +39,6 @@ export const TABS = () => (me() ? ['hari-ini', 'presensi', 'performa', 'pengajua
 
 export const routeLabel = (r) => (me() && r.id === 'harian' ? 'Harian saya' : me() && r.id === 'performa' ? 'Performa saya' : me() && r.id === 'konten' ? 'Video channel' : r.label);
 
-// Each menu group has its own colour, so it is clear at a glance which part of the app is open.
-export const grupOf = (id) => { const i = menuGroups().findIndex((g) => g.ids.includes(id)); return ['a', 'b', 'c'][Math.max(0, i)]; };
 
 export const bisaBuka = (r) => (!r.admin || isAdmin()) && (!r.karyawan || !!me());
 
@@ -63,6 +61,7 @@ export function navigate(path) {
   // /panduan#p-gaji opens the guide at that section.
   const el = path.includes('#') && document.getElementById(path.split('#')[1]);
   if (el) el.scrollIntoView({ block: 'start' }); else window.scrollTo({ top: 0 });
+  const pg = document.getElementById('page'); if (pg) pg.focus({ preventScroll: true });
 }
 
 const menunggu = () => (isAdmin() && S.pengajuan ? S.pengajuan.list.filter((p) => p.status === 'menunggu').length : 0);

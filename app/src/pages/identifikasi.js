@@ -16,11 +16,11 @@ PAGES.identifikasi = function () {
         </header>
         <section class="card">
           ${rows.length ? `
-          ${allowed ? `<div class="tools" style="margin-bottom:12px">
+          ${allowed ? `<div class="tools mb-12">
             <span class="muted" id="sel-count">${S.sel.size} dipilih</span>
-            <select class="input" id="bulk-editor" style="width:auto" aria-label="Tetapkan ke"><option value="">Tetapkan ke…</option>${activeEditors().map((e) => `<option value="${e.id}">${esc(e.nama)}</option>`).join('')}</select>
+            <select class="input w-auto" id="bulk-editor" aria-label="Tetapkan ke"><option value="">Tetapkan ke…</option>${activeEditors().map((e) => `<option value="${e.id}">${esc(e.nama)}</option>`).join('')}</select>
             <button class="btn primary" data-act="bulk-assign">Tetapkan yang dipilih</button>
-          </div>` : '<p class="muted" style="margin:0 0 12px">Masuk sebagai pemilik atau editor untuk menetapkan pembuat video.</p>'}
+          </div>` : '<p class="muted mb-12 mt-0">Masuk sebagai pemilik atau editor untuk menetapkan pembuat video.</p>'}
           <div class="table-wrap"><table class="t stack"><thead><tr><th>${allowed ? '<label style="display:inline-flex;gap:10px;align-items:center"><input type="checkbox" id="sel-all" aria-label="Pilih semua"> Video</label>' : 'Video'}</th><th>Tayang (WIB)</th><th class="num">Views</th>${allowed ? '<th>Pembuat</th>' : ''}</tr></thead><tbody>
             ${rows.map((c) => `<tr><td class="full"><div style="display:flex;gap:10px;align-items:center">${allowed ? `<input type="checkbox" data-sel="${c.id}" ${S.sel.has(c.id) ? 'checked' : ''} aria-label="Pilih ${esc(c.judul)}" style="width:20px;height:20px;flex:none">` : ''}<a href="/identifikasi" data-act="video" data-id="${c.id}" style="text-decoration:none;min-width:0">${vidCell(c)}</a></div></td><td class="mono" data-label="Tayang">${tglPendek(c._day)} ${c._jam}</td><td class="num" data-label="Views">${nf.format(c.views)}</td>${allowed ? `<td class="full"><select class="input" data-assign="${c.id}" aria-label="Pembuat"><option value="">Tetapkan pembuat…</option>${activeEditors().map((e) => `<option value="${e.id}">${esc(e.nama)}</option>`).join('')}</select></td>` : ''}</tr>`).join('')}
           </tbody></table></div>` : '<div class="empty"><b>Semua video sudah dikenali</b>Video baru tanpa kode akan muncul di sini setelah sinkronisasi.</div>'}

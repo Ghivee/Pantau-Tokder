@@ -6,7 +6,7 @@ Hitungan karakter sudah dicek terhadap batas formulir.
 ## Basic information
 | Kolom | Isi |
 |---|---|
-| App icon | `docs/ikon-app/tokderlogo_1024x1024.png` (1024×1024, PNG) |
+| App icon | `docs/ikon-app/ikon-app-1024x1024.png` (1024×1024, PNG) |
 | App name | PantauTokder (sudah terisi) |
 | Category | Business (sudah terisi) |
 | Description (maks 120, sekarang 103) | `Internal dashboard for the Tokder team to track its own TikTok stats and send its own videos as drafts.` |

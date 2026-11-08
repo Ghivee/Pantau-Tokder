@@ -23,7 +23,7 @@ function pengajuanRow(p, owner) {
   return `<tr>${owner ? `<td data-label="Karyawan"><span class="ed">${avatar(e, 'xs')}${esc(e ? e.nama : '—')}</span></td>` : ''}
       <td data-label="Jenis"><b>${JENIS[p.jenis] || esc(p.jenis)}</b></td>
       <td data-label="Tanggal">${rentangTgl(p)}</td>
-      <td class="full">${esc(p.alasan)}${p.jumlah ? ` · <b>${idr(p.jumlah)}</b>` : ''}${p.catatan ? `<div class="muted" style="font-size:12.5px">Catatan pemilik: ${esc(p.catatan)}</div>` : ''}</td>
+      <td class="full">${esc(p.alasan)}${p.jumlah ? ` · <b>${idr(p.jumlah)}</b>` : ''}${p.catatan ? `<div class="muted fs-125">Catatan pemilik: ${esc(p.catatan)}</div>` : ''}</td>
       <td data-label="Status">${statusPill(p.status)}</td>
       <td class="full"><div class="row-actions">${aksi}</div></td></tr>`;
 }
@@ -73,13 +73,13 @@ PAGES.pengajuan = function () {
 export function ajukanDialog(jenis) {
   const klaim = jenis === 'klaim';
   openDialog(`<h2>${klaim ? 'Klaim biaya' : 'Ajukan izin, sakit atau cuti'}</h2>
-      <form id="aj-form" style="display:flex;flex-direction:column;gap:12px">
+      <form id="aj-form" class="stack">
         ${klaim ? '<input type="hidden" name="jenis" value="klaim">' : `<label class="field"><span>Jenis</span><select class="input" name="jenis"><option value="izin">Izin (keperluan pribadi)</option><option value="sakit">Sakit</option><option value="cuti">Cuti (memakai jatah tahunan)</option></select></label>`}
         <div class="row">
           <label class="field"><span>${klaim ? 'Tanggal pengeluaran' : 'Dari tanggal'}</span><input class="input" type="date" name="dari" value="${today()}" ${klaim ? `max="${today()}"` : ''} required></label>
           ${klaim ? `<label class="field"><span>Jumlah (Rp)</span><input class="input" type="number" name="jumlah" min="1000" step="500" required placeholder="50000"></label>` : `<label class="field"><span>Sampai tanggal</span><input class="input" type="date" name="sampai" value="${today()}" required></label>`}
         </div>
-        ${klaim ? '' : '<p class="muted" id="aj-hari" style="margin:0;font-size:13px"></p>'}
+        ${klaim ? '' : '<p class="muted m-0 fs-13" id="aj-hari"></p>'}
         <label class="field"><span>${klaim ? 'Untuk apa' : 'Alasan'}</span><textarea class="input" name="alasan" maxlength="300" required placeholder="${klaim ? 'Misal: beli pupuk untuk video uji kocor, nota disimpan' : 'Misal: kontrol ke dokter'}"></textarea>${klaim ? '<small>Simpan nota; pemilik bisa memintanya sebelum menyetujui.</small>' : ''}</label>
         <div class="err" id="aj-err" role="alert"></div>
         <div class="actions"><button type="button" class="btn ghost" data-act="close-overlay">Batal</button><button class="btn primary">Kirim</button></div>
@@ -108,7 +108,7 @@ export function putuskanDialog(id, status) {
   const e = editorById(p.editor_id);
   openDialog(`<h2>${status === 'disetujui' ? 'Setujui' : 'Tolak'} ${JENIS[p.jenis].toLowerCase()} ${esc(e ? e.nama : '')}?</h2>
       <p>${rentangTgl(p)} · ${esc(p.alasan)}${p.jumlah ? ' · <b>' + idr(p.jumlah) + '</b>' : ''}</p>
-      <form id="pt-form" style="display:flex;flex-direction:column;gap:12px">
+      <form id="pt-form" class="stack">
         <label class="field"><span>Catatan untuk karyawan (opsional)</span><input class="input" name="catatan" maxlength="200"></label>
         <div class="err" id="pt-err" role="alert"></div>
         <div class="actions"><button type="button" class="btn ghost" data-act="close-overlay">Batal</button><button class="btn primary">${status === 'disetujui' ? 'Setujui' : 'Tolak'}</button></div>

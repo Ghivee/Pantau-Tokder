@@ -52,7 +52,7 @@ PAGES.analytics = function () {
         <section class="card" id="kartu-views-harian">
           <div class="card-h"><h2>Views harian per channel</h2><p>Semua video di channel, termasuk video lama.</p></div>
           <div class="chart-legend">${chans.map((c) => `<span><i style="background:${chColor(c.id)}"></i>${esc(c.nama)}</span>`).join('')}</div>
-          ${has ? '<div class="chart" id="an-chart" style="min-height:230px"></div>' : '<div class="empty"><b>Belum ada angka dari YouTube Analytics</b>Hubungkan channel di Pengaturan, lalu klik Sinkronkan sekarang.</div>'}
+          ${has ? '<div class="chart minh-230" id="an-chart"></div>' : '<div class="empty"><b>Belum ada angka dari YouTube Analytics</b>Hubungkan channel di Pengaturan, lalu klik Sinkronkan sekarang.</div>'}
         </section>
         <div class="grid-3">${chans.map((c) => {
           const t = tot(pick([c.id], days)), p = tot(pick([c.id], prev));
@@ -65,7 +65,7 @@ PAGES.analytics = function () {
                 <div class="mini"><h3>Subscriber bersih</h3><div class="v">${signed(t.naik - t.turun)}</div><div class="d">+${nf.format(t.naik)} / −${nf.format(t.turun)}</div></div>
                 ${isAdmin() && t.rev != null ? `<div class="mini"><h3>Pendapatan</h3><div class="v">${rpOrDash(t.rev)}</div>${change(t.rev, p.rev)}</div>` : `<div class="mini"><h3>Video baru</h3><div class="v">${nf.format(S.content.filter((x) => x._ch === c.id && days.includes(x._day)).length)}</div><div class="d">di periode ini</div></div>`}
               </div>
-              <div class="chart an-spark" data-ch="${esc(c.id)}" style="margin-top:12px"></div>`
+              <div class="chart an-spark mt-12" data-ch="${esc(c.id)}"></div>`
             : `<div class="empty"><b>${c.connected ? 'Menunggu data' : 'Belum ada data'}</b>${c.connected ? 'Klik Sinkronkan sekarang di Pengaturan.' : 'Hubungkan channel ini di Pengaturan.'}</div>`}
           </section>`;
         }).join('')}</div>

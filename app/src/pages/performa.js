@@ -76,7 +76,7 @@ PAGES.performa = function () {
   const e = perfPerson();
   const n = S.perfPeriode;
   const tools = `<div class="tools">
-      ${isAdmin() && S.editors.length ? `<select class="input" id="pf-editor" style="width:auto" aria-label="Karyawan">${S.editors.map((x) => `<option value="${x.id}" ${e && x.id === e.id ? 'selected' : ''}>${esc(x.nama)}</option>`).join('')}</select>` : ''}
+      ${isAdmin() && S.editors.length ? `<select class="input w-auto" id="pf-editor" aria-label="Karyawan">${S.editors.map((x) => `<option value="${x.id}" ${e && x.id === e.id ? 'selected' : ''}>${esc(x.nama)}</option>`).join('')}</select>` : ''}
       <div class="seg" role="group" aria-label="Periode">${[7, 30, 90].map((d) => `<button data-act="pf-periode" data-v="${d}" aria-pressed="${n === d}">${d} hari</button>`).join('')}</div>
       ${bantuan('performa')}</div>`;
   if (!e) return `<header class="head"><div><h1>Performa video</h1><p>Belum ada karyawan.</p></div>${tools}</header>`;
@@ -123,7 +123,7 @@ PAGES.performa = function () {
           ${ranked.length >= 4 ? `<div class="table-wrap"><table class="t stack">${thead}<tbody>${ranked.slice(-3).reverse().map(row).join('')}</tbody></table></div>` : '<div class="empty"><b>Butuh minimal 4 video berumur 2 hari</b></div>'}</section>
       </div>
       <section class="card"><div class="card-h"><h2>Video ${n} hari terakhir</h2><p>${loadingRet ? 'Memuat data retensi…' : 'Retensi tengah: persen penonton yang masih menonton di pertengahan video (YouTube Analytics).'}</p></div>
-        ${mine.length ? `<div class="table-wrap"><table class="t stack">${thead}<tbody>${[...mine].sort((a, b) => b.tanggal_upload.localeCompare(a.tanggal_upload)).slice(0, 20).map(row).join('')}</tbody></table></div>${mine.length > 20 ? `<p class="muted" style="font-size:12.5px;margin:10px 0 0">Menampilkan 20 video terbaru dari ${nf.format(mine.length)}. <a href="/konten" data-act="konten-orang" data-id="${e.id}">Lihat semua di Konten</a>.</p>` : ''}` : '<div class="empty"><b>Belum ada video di periode ini</b>Video dikenali dari kode #' + esc(e.kode_identifikasi) + ' di deskripsi.</div>'}
+        ${mine.length ? `<div class="table-wrap"><table class="t stack">${thead}<tbody>${[...mine].sort((a, b) => b.tanggal_upload.localeCompare(a.tanggal_upload)).slice(0, 20).map(row).join('')}</tbody></table></div>${mine.length > 20 ? `<p class="muted fs-125 mt-10">Menampilkan 20 video terbaru dari ${nf.format(mine.length)}. <a href="/konten" data-act="konten-orang" data-id="${e.id}">Lihat semua di Konten</a>.</p>` : ''}` : '<div class="empty"><b>Belum ada video di periode ini</b>Video dikenali dari kode #' + esc(e.kode_identifikasi) + ' di deskripsi.</div>'}
       </section>`;
 };
 

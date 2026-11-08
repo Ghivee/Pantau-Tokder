@@ -7,7 +7,7 @@ import { $, $$, esc } from '../lib/dom.js';
 import { durasi, nf, nowJam, rpOrDash, tglPanjang, today } from '../lib/format.js';
 import { avatar, editorCell, peranLabel, thumb, toast } from './bits.js';
 import { drawRetention } from './charts.js';
-import { closeOverlay, openDialog } from './dialog.js';
+import { closeOverlay, ingatFokus, openDialog } from './dialog.js';
 import { icon } from './icons.js';
 import { render } from './layout.js';
 
@@ -36,7 +36,7 @@ export async function loginDialog(tab = 'karyawan') {
   openDialog(`
       <h2>Masuk</h2>
       <div class="seg" role="group" aria-label="Masuk sebagai"><button data-tab="karyawan" aria-pressed="${tab === 'karyawan'}">Karyawan</button><button data-tab="admin" aria-pressed="${tab === 'admin'}">Pemilik</button></div>
-      <form id="login-form" class="dialog-form" style="display:flex;flex-direction:column;gap:12px">
+      <form id="login-form" class="dialog-form stack">
         ${tab === 'karyawan' ? `
           <label class="field"><span>Nama</span><select class="input" name="editor" required>${eds.map((e) => `<option value="${e.id}">${esc(e.nama)}</option>`).join('') || '<option value="">Belum ada karyawan dengan PIN</option>'}</select></label>
           <label class="field"><span>PIN</span><input class="input" name="pin" type="password" inputmode="numeric" autocomplete="current-password" required><small>PIN diberikan pemilik. Belum punya? Minta pemilik mengaturnya di menu Karyawan.</small></label>`
@@ -69,7 +69,7 @@ export function catatDialog(editorId) {
   const jenis = [...TUGAS.map((t) => t.nama), ...TUGAS_LAIN];
   openDialog(`
       <h2>Catat aktivitas</h2>
-      <form id="catat-form" style="display:flex;flex-direction:column;gap:12px">
+      <form id="catat-form" class="stack">
         ${isAdmin() ? `<label class="field"><span>Karyawan</span><select class="input" name="editor_id">${activeEditors().map((e) => `<option value="${e.id}" ${e.id === who.id ? 'selected' : ''}>${esc(e.nama)}</option>`).join('')}</select></label>` : `<p>Dicatat sebagai <b>${esc(who.nama)}</b>.</p>`}
         <div class="row">
           <label class="field"><span>Tanggal</span><input class="input" type="date" name="tanggal" value="${S.day > today() ? today() : S.day}" max="${today()}" required></label>
@@ -108,7 +108,7 @@ export function editorDialog(id) {
   const e = id ? editorById(id) : { nama: '', kode_identifikasi: '', peran: 'editor', jadwal: '', target_harian: 3, foto_url: '', status: 'aktif' };
   openDialog(`
       <h2>${id ? 'Ubah ' + esc(e.nama) : 'Tambah karyawan'}</h2>
-      <form id="ed-form" style="display:flex;flex-direction:column;gap:12px">
+      <form id="ed-form" class="stack">
         <div class="row">
           <label class="field"><span>Nama</span><input class="input" name="nama" value="${esc(e.nama)}" required maxlength="100"></label>
           <label class="field"><span>Kode</span><input class="input" name="kode" value="${esc(e.kode_identifikasi)}" required maxlength="20" style="text-transform:uppercase"><small>Ditulis di deskripsi video, misal #AL</small></label>
@@ -148,7 +148,7 @@ export function editorDialog(id) {
 
 export function goalDialog() {
   const g = S.goal || { bulan: today().slice(0, 7), target_omset: 0, tercapai: 0 };
-  openDialog(`<h2>Target omzet afiliasi</h2><form id="goal-form" style="display:flex;flex-direction:column;gap:12px">
+  openDialog(`<h2>Target omzet afiliasi</h2><form id="goal-form" class="stack">
       <p>Bulan ${esc(g.bulan)}</p>
       <div class="row"><label class="field"><span>Target (Rp)</span><input class="input" type="number" name="target_omset" min="0" value="${+g.target_omset || 0}"></label>
       <label class="field"><span>Tercapai (Rp)</span><input class="input" type="number" name="tercapai" min="0" value="${+g.tercapai || 0}"></label></div>
@@ -171,17 +171,18 @@ export function videoDrawer(id) {
   if (!c) return;
   const e = editorById(c.editor_id);
   const connected = S.connected.has(c._ch);
-  $('#overlay').innerHTML = `<div class="scrim" data-act="close-overlay" style="justify-content:flex-end;padding:0"></div>
+  ingatFokus();
+  $('#overlay').innerHTML = `<div class="scrim drawer-scrim" data-act="close-overlay"></div>
       <aside class="drawer" role="dialog" aria-modal="true" aria-label="Detail video">
         <div class="drawer-top"><h2>${esc(c.judul)}</h2><button class="btn icon ghost" data-act="close-overlay" aria-label="Tutup">${icon('x')}</button></div>
         ${thumb(c) ? `<img class="hero" src="${thumb(c).replace('mqdefault', 'hqdefault')}" alt="">` : ''}
         <div class="muted">${esc(c._chNama)} · ${c.tipe_video === 'short' ? 'Shorts' : 'Video panjang'} · ${tglPanjang(c._day)} jam ${c._jam} WIB · durasi ${durasi(c.duration_secs)}</div>
         <div class="stats"><div><span>Views</span><b>${nf.format(c.views)}</b></div><div><span>Like</span><b>${nf.format(c.likes)}</b></div><div><span>Komentar</span><b>${nf.format(c.comments)}</b></div>${isAdmin() ? `<div><span>Pendapatan</span><b>${rpOrDash(c.revenue)}</b></div>` : ''}</div>
-        <div><div class="card-h" style="margin-bottom:6px"><h2>Pembuat</h2></div>
+        <div><div class="card-h mb-6"><h2>Pembuat</h2></div>
           ${editorCell(c)}
-          ${canAssign() && (isAdmin() || belumDikenali(c)) ? `<div class="tools" style="margin-top:10px"><select class="input" id="dr-assign" style="width:auto"><option value="">${e ? 'Ganti pembuat…' : 'Tetapkan pembuat…'}</option>${activeEditors().map((x) => `<option value="${x.id}">${me() ? 'Ini video saya' : esc(x.nama)}</option>`).join('')}</select></div>` : ''}
+          ${canAssign() && (isAdmin() || belumDikenali(c)) ? `<div class="tools mt-10"><select class="input w-auto" id="dr-assign"><option value="">${e ? 'Ganti pembuat…' : 'Tetapkan pembuat…'}</option>${activeEditors().map((x) => `<option value="${x.id}">${me() ? 'Ini video saya' : esc(x.nama)}</option>`).join('')}</select></div>` : ''}
         </div>
-        <div><div class="card-h" style="margin-bottom:6px"><h2>Retensi penonton</h2><p>Dari YouTube Analytics.</p></div>
+        <div><div class="card-h mb-6"><h2>Retensi penonton</h2><p>Dari YouTube Analytics.</p></div>
           <div class="chart" id="dr-ret" style="min-height:120px"><div class="skeleton" style="height:170px"></div></div></div>
         <a class="btn" href="${esc(c.url)}" target="_blank" rel="noopener">${icon('ext')}Buka di YouTube</a>
       </aside>`;
