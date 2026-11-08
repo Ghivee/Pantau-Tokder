@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Logo Pantau Tokder">
+  <title>Pantau Tokder</title>
+  <circle cx="256" cy="256" r="254" fill="#FFFFFF" stroke="#DCE6C2" stroke-width="4"/>
+  <g transform="translate(256 262) scale(0.56) translate(-450 -450)" stroke-linejoin="round" stroke-linecap="round">
+    <!-- daun -->
+    <path fill="#A9CF23" d="M680 150 C694 235 704 320 698 388 C640 440 450 590 300 700 L200 672 C205 600 250 505 330 440 C410 378 520 330 600 270 C650 232 668 190 680 150 Z"/>
+    <!-- tangan (garis putih tebal memisahkan dari daun) -->
+    <path fill="#F0861C" stroke="#FFFFFF" stroke-width="26" paint-order="stroke"
+      d="M205 745 C222 700 250 650 292 612 C335 574 390 552 430 538 C448 534 466 548 470 562 C472 580 440 600 392 622 C450 595 520 560 575 510 C620 470 640 425 652 410 C664 396 680 396 682 432 C684 520 650 600 580 664 C500 728 380 748 205 745 Z"/>
+  </g>
+</svg>

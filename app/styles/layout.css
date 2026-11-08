@@ -1,0 +1,56 @@
+/* ---------- shell: sidebar + isi halaman ---------- */
+.shell { display: grid; grid-template-columns: var(--side) minmax(0, 1fr); min-height: 100vh; }
+.side {
+  position: sticky; top: 0; height: 100vh; overflow-y: auto;
+  border-right: 1px solid var(--line); background: var(--surface);
+  display: flex; flex-direction: column; padding: 0 0 12px;
+}
+.brand { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; padding: 26px 16px 18px; text-decoration: none; }
+.brand img { width: 84px; height: 84px; border-radius: 50%; object-fit: contain; }
+.brand b { display: block; font-weight: 500; font-size: 16px; line-height: 1.2; }
+.brand small { color: var(--muted); font-size: 12.5px; }
+.nav { display: flex; flex-direction: column; }
+.nav-label { font-size: 11px; font-weight: 500; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; padding: 16px 24px 6px; border-top: 1px solid var(--line); margin-top: 8px; }
+.nav-label:first-child { border-top: 0; margin-top: 0; padding-top: 4px; }
+.nav a {
+  display: flex; align-items: center; gap: 20px; height: 40px; padding: 0 24px;
+  text-decoration: none; color: var(--ink); font-size: 14px;
+}
+.nav a svg { width: 22px; height: 22px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; color: var(--muted); }
+.nav a:hover { background: var(--sunken); }
+.nav a[aria-current="page"] { background: var(--sunken); color: var(--yt-red); font-weight: 500; }
+.nav a[aria-current="page"] svg { color: var(--yt-red); }
+.nav .count { margin-left: auto; font-size: 11.5px; font-weight: 600; color: #fff; background: var(--yt-red); border-radius: 999px; padding: 0 7px; }
+.side-foot { margin-top: auto; padding: 14px 20px 0; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 10px; }
+.who { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.who .t { min-width: 0; }
+.who b { display: block; font-weight: 650; font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.who small { color: var(--muted); font-size: 12px; }
+.side-actions { display: flex; gap: 6px; }
+.legal { font-size: 11px; color: var(--muted); }
+.legal a { color: inherit; text-decoration: underline; }
+
+.skip-link { position: fixed; left: 12px; top: -48px; z-index: 100; background: var(--ink); color: var(--paper); padding: 10px 16px; border-radius: 8px; font-weight: 500; text-decoration: none; transition: top .15s; }
+.skip-link:focus { top: 12px; }
+
+.main { min-width: 0; padding: 24px max(16px, env(safe-area-inset-right, 0px)) 56px max(16px, env(safe-area-inset-left, 0px)); }
+.page { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+.page:focus { outline: none; }
+.notice { max-width: 1180px; margin: 0 auto 16px; padding: 8px 8px 8px 14px; border-radius: var(--r); background: var(--warn-soft); color: var(--warn); font-size: 13px; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.notice b { font-weight: 650; }
+.fresh { font-size: 12px; line-height: 16px; color: var(--muted); display: flex; align-items: flex-start; gap: 7px; }
+/* Centred on the first text line, also when the text wraps. */
+.fresh .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); flex: none; margin-top: 4.5px; }
+@media (prefers-reduced-motion: no-preference) { .fresh .dot.live { animation: pulse 1s ease-in-out infinite; } }
+
+/* Judul halaman: besar seperti Studio; penjelasan dipangkas satu baris (teks lengkap ada di atribut title). */
+.head { display: flex; flex-wrap: wrap; gap: 14px 20px; align-items: center; justify-content: space-between; }
+.head h1 { margin: 0; font-size: 24px; line-height: 1.2; font-weight: 500; text-wrap: balance; }
+.head p, .card-h p, .kpi .d { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.head p { margin: 2px 0 0; color: var(--muted); font-size: 12.5px; max-width: 90ch; }
+.head p b { color: var(--ink); font-weight: 500; }
+.tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+/* Halaman depan publik (belum masuk): satu kolom di tengah, tanpa menu. */
+.shell.publik { grid-template-columns: minmax(0, 1fr); }
+.shell.publik .side, .shell.publik .appbar { display: none; }

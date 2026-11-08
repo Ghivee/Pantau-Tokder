@@ -248,11 +248,11 @@ Komponen yang belum ada datanya tidak dihitung, dan skor dihitung dari komponen 
 
 Untuk **hari ini**, target hanya menghitung jadwal yang sudah lewat, jadi skor pagi hari tidak langsung jelek. Skornya ditandai "sementara".
 
-Nilai: **A** ≥ 85, **B** ≥ 70, **C** ≥ 55, **D** di bawahnya. Aturan ini bisa diubah di bagian atas `app/main.js` (`TOL`, `TUGAS`).
+Nilai: **A** ≥ 85, **B** ≥ 70, **C** ≥ 55, **D** di bawahnya. Aturan ini bisa diubah di `app/src/core/rules.js` (`TOL`, `TUGAS`).
 
 ## Ide konten
 
-Topik ditebak dari kata di judul, misalnya "harga", "thrips", "pupuk" atau "semai". Daftar katanya ada di `TOPIK` dalam `app/main.js`. Setiap topik dibandingkan dengan median views channel-nya:
+Topik ditebak dari kata di judul, misalnya "harga", "thrips", "pupuk" atau "semai". Daftar katanya ada di `TOPIK` dalam `app/src/core/rules.js`. Setiap topik dibandingkan dengan median views channel-nya:
 
 - 1,2× ke atas: **perbanyak**
 - di bawah 0,8×: **kurangi**
@@ -302,8 +302,8 @@ Topik ditebak dari kata di judul, misalnya "harga", "thrips", "pupuk" atau "sema
 
 ```
 app/index.html      kerangka halaman
-app/styles.css      tampilan (warna, huruf, tata letak, mode gelap)
-app/main.js         seluruh tampilan: menu, halaman, grafik, skor, presensi, performa, tren, izin, gaji, panduan
+app/styles/         gaya (warna di tokens.css, tata letak, komponen, mode gelap)
+app/src/            tampilan: core/ (data, router, aturan skor), ui/ (dialog, grafik, menu), pages/ (satu berkas per halaman)
 api/src/...         server: sinkronisasi YouTube, karyawan, aktivitas, presensi, izin & klaim, gaji, akses
 api/src/services/gajiService.js       perhitungan gaji (fungsi murni hitung(), diuji di api/test/gaji.test.cjs)
 api/src/services/pengajuanService.js  izin, sakit, cuti, klaim dan jatah cuti

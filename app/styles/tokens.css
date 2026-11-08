@@ -1,0 +1,58 @@
+/* Pantau Tokder — catatan kerja harian tim konten cabai.
+   Tampilan mengikuti YouTube Studio: sidebar putih dengan blok channel, kartu datar berbingkai tipis,
+   huruf Roboto, aksen biru untuk tombol utama, merah hanya untuk menu aktif dan tanda telat/gagal.
+   Teks penjelas dibuat satu baris; teks lengkapnya muncul saat kursor diarahkan (atribut title). */
+:root {
+  --paper: #F9F9F9;
+  --surface: #FFFFFF;
+  --sunken: #F2F2F2;
+  --ink: #0F0F0F;
+  --ink-2: #3F3F3F;
+  --muted: #606060;
+  --line: #E5E5E5;
+  --line-2: #CCCCCC;
+  --leaf: #065FD4;
+  --leaf-ink: #FFFFFF;
+  --leaf-soft: #E8F0FE;
+  --ok: #188038;
+  --ok-soft: #E6F4EA;
+  --warn: #9A5B00;
+  --warn-soft: #FEF1D6;
+  --bad: #CC0000;
+  --bad-soft: #FDE7E7;
+  --s1: #2F6FAB;
+  --s2: #C2410C;
+  --s3: #6D5BD0;
+  --s4: #0F7A75;
+  --s5: #9A6B00;
+  --chart-grid: #EBEBEB;
+  --shadow: 0 1px 3px rgba(0, 0, 0, .12), 0 8px 24px -10px rgba(0, 0, 0, .25);
+  --font: Roboto, "Segoe UI", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --mono: "Roboto Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --r: 8px;
+  --r-lg: 10px;
+  --side: 240px;
+  --yt-red: #CC0000;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0F0F0F; --surface: #1F1F1F; --sunken: #2A2A2A; --ink: #F1F1F1; --ink-2: #D0D0D0; --muted: #A0A0A0;
+    --line: #343434; --line-2: #4D4D4D; --leaf: #3EA6FF; --leaf-ink: #0F0F0F; --leaf-soft: #1C2B3D; --yt-red: #FF5A52;
+    --ok: #6FCF8E; --ok-soft: #1B2E22; --warn: #F4B740; --warn-soft: #3A2E14; --bad: #FF6B6B; --bad-soft: #3A1D1D;
+    --s1: #7EB2EE; --s2: #F2925A; --s3: #B1A3F2; --s4: #5CC6D0; --s5: #DDB64E;
+    --chart-grid: #2C2C2C; --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 10px 28px -12px rgba(0, 0, 0, .6);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0F0F0F; --surface: #1F1F1F; --sunken: #2A2A2A; --ink: #F1F1F1; --ink-2: #D0D0D0; --muted: #A0A0A0;
+  --line: #343434; --line-2: #4D4D4D; --leaf: #3EA6FF; --leaf-ink: #0F0F0F; --leaf-soft: #1C2B3D; --yt-red: #FF5A52;
+  --ok: #6FCF8E; --ok-soft: #1B2E22; --warn: #F4B740; --warn-soft: #3A2E14; --bad: #FF6B6B; --bad-soft: #3A1D1D;
+  --s1: #7EB2EE; --s2: #F2925A; --s3: #B1A3F2; --s4: #5CC6D0; --s5: #DDB64E;
+  --chart-grid: #2C2C2C; --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 10px 28px -12px rgba(0, 0, 0, .6);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
