@@ -612,7 +612,7 @@ import { upload } from '@vercel/blob/client';
     const freshText = syncing ? 'Memperbarui data YouTube…' : last ? 'YouTube diperbarui ' + agoText(last) : 'Belum pernah sinkron';
     const who2 = me();
     $('#appbar').innerHTML = `
-      <img class="logo" src="/tokderlogo.png" alt="">
+      <img class="logo" src="/logo.svg" alt="">
       <div class="ttl"><b>Pantau Tokder</b><small>${last || syncing ? '<span class="dot"></span>' : ''}${freshText}</small></div>
       ${S.session ? `<button data-act="lainnya" aria-label="Akun dan menu lain">${who2 ? avatar(who2, 'sm') : '<span class="ava sm" style="background:var(--ink);color:var(--paper)">P</span>'}</button>` : '<button class="btn sm primary" data-act="login" style="border-radius:9px;padding:0 14px">Masuk</button>'}`;
     const tabs = TABS();
@@ -646,7 +646,7 @@ import { upload } from '@vercel/blob/client';
       // Halaman depan publik: dibaca juga oleh reviewer TikTok/Meta, jadi menjelaskan apa aplikasi ini,
       // data apa yang dibaca dari tiap platform, dan menaut ke kebijakan privasi, syarat, dan hapus data.
       page.innerHTML = `<section class="card landing">
-        <img src="/tokderlogo.png" alt="Logo Pantau Tokder" class="landing-logo">
+        <img src="/logo.svg" alt="Logo Pantau Tokder" class="landing-logo">
         <h1>Pantau Tokder</h1>
         <p class="landing-lead">Dasbor internal tim konten Tokder (channel budidaya cabai) untuk memantau hasil kerja harian dan performa video di YouTube, TikTok, Instagram dan Facebook.</p>
         <button class="btn primary" data-act="login">${icon('out')}Masuk</button>
@@ -2143,7 +2143,7 @@ import { upload } from '@vercel/blob/client';
     if (!r) return;
     let box = $('#print');
     if (!box) { box = document.createElement('div'); box.id = 'print'; document.body.append(box); }
-    box.innerHTML = `<div class="print-brand"><img src="/tokderlogo.png" alt=""><b>Pantau Tokder</b></div>${slipHtml(r)}`;
+    box.innerHTML = `<div class="print-brand"><img src="/logo.svg" alt=""><b>Pantau Tokder</b></div>${slipHtml(r)}`;
     window.print();
   }
 
