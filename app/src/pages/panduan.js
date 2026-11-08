@@ -81,7 +81,7 @@ PAGES.panduan = function () {
       <header class="head"><div><h1>Panduan</h1><p>Semua yang perlu diketahui untuk memakai Pantau Tokder, singkat.</p></div>
         <div class="tools">${owner ? `<div class="seg" role="group" aria-label="Panduan untuk"><button data-act="panduan-untuk" data-v="pemilik" aria-pressed="${untukPemilik}">Untuk pemilik</button><button data-act="panduan-untuk" data-v="karyawan" aria-pressed="${!untukPemilik}">Untuk karyawan</button></div>` : ''}</div></header>
       <label class="search guide-search">${icon('search')}<input class="input" type="search" id="pd-cari" placeholder="Cari: gaji, absen ditolak, PIN, notifikasi…" aria-label="Cari di panduan"></label>
-      <p class="muted" id="pd-kosong" hidden style="margin:0">Tidak ada yang cocok. Coba kata lain, misalnya “gaji” atau “absen”.</p>
+      <p class="muted m-0" id="pd-kosong" hidden>Tidak ada yang cocok. Coba kata lain, misalnya “gaji” atau “absen”.</p>
       <section class="card guide-sec" data-cari="mulai langkah awal persiapan ${esc(langkah.map((x) => x.t).join(' '))}">
         <div class="card-h"><h2>${untukPemilik ? 'Mulai di sini' : 'Yang perlu Anda lakukan'}</h2>${dinilai && owner && untukPemilik ? `<span class="pill ${selesai === dinilai ? 'ok' : 'warn'}">${selesai} dari ${dinilai} selesai</span>` : ''}</div>
         <ol class="steps">${langkah.map((x, i) => `<li class="${x.ok ? 'done' : ''}"><span class="no" aria-hidden="true">${x.ok ? '✓' : i + 1}</span><div class="tx"><b>${x.t}</b><span>${x.d}</span></div>${x.btn}</li>`).join('')}</ol>

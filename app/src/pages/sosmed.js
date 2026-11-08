@@ -24,7 +24,7 @@ function postListHtml() {
     const siap = p.targets.some((t) => t.status === 'siap');
     return `<div class="post-item"><div class="post-top"><div><b>${esc(p.judul)}</b><div class="muted">${waktuWib(p.created_at)}${p.ukuran ? ' · ' + nf.format(Math.round(p.ukuran / 1048576)) + ' MB' : ''}</div></div>
         <div class="row-actions"><button class="btn sm ghost" data-act="post-cek" data-id="${p.id}">Cek status</button>${siap ? `<button class="btn sm primary" data-act="post-tayang" data-id="${p.id}">Tayangkan</button>` : ''}<button class="btn sm ghost danger" data-act="post-hapus" data-id="${p.id}">Hapus</button></div></div>
-        <div class="post-chips">${p.targets.map((t) => { const [lb, cl] = STATUS(t); return `<span class="pill ${cl}" title="${esc(t.galat || '')}">${esc((PLAT[t.platform] || t.platform) + ' · ' + (t.akun_nama || ''))}: ${lb}</span>${t.hasil_url ? `<a class="btn sm ghost" href="${esc(t.hasil_url)}" target="_blank" rel="noopener">Buka</a>` : ''}${t.galat ? `<span class="muted" style="font-size:12.5px">${esc(t.galat)}</span>` : ''}`; }).join('')}</div></div>`;
+        <div class="post-chips">${p.targets.map((t) => { const [lb, cl] = STATUS(t); return `<span class="pill ${cl}" title="${esc(t.galat || '')}">${esc((PLAT[t.platform] || t.platform) + ' · ' + (t.akun_nama || ''))}: ${lb}</span>${t.hasil_url ? `<a class="btn sm ghost" href="${esc(t.hasil_url)}" target="_blank" rel="noopener">Buka</a>` : ''}${t.galat ? `<span class="muted fs-125">${esc(t.galat)}</span>` : ''}`; }).join('')}</div></div>`;
   }).join('');
 }
 
@@ -53,10 +53,10 @@ export function pantauPosting(n = 0) {
 function postingCard(d) {
   const sosmedAkun = d.platforms.flatMap((p) => p.koneksi);
   const yt = ((S.oauth && S.oauth.channels) || []).filter((c) => c.connected);
-  const kotak = (name, val, label, off, note) => `<label class="chk"${off ? ' style="opacity:.55"' : ''}><input type="checkbox" name="${name}" value="${esc(val)}" ${off ? 'disabled' : 'checked'}> ${label}${note ? ` <span class="muted" style="font-size:12px">${note}</span>` : ''}</label>`;
+  const kotak = (name, val, label, off, note) => `<label class="chk"${off ? ' style="opacity:.55"' : ''}><input type="checkbox" name="${name}" value="${esc(val)}" ${off ? 'disabled' : 'checked'}> ${label}${note ? ` <span class="muted fs-12">${note}</span>` : ''}</label>`;
   return `<section class="card" id="kartu-posting"><div class="card-h"><h2>Posting sekali upload</h2><p>Unggah satu video, pilih tujuan. Semuanya masuk sebagai draf; baru tayang saat Anda klik Tayangkan.</p></div>
-      ${d.blob ? '' : '<div class="notice" role="status" style="margin:0 0 12px"><span><b>Penyimpanan video belum aktif.</b> Di Vercel: Storage → Create → Blob, sambungkan ke proyek ini, lalu deploy ulang.</span></div>'}
-      <form id="post-form" style="display:flex;flex-direction:column;gap:12px">
+      ${d.blob ? '' : '<div class="notice mb-12 mt-0" role="status"><span><b>Penyimpanan video belum aktif.</b> Di Vercel: Storage → Create → Blob, sambungkan ke proyek ini, lalu deploy ulang.</span></div>'}
+      <form id="post-form" class="stack">
         <label class="field"><span>Judul</span><input class="input" name="judul" maxlength="100" required placeholder="Judul video"></label>
         <label class="field"><span>Deskripsi</span><textarea class="input" name="deskripsi" rows="3" maxlength="4000" placeholder="Keterangan, kode karyawan (#AL), tagar"></textarea></label>
         <label class="field"><span>Video (MP4, MOV, atau WebM)</span><input class="input" type="file" name="video" accept="video/mp4,video/quicktime,video/webm" required></label>
@@ -65,10 +65,10 @@ function postingCard(d) {
           ${yt.map((c) => kotak('yt', c.id, 'YouTube · ' + esc(c.nama), false, 'privat, lewat antrean')).join('')}
           ${!sosmedAkun.length && !yt.length ? '<span class="muted">Belum ada akun tersambung.</span>' : ''}
         </div></div>
-        <div class="err" id="post-err" role="alert" style="color:var(--bad);font-size:13px"></div>
+        <div class="err text-bad fs-13" id="post-err" role="alert"></div>
         <div class="tools"><button class="btn primary" id="post-btn" ${d.blob ? '' : 'disabled'}>Unggah dan siapkan</button><span class="muted" id="post-prog"></span></div>
       </form>
-      <div id="post-list" style="margin-top:14px">${postListHtml()}</div></section>`;
+      <div id="post-list" class="mt-14">${postListHtml()}</div></section>`;
 }
 
 PAGES.sosmed = function () {
@@ -85,7 +85,7 @@ PAGES.sosmed = function () {
         <div class="checklist">
           ${p.koneksi.map((k) => `<div class="ck"><span class="st ${k.status === 'aktif' && !k.galat ? 'ok' : 'bad'}">${k.status === 'aktif' && !k.galat ? '✓' : '!'}</span><div><b>${esc(k.nama || k.akun_id)}${k.handle ? ' <span class="muted">' + esc(k.handle) + '</span>' : ''}</b>
             <div>${k.followers != null ? nf.format(k.followers) + ' pengikut · ' : ''}${k.last_sync ? 'ditarik ' + waktuWib(k.last_sync) : 'belum pernah ditarik'}</div>
-            ${k.galat ? `<div style="color:var(--bad);font-size:13px">${esc(k.galat)}${k.status === 'putus' ? ' Hubungkan ulang.' : ''}</div>` : ''}</div>
+            ${k.galat ? `<div class="text-bad fs-13">${esc(k.galat)}${k.status === 'putus' ? ' Hubungkan ulang.' : ''}</div>` : ''}</div>
             <button class="btn sm ghost danger" data-act="putus-sosmed" data-id="${k.id}">Putuskan</button></div>`).join('')}
           ${p.siap ? `<div class="ck"><span></span><div><div class="muted">Masuk dengan akun ${esc(p.nama)} milik channel, lalu setujui izin baca dan unggah. Sudah tersambung sebelum fitur Posting? Klik Tambah akun untuk memberi izin unggah.</div></div><a class="btn sm" href="/api/social/connect/${p.id}">${p.koneksi.length ? 'Tambah akun' : 'Hubungkan'}</a></div>`
             : `<div class="ck"><span class="st bad">!</span><div><b>Isi di Vercel</b><div class="mono">${p.env.map(esc).join(' · ')}</div><div class="muted">Dari portal pengembang ${esc(p.nama)}; lalu deploy ulang. Lihat Panduan.</div></div></div>`}

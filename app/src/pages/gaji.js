@@ -31,7 +31,7 @@ function slipHtml(r, { aksi = false } = {}) {
   const draf = r.status !== 'final';
   return `<div class="slip">
       <div class="slip-h"><div><b>Slip gaji ${esc(r.nama)}</b><div class="muted">${bulanLabel(r.bulan)} · dihitung ${tglPendek(r.periode.dari)} – ${tglPendek(r.periode.sampai)}${r.periode.selesai ? '' : ' (bulan masih berjalan)'}</div></div>${gajiStatus(r)}</div>
-      ${!r.presensi_dipakai ? '<p class="muted" style="font-size:12.5px;margin:0">Presensi belum dipakai di periode ini, jadi ketidakhadiran tidak dihitung.</p>' : ''}
+      ${!r.presensi_dipakai ? '<p class="muted fs-125 m-0">Presensi belum dipakai di periode ini, jadi ketidakhadiran tidak dihitung.</p>' : ''}
       <dl class="kv">
         <dt>Hari kerja</dt><dd>${h.kerja} hari: hadir ${h.hadir}${h.izin ? ', izin ' + h.izin : ''}${h.sakit ? ', sakit ' + h.sakit : ''}${h.cuti ? ', cuti ' + h.cuti : ''}${h.alpa ? `, <b class="bad">tidak hadir ${h.alpa}</b>` : ''}</dd>
         ${h.alpa ? `<dt>Tidak hadir</dt><dd>${h.alpa_tanggal.map(tglPendek).join(', ')}</dd>` : ''}
@@ -40,12 +40,12 @@ function slipHtml(r, { aksi = false } = {}) {
         <dt>Video</dt><dd>${r.video.jumlah} dari target ${r.video.target} · ${fmt(r.video.views)} views</dd>
       </dl>
       <div class="table-wrap"><table class="t slip-t"><tbody>
-        ${r.baris.map((b) => `<tr><td><b>${esc(b.label)}</b>${b.ket ? `<div class="muted" style="font-size:12px">${esc(b.ket)}</div>` : ''}</td><td class="num ${b.jumlah < 0 ? 'bad' : ''}">${idr(b.jumlah)}</td></tr>`).join('')}
-        <tr class="tot"><td><b>Total diterima</b>${r.minus ? '<div class="muted" style="font-size:12px">Potongan melebihi pendapatan; total dibulatkan ke Rp0.</div>' : ''}</td><td class="num"><b>${idr(r.total)}</b></td></tr>
+        ${r.baris.map((b) => `<tr><td><b>${esc(b.label)}</b>${b.ket ? `<div class="muted fs-12">${esc(b.ket)}</div>` : ''}</td><td class="num ${b.jumlah < 0 ? 'bad' : ''}">${idr(b.jumlah)}</td></tr>`).join('')}
+        <tr class="tot"><td><b>Total diterima</b>${r.minus ? '<div class="muted fs-12">Potongan melebihi pendapatan; total dibulatkan ke Rp0.</div>' : ''}</td><td class="num"><b>${idr(r.total)}</b></td></tr>
       </tbody></table></div>
-      ${!r.aturan_diisi ? `<p class="muted" style="font-size:12.5px;margin:0">Aturan gaji ${esc(r.nama)} belum diisi${owner ? ': klik Atur gaji.' : '. Pemilik belum mengaturnya.'}</p>` : ''}
-      ${r.status === 'final' ? `<p class="muted" style="font-size:12.5px;margin:0">Final ${new Date(r.final_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}${r.dibayar_at ? ' · dibayar ' + new Date(r.dibayar_at).toLocaleDateString('id-ID', { dateStyle: 'medium' }) : ''}. Angka tidak berubah lagi.</p>` : '<p class="muted" style="font-size:12.5px;margin:0">Perkiraan: angka masih bisa berubah sampai pemilik memfinalkan bulan ini.</p>'}
-      ${aksi && owner && draf ? `<div class="slip-adj"><b>Penyesuaian</b>${(r.penyesuaian || []).map((p) => `<div class="adj"><span>${esc(p.keterangan)}</span><span class="num ${p.jumlah < 0 ? 'bad' : ''}">${idr(p.jumlah)}</span><button class="btn sm ghost" data-act="hapus-penyesuaian" data-id="${p.id}" aria-label="Hapus penyesuaian">${icon('x')}</button></div>`).join('') || '<div class="muted" style="font-size:13px">Belum ada.</div>'}
+      ${!r.aturan_diisi ? `<p class="muted fs-125 m-0">Aturan gaji ${esc(r.nama)} belum diisi${owner ? ': klik Atur gaji.' : '. Pemilik belum mengaturnya.'}</p>` : ''}
+      ${r.status === 'final' ? `<p class="muted fs-125 m-0">Final ${new Date(r.final_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}${r.dibayar_at ? ' · dibayar ' + new Date(r.dibayar_at).toLocaleDateString('id-ID', { dateStyle: 'medium' }) : ''}. Angka tidak berubah lagi.</p>` : '<p class="muted fs-125 m-0">Perkiraan: angka masih bisa berubah sampai pemilik memfinalkan bulan ini.</p>'}
+      ${aksi && owner && draf ? `<div class="slip-adj"><b>Penyesuaian</b>${(r.penyesuaian || []).map((p) => `<div class="adj"><span>${esc(p.keterangan)}</span><span class="num ${p.jumlah < 0 ? 'bad' : ''}">${idr(p.jumlah)}</span><button class="btn sm ghost" data-act="hapus-penyesuaian" data-id="${p.id}" aria-label="Hapus penyesuaian">${icon('x')}</button></div>`).join('') || '<div class="muted fs-13">Belum ada.</div>'}
         <form id="adj-form" class="row" style="align-items:end"><label class="field"><span>Jumlah (Rp, minus untuk potongan)</span><input class="input" type="number" name="jumlah" step="1000" required placeholder="200000 atau -50000"></label><label class="field"><span>Keterangan</span><input class="input" name="keterangan" maxlength="200" required placeholder="Bonus video viral"></label><button class="btn">Tambah</button></form>
         <div class="err" id="adj-err" role="alert"></div></div>` : ''}
     </div>`;
@@ -85,14 +85,14 @@ export async function aturGajiDialog(pilih = 'umum') {
   const form = () => {
     if (pilih === 'umum') {
       const c = A.config;
-      return `<form id="ag-form" style="display:flex;flex-direction:column;gap:12px">
+      return `<form id="ag-form" class="stack">
           <div class="field"><span>Hari kerja dan libur</span><div>${esc(ringkasJadwal(kalender().jadwal))}. Tanggal merah libur.</div><small>Diubah di <a href="/presensi">Presensi → Aturan presensi</a>; dipakai juga untuk gaji, cuti dan target video.</small></div>
           <label class="field"><span>Jatah cuti per tahun (hari kerja)</span><input class="input" type="number" name="jatah_cuti" min="0" max="60" value="${c.jatah_cuti}" required></label>
           <div class="err" id="ag-err" role="alert"></div>
           <div class="actions"><button type="button" class="btn ghost" data-act="close-overlay">Tutup</button><button class="btn primary">Simpan</button></div></form>`;
     }
     const a = A.aturan.find((x) => x.editor_id === +pilih) || {};
-    return `<form id="ag-form" style="display:flex;flex-direction:column;gap:12px">
+    return `<form id="ag-form" class="stack">
         <div class="grid-form">${ATURAN.map(([k, l, s]) => `<label class="field"><span>${l}</span><input class="input" type="number" name="${k}" min="0" step="1000" value="${Math.round(+a[k] || 0)}">${s ? `<small>${s}</small>` : ''}</label>`).join('')}</div>
         <p class="muted" style="margin:0;font-size:12.5px">Semua dalam rupiah. Biarkan 0 untuk komponen yang tidak dipakai. Perubahan tidak mengubah bulan yang sudah final.</p>
         <div class="err" id="ag-err" role="alert"></div>
@@ -122,21 +122,21 @@ PAGES.gaji = function () {
   const b = S.gajiBulan || today().slice(0, 7);
   const G = S.gajiCache[b];
   const owner = isAdmin();
-  const tools = `<input class="input" type="month" id="gj-bulan" value="${b}" max="${today().slice(0, 7)}" aria-label="Bulan" style="width:auto">
+  const tools = `<input class="input w-auto" type="month" id="gj-bulan" value="${b}" max="${today().slice(0, 7)}" aria-label="Bulan">
       ${owner ? `<button class="btn" data-act="atur-gaji">${icon('gear')}Atur gaji</button>` : ''}${bantuan('gaji')}`;
   const head = (p, extra = '') => `<header class="head"><div><h1>Gaji ${bulanLabel(b)}</h1><p>${p}</p></div><div class="tools">${tools}${extra}</div></header>`;
   if (!G) {
     loadGaji(b).then(() => { if (route() === 'gaji') render(); }).catch((e) => { S.gajiCache[b] = { error: e.message }; if (route() === 'gaji') render(); });
     return head('Menghitung…') + '<div class="skeleton" style="height:240px"></div>';
   }
-  if (G.error) return head('Gaji belum bisa dihitung.') + `<section class="card empty" role="alert"><b>Gagal memuat</b>${esc(G.error)}<div style="margin-top:12px"><button class="btn primary" data-act="gaji-muat">Coba lagi</button></div></section>`;
+  if (G.error) return head('Gaji belum bisa dihitung.') + `<section class="card empty" role="alert"><b>Gagal memuat</b>${esc(G.error)}<div class="mt-12"><button class="btn primary" data-act="gaji-muat">Coba lagi</button></div></section>`;
   if (!owner) {
     const r = G.list[0];
     if (!S.gajiRiwayat) api('/api/gaji/riwayat').then((x) => { S.gajiRiwayat = x; if (route() === 'gaji') render(); }).catch(() => { S.gajiRiwayat = []; });
     return head(r ? (r.status === 'final' ? 'Gaji bulan ini sudah final.' : 'Perkiraan berdasarkan presensi, izin dan video sampai hari ini.') : 'Tidak ada data gaji untuk bulan ini.') + `
-        ${r ? `<section class="card">${slipHtml(r)}<div class="tools" style="margin-top:12px"><button class="btn" data-act="cetak-slip" data-id="${r.editor_id}">${icon('download')}Cetak / PDF</button></div></section>` : ''}
+        ${r ? `<section class="card">${slipHtml(r)}<div class="tools mt-12"><button class="btn" data-act="cetak-slip" data-id="${r.editor_id}">${icon('download')}Cetak / PDF</button></div></section>` : ''}
         <section class="card"><div class="card-h"><h2>Slip yang sudah final</h2></div>
-          ${S.gajiRiwayat && S.gajiRiwayat.length ? `<div class="rank">${S.gajiRiwayat.map((x) => `<a class="rank-row" href="/gaji" data-act="gaji-ke" data-v="${x.bulan}" style="text-decoration:none"><span></span><div class="tx"><b>${bulanLabel(x.bulan)}</b><div>${x.dibayar_at ? 'Dibayar ' + new Date(x.dibayar_at).toLocaleDateString('id-ID', { dateStyle: 'medium' }) : 'Final, belum ditandai dibayar'}</div></div><b>${idr(x.total)}</b></a>`).join('')}</div>` : '<div class="empty"><b>Belum ada slip final</b>Slip muncul di sini setelah pemilik memfinalkan gaji.</div>'}
+          ${S.gajiRiwayat && S.gajiRiwayat.length ? `<div class="rank">${S.gajiRiwayat.map((x) => `<a class="rank-row no-underline" href="/gaji" data-act="gaji-ke" data-v="${x.bulan}"><span></span><div class="tx"><b>${bulanLabel(x.bulan)}</b><div>${x.dibayar_at ? 'Dibayar ' + new Date(x.dibayar_at).toLocaleDateString('id-ID', { dateStyle: 'medium' }) : 'Final, belum ditandai dibayar'}</div></div><b>${idr(x.total)}</b></a>`).join('')}</div>` : '<div class="empty"><b>Belum ada slip final</b>Slip muncul di sini setelah pemilik memfinalkan gaji.</div>'}
         </section>`;
   }
   const list = G.list;
@@ -145,8 +145,8 @@ PAGES.gaji = function () {
   const lastDay = new Date(Date.UTC(+b.slice(0, 4), +b.slice(5, 7), 0)).toISOString().slice(0, 10);
   return head(`${list.length} karyawan, total <b>${idr(sum(list, (r) => r.total))}</b>. ${draf.length ? `${draf.length} masih perkiraan.` : 'Semua sudah final.'}`,
     `<button class="btn" data-act="csv-gaji">${icon('download')}Excel</button>` + (draf.length ? `<button class="btn primary" data-act="finalkan" data-v="semua">Finalkan ${draf.length > 1 ? 'semua' : ''}</button>` : '')) + `
-      ${belumAtur.length ? `<div class="notice" role="status" style="margin:0;max-width:none"><b>Aturan gaji belum diisi</b> untuk ${belumAtur.map((r) => esc(r.nama)).join(', ')}. <button class="btn sm" data-act="atur-gaji" data-id="${belumAtur[0].editor_id}">Atur sekarang</button></div>` : ''}
-      ${b === today().slice(0, 7) && today() < lastDay ? `<p class="muted" style="margin:0;font-size:13px">Bulan masih berjalan sampai ${tglPanjang(lastDay)}. Ketidakhadiran dihitung sampai kemarin; hari ini baru dihitung bila sudah absen.</p>` : ''}
+      ${belumAtur.length ? `<div class="notice m-0 mw-none" role="status"><b>Aturan gaji belum diisi</b> untuk ${belumAtur.map((r) => esc(r.nama)).join(', ')}. <button class="btn sm" data-act="atur-gaji" data-id="${belumAtur[0].editor_id}">Atur sekarang</button></div>` : ''}
+      ${b === today().slice(0, 7) && today() < lastDay ? `<p class="muted m-0 fs-13">Bulan masih berjalan sampai ${tglPanjang(lastDay)}. Ketidakhadiran dihitung sampai kemarin; hari ini baru dihitung bila sudah absen.</p>` : ''}
       <section class="kpis">
         <div class="kpi"><span class="l">Total gaji</span><span class="v">${idr(sum(list, (r) => r.total))}</span><span class="d">${list.length} karyawan</span></div>
         <div class="kpi"><span class="l">Tidak hadir</span><span class="v ${sum(list, (r) => r.hari.alpa) ? 'bad' : ''}">${sum(list, (r) => r.hari.alpa)} hari</span><span class="d">tanpa absen dan tanpa izin</span></div>

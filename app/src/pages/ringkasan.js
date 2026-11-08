@@ -40,7 +40,7 @@ PAGES.ringkasan = function () {
         <header class="head">
           <div><h1>Ringkasan</h1><p>${sentence}</p></div>
           <div class="tools">
-            <select class="input" id="f-channel" aria-label="Channel" style="width:auto"><option value="all">Semua channel</option>${chOpts}</select>
+            <select class="input w-auto" id="f-channel" aria-label="Channel"><option value="all">Semua channel</option>${chOpts}</select>
             <div class="seg" role="group" aria-label="Periode">
               <button data-act="periode" data-v="7" aria-pressed="${S.periode === 7}">7 hari</button>
               <button data-act="periode" data-v="30" aria-pressed="${S.periode === 30}">30 hari</button>
@@ -60,12 +60,12 @@ PAGES.ringkasan = function () {
           <section class="card" id="kartu-harian">
             <div class="card-h"><h2>Video tayang per hari</h2><p>Per karyawan. Garis putus-putus: target harian seluruh tim.</p></div>
             <div class="chart-legend">${team.map((e) => `<span><i style="background:${e._color}"></i>${esc(e.nama)}</span>`).join('')}<span><i style="background:var(--line-2)"></i>Belum dikenali</span>${target && S.channel === 'all' ? '<span><i class="line"></i>Target</span>' : ''}</div>
-            <div class="chart" id="ch-video" style="min-height:230px"></div>
+            <div class="chart minh-230" id="ch-video"></div>
           </section>
           <section class="card" id="kartu-peringkat">
             <div class="card-h"><h2>Kinerja karyawan</h2><p>Rata-rata skor harian ${label}. Klik nama untuk melihat hari per hari.</p></div>
             <div class="rank">${stats.length ? stats.sort((a, b) => (b.skor ?? -1) - (a.skor ?? -1)).map((s) => `
-              <a class="rank-row" href="/harian/${s.e.id}" data-act="lihat-orang" data-id="${s.e.id}" style="text-decoration:none">
+              <a class="rank-row no-underline" href="/harian/${s.e.id}" data-act="lihat-orang" data-id="${s.e.id}">
                 ${avatar(s.e, 'sm')}
                 <div class="tx"><b>${esc(s.e.nama)}</b><div>${nf.format(s.n)}/${nf.format(s.target)} video · tepat ${pct(s.tepat)} · ${fmt(s.views)} views · ${nf.format(s.tugas)} tugas</div>
                   <div class="bar"><i style="width:${s.skor ?? 0}%;background:${s.e._color}"></i></div></div>
@@ -76,7 +76,7 @@ PAGES.ringkasan = function () {
             <div class="card-h"><h2>Per channel</h2><p>Video dan views video baru, ${label}.</p></div>
             <div class="minis">${S.channels.map((ch) => {
               const v = vids.filter((c) => c._ch === ch.id);
-              return `<div class="mini"><h3>${esc(ch.nama)}</h3><div class="v">${fmt(sum(v, (c) => c.views))} <span class="muted" style="font-size:13px;font-weight:600">views</span></div><div class="d">${nf.format(v.length)} video · median ${fmt(median(v.filter((c) => c._age >= 2).map((c) => c.views)))}</div><div class="chart spark" data-ch="${esc(ch.id)}" style="margin-top:8px"></div></div>`;
+              return `<div class="mini"><h3>${esc(ch.nama)}</h3><div class="v">${fmt(sum(v, (c) => c.views))} <span class="muted" style="font-size:13px;font-weight:600">views</span></div><div class="d">${nf.format(v.length)} video · median ${fmt(median(v.filter((c) => c._age >= 2).map((c) => c.views)))}</div><div class="chart spark mt-8" data-ch="${esc(ch.id)}"></div></div>`;
             }).join('') || '<div class="empty">Belum ada channel.</div>'}</div>
           </section>
           <section class="card" id="kartu-topik">

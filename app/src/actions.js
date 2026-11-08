@@ -129,7 +129,7 @@ function imporDialog() {
       const head = rows[0];
       const tebak = (re) => Math.max(0, head.findIndex((h) => re.test(h)));
       const opt = (sel) => head.map((h, i) => `<option value="${i}" ${i === sel ? 'selected' : ''}>${esc(h || 'Kolom ' + (i + 1))}</option>`).join('');
-      isi.innerHTML = `<div style="display:flex;flex-direction:column;gap:12px">
+      isi.innerHTML = `<div class="stack">
           <div class="row"><label class="field"><span>Sumber</span><input class="input" id="im-sumber" maxlength="60" value="${/tiktok/i.test(nama) ? 'TikTok Shop' : /shopee/i.test(nama) ? 'Shopee Affiliate' : 'Afiliasi'}"></label>
             <label class="field"><span>Kolom tanggal</span><select class="input" id="im-tgl">${opt(tebak(/tanggal|waktu|date|time/i))}</select></label>
             <label class="field"><span>Kolom jumlah komisi</span><select class="input" id="im-jml">${opt(tebak(/komisi|commission|penghasilan|pendapatan|earning|amount/i))}</select></label></div>
@@ -159,7 +159,6 @@ async function aksiBaru(act, el, ev) {
     case 'notif-coba': try { const r = await api('/api/push/coba', { method: 'POST' }); toast(r.terkirim ? 'Pesan percobaan dikirim' : 'Tidak ada perangkat yang menerima. Aktifkan ulang notifikasi.', !r.terkirim); } catch (e) { toast(e.message, true); } break;
     case 'impor-afiliasi': imporDialog(); break;
     case 'panduan-untuk': S.panduanUntuk = el.dataset.v; render(); break;
-    case 'tutup-sambutan': try { localStorage.setItem('pt_sambutan', 'tutup'); } catch (e) { /* storage off */ } el.closest('.notice').remove(); break;
     case 'pf-periode': S.perfPeriode = +el.dataset.v; render(); break;
     case 'konten-orang': ev.preventDefault(); Object.assign(S.konten, { editor: el.dataset.id, periode: String(S.perfPeriode), page: 1 }); navigate('/konten'); break;
     case 'ajukan': ajukanDialog(el.dataset.v); break;
@@ -242,6 +241,7 @@ export async function refreshAktivitas() {
 }
 
 document.addEventListener('click', async (ev) => {
+  if (ev.target.closest('.skip-link')) { ev.preventDefault(); $('#page').focus(); return; }
   const a = ev.target.closest('a[href^="/"]');
   if (a && !a.dataset.act && !a.target && !a.hasAttribute('download') && ev.button === 0 && !ev.metaKey && !ev.ctrlKey && !ev.shiftKey && !ev.altKey && !a.getAttribute('href').startsWith('/api/')) {
     ev.preventDefault();

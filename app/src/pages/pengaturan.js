@@ -26,15 +26,15 @@ PAGES.pengaturan = function () {
               ${analyticsChannels(true).map((c) => item(c.connected, 'Analytics: ' + esc(c.nama), c.connected ? 'Terhubung' + (c.connected_at ? ' sejak ' + new Date(c.connected_at).toLocaleDateString('id-ID', { dateStyle: 'medium' }) : '') : 'Belum terhubung: retensi, jam tonton dan pendapatan belum terbaca',
                 c.connected ? `<button class="btn sm ghost danger" data-act="putus-analytics" data-id="${esc(c.id)}">Putuskan</button>` : `<a class="btn sm" href="/api/auth/google">Hubungkan</a>`)).join('')}
             </div>
-            ${sc.last_summary ? `<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)"><div class="card-h" style="margin-bottom:6px"><h2>Catatan sinkronisasi terakhir</h2><p>${new Date(sc.last_summary.selesai).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })} · ${sc.last_summary.detik ?? '—'} detik · ${nf.format(sc.last_summary.newPosts || 0)} video baru, ${nf.format(sc.last_summary.updatedPosts || 0)} diperbarui, analytics ${sc.last_summary.analyticsChannels ?? 0} channel</p></div>
-              ${(sc.last_summary.errors || []).length ? `<ul style="margin:0;padding-left:18px;color:var(--warn);font-size:13px">${sc.last_summary.errors.map((e) => `<li>${esc(e)}</li>`).join('')}</ul>` : '<p class="muted" style="margin:0;font-size:13px">Tidak ada masalah.</p>'}</div>` : ''}
+            ${sc.last_summary ? `<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)"><div class="card-h mb-6"><h2>Catatan sinkronisasi terakhir</h2><p>${new Date(sc.last_summary.selesai).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })} · ${sc.last_summary.detik ?? '—'} detik · ${nf.format(sc.last_summary.newPosts || 0)} video baru, ${nf.format(sc.last_summary.updatedPosts || 0)} diperbarui, analytics ${sc.last_summary.analyticsChannels ?? 0} channel</p></div>
+              ${(sc.last_summary.errors || []).length ? `<ul style="margin:0;padding-left:18px;color:var(--warn);font-size:13px">${sc.last_summary.errors.map((e) => `<li>${esc(e)}</li>`).join('')}</ul>` : '<p class="muted m-0 fs-13">Tidak ada masalah.</p>'}</div>` : ''}
           </section>
           <section class="card"><div class="card-h"><h2>Channel</h2><p>Channel yang videonya ditarik saat sinkronisasi.</p></div>
             <div class="rank">${S.channels.map((c) => `<div class="rank-row"><span></span><div class="tx"><b>${esc(c.nama)}</b><div class="mono">${esc(c.id)}</div></div><span class="muted">${nf.format(S.content.filter((x) => x._ch === c.id).length)} video</span></div>`).join('') || '<div class="empty">Belum ada channel.</div>'}</div>
             <form id="ch-form" style="display:flex;flex-direction:column;gap:10px;margin-top:14px">
               <label class="field"><span>Ganti daftar channel</span><textarea class="input mono" name="channels" rows="3" placeholder="@tokder&#10;https://www.youtube.com/@budidayacabe&#10;UCxxxxxxxxxxxxxxxxxxxxxx">${esc(S.channels.map((c) => c.id).join('\n'))}</textarea>
                 <small>Satu channel per baris: link channel, @handle, atau ID (UC…). Setelah disimpan, klik Sinkronkan sekarang.</small></label>
-              <div class="err" id="ch-err" role="alert" style="color:var(--bad);font-size:13px"></div>
+              <div class="err text-bad fs-13" id="ch-err" role="alert"></div>
               <div><button class="btn">Simpan channel</button></div>
             </form></section>
           <section class="card"><div class="card-h"><h2>Password pemilik</h2><p>Dipakai untuk masuk sebagai pemilik. Mengganti password mengeluarkan pemilik dari perangkat lain.</p></div>

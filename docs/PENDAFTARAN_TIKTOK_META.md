@@ -14,7 +14,7 @@ Alamat dasar di bawah memakai `https://pantautokder.vercel.app`. Kalau nanti pin
 | Data Deletion Instructions URL | `https://pantautokder.vercel.app/data-deletion.html` |
 | Data Deletion Request Callback URL (Meta) | `https://pantautokder.vercel.app/api/social/meta/data-deletion` |
 | Deauthorize Callback URL (Meta) | `https://pantautokder.vercel.app/api/social/meta/deauthorize` |
-| Ikon | `docs/ikon-app/tokderlogo_1024x1024.png` (1024×1024, sudah disiapkan di repo) |
+| Ikon | `docs/ikon-app/ikon-app-1024x1024.png` (1024×1024, sudah disiapkan di repo) |
 | URL situs / Web URL | `https://pantautokder.vercel.app` (halaman depan publik menjelaskan app dan menaut ke Privacy, Terms, Hapus data) |
 | Email kontak | `tokodeeres@gmail.com` |
 

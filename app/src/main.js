@@ -1,4 +1,4 @@
-import '../styles.css';
+import '../styles/index.css';
 import './pages/analytics.js';
 import './pages/gaji.js';
 import './pages/hari-ini.js';
@@ -20,10 +20,10 @@ import './actions.js';
 import './ui/undo.js';
 import { load } from './core/data.js';
 import { $ } from './lib/dom.js';
-import { closeOverlay } from './ui/dialog.js';
+import { closeOverlay, trapTab } from './ui/dialog.js';
 import { render, renderNav } from './ui/layout.js';
 
-document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && $('#overlay').innerHTML) closeOverlay(); });
+document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && $('#overlay').innerHTML) closeOverlay(); else trapTab(ev); });
 
 window.addEventListener('popstate', () => { closeOverlay(); render(); });
 

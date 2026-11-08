@@ -1,6 +1,6 @@
 import { agoText, lastScanAt, syncing } from '../core/data.js';
 import { AFTER, PAGES } from '../core/registry.js';
-import { ROUTES, TABS, badgeOf, bisaBuka, grupOf, menuGroups, pathOf, route, routeLabel } from '../core/router.js';
+import { ROUTES, TABS, badgeOf, bisaBuka, menuGroups, pathOf, route, routeLabel } from '../core/router.js';
 import { S, me } from '../core/state.js';
 import { $, $$, esc } from '../lib/dom.js';
 import { WIB, sum } from '../lib/format.js';
@@ -9,8 +9,10 @@ import { icon } from './icons.js';
 
 export function renderNav() {
   const cur = route();
-  $('#nav').innerHTML = S.session ? menuGroups().map((g, gi) => `<div class="nav-label" data-grup="${'abc'[gi]}">${g.label}</div>` + g.ids.map((id) => ROUTES.find((x) => x.id === id)).filter(bisaBuka).map((r) =>
-    `<a href="${pathOf(r.id)}" data-grup="${'abc'[gi]}" ${r.id === cur ? 'aria-current="page"' : ''}>${icon(r.icon)}<span>${routeLabel(r)}</span>${badgeOf(r.id) ? `<span class="count">${badgeOf(r.id)}</span>` : ''}</a>`
+  // Sebelum masuk hanya halaman depan yang tampil: tanpa sidebar dan bilah atas.
+  document.querySelector('.shell').classList.toggle('publik', !S.session);
+  $('#nav').innerHTML = S.session ? menuGroups().map((g) => `<div class="nav-label" role="presentation">${g.label}</div>` + g.ids.map((id) => ROUTES.find((x) => x.id === id)).filter(bisaBuka).map((r) =>
+    `<a href="${pathOf(r.id)}" ${r.id === cur ? 'aria-current="page"' : ''}>${icon(r.icon)}<span>${routeLabel(r)}</span>${badgeOf(r.id) ? `<span class="count">${badgeOf(r.id)}</span>` : ''}</a>`
   ).join('')).join('') : '';
   const who = me();
   const theme = document.documentElement.dataset.theme;
@@ -25,7 +27,7 @@ export function renderNav() {
   const tabs = TABS();
   const moreActive = !tabs.includes(cur);
   const sisa = sum(ROUTES.filter((r) => !tabs.includes(r.id) && bisaBuka(r)), (r) => badgeOf(r.id));
-  $('#tabbar').innerHTML = !S.session ? '' : tabs.map((id) => { const r = ROUTES.find((x) => x.id === id); return `<a href="${pathOf(id)}" data-grup="${grupOf(id)}" ${id === cur ? 'aria-current="page"' : ''}>${icon(r.icon)}<span>${r.short || routeLabel(r)}</span>${badgeOf(id) ? `<span class="count">${badgeOf(id) > 99 ? '99+' : badgeOf(id)}</span>` : ''}</a>`; }).join('') +
+  $('#tabbar').innerHTML = !S.session ? '' : tabs.map((id) => { const r = ROUTES.find((x) => x.id === id); return `<a href="${pathOf(id)}" ${id === cur ? 'aria-current="page"' : ''}>${icon(r.icon)}<span>${r.short || routeLabel(r)}</span>${badgeOf(id) ? `<span class="count">${badgeOf(id) > 99 ? '99+' : badgeOf(id)}</span>` : ''}</a>`; }).join('') +
     `<button data-act="lainnya" ${moreActive ? 'aria-current="page"' : ''}>${icon('more')}<span>Lainnya</span>${sisa ? `<span class="count">${sisa > 99 ? '99+' : sisa}</span>` : ''}</button>`;
   $('#side-foot').innerHTML = `
       <div class="fresh" title="Data YouTube ditarik otomatis tiap 15 menit selama aplikasi terbuka">${last || syncing ? `<span class="dot${syncing ? ' live' : ''}"></span>` : ''}${freshText}</div>
@@ -71,24 +73,14 @@ export function render() {
     return;
   }
   if (S.error) {
-    page.innerHTML = `<section class="card empty" style="padding:48px 20px" role="alert"><b style="font-size:16px">Data belum bisa dimuat</b><p style="margin:6px 0 16px">${esc(S.error)}</p><button class="btn primary" data-act="retry">${icon('sync')}Coba lagi</button></section>`;
+    page.innerHTML = `<section class="card state" role="alert"><b>Data belum bisa dimuat</b><p>${esc(S.error)}</p><button class="btn primary" data-act="retry">${icon('sync')}Coba lagi</button></section>`;
     return;
   }
-  page.innerHTML = (['ringkasan', 'harian', 'hari-ini'].includes(r) ? sambutan() : '') + PAGES[r]();
+  page.innerHTML = PAGES[r]();
   page.dataset.route = r;
-  page.dataset.grup = grupOf(r);
-  const h1 = $('.head h1', page);
-  const rt = ROUTES.find((x) => x.id === r);
-  if (h1 && rt) h1.insertAdjacentHTML('beforebegin', `<span class="page-ico" aria-hidden="true">${icon(rt.icon)}</span>`);
   // Penjelasan dipangkas satu baris lewat CSS; teks lengkapnya tetap bisa dibaca dengan mengarahkan kursor.
   $$('.head p, .card-h p, .kpi .d', page).forEach((el) => { el.title = el.textContent.trim(); });
   (AFTER[r] || (() => {}))();
   document.title = routeLabel(ROUTES.find((x) => x.id === r) || {}) + ' · Pantau Tokder';
 }
 
-// A short, dismissible pointer to the guide for people new to the app.
-function sambutan() {
-  try { if (localStorage.getItem('pt_sambutan') === 'tutup') return ''; } catch (e) { /* storage off: show it */ }
-  return `<div class="notice tip-card" role="note"><span><b>Baru di Pantau Tokder?</b> Lihat langkah awal dan jawaban singkat di Panduan.</span>
-      <a class="btn sm" href="/panduan">${icon('book')}Buka panduan</a><button class="btn sm ghost" data-act="tutup-sambutan">Tutup</button></div>`;
-}
