@@ -1,0 +1,102 @@
+/* ---------- phone ---------- */
+.appbar, .tabbar { display: none; }
+@media (max-width: 900px) {
+  body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); background: var(--paper); z-index: 31; }
+  .shell { grid-template-columns: minmax(0, 1fr); }
+  .side { display: none; }
+  .main { padding-top: 0; padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)); }
+
+  .appbar {
+    display: flex; align-items: center; gap: 10px; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 30;
+    margin: 0 calc(-1 * max(16px, env(safe-area-inset-right, 0px))) 16px calc(-1 * max(16px, env(safe-area-inset-left, 0px)));
+    padding: 10px max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px));
+    background: var(--surface); border-bottom: 1px solid var(--line);
+  }
+  .appbar img.logo { width: 28px; height: 28px; border-radius: 50%; object-fit: contain; }
+  .appbar .ttl { flex: 1; min-width: 0; line-height: 1.2; }
+  .appbar .ttl b { display: block; font-size: 15px; font-weight: 700; }
+  .appbar .ttl small { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .appbar .ttl small .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ok); flex: none; }
+  .appbar button { border: 0; background: none; padding: 0; cursor: pointer; border-radius: 50%; }
+
+  .tabbar {
+    display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+    background: var(--surface); border-top: 1px solid var(--line);
+    padding: 4px max(6px, env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0px) max(6px, env(safe-area-inset-left, 0px));
+  }
+  .tabbar a, .tabbar button {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 56px;
+    border: 0; background: none; color: var(--muted); font-size: 11px; font-weight: 600; text-decoration: none; cursor: pointer; position: relative;
+  }
+  .tabbar svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+  .tabbar [aria-current="page"] { color: var(--ink); }
+  .tabbar [aria-current="page"]::before { content: ""; position: absolute; top: 0; width: 28px; height: 3px; border-radius: 0 0 3px 3px; background: var(--yt-red); }
+  .tabbar .count { position: absolute; top: 6px; left: 54%; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: var(--yt-red); color: #fff; font-size: 10px; line-height: 16px; }
+
+  .page { gap: 16px; }
+  .head { gap: 12px; }
+  .head h1 { font-size: 21px; }
+  .head p, .card-h p { font-size: 13px; -webkit-line-clamp: 2; }
+  .head .tools { width: 100%; }
+  .head .tools > .seg { flex: 1; }
+  .seg button { flex: 1; padding: 8px 6px; }
+  .head .tools > select.input { flex: 1; }
+  .daynav { flex: 1; }
+  .daynav .input { flex: 1; width: auto; }
+  .input, select.input, textarea.input { font-size: 16px; height: 42px; }
+  textarea.input { height: auto; }
+  .btn { height: 44px; border-radius: 22px; }
+  .btn.sm { height: 38px; border-radius: 19px; }
+  .btn.icon { width: 44px; }
+  .search, .search .input { width: 100%; }
+  .card { padding: 14px; border-radius: 12px; }
+  .card-h { margin-bottom: 10px; }
+
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* An odd last tile fills its row instead of leaving an empty half. */
+  .kpis > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+  .kpi { padding: 12px 14px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .kpi:nth-child(2n), .kpi:last-child { border-right: 0; }
+  .kpi:last-child:nth-child(odd) { grid-column: 1 / -1; border-bottom: 0; }
+  .kpi .v { font-size: 21px; }
+  .kpi .d { font-size: 11.5px; }
+
+  .person { gap: 14px; }
+  .person-top { gap: 10px; }
+  .person-top .ava.lg { width: 44px; height: 44px; font-size: 17px; }
+  .person-top h2 { font-size: 16px; }
+  .score .n { font-size: 28px; }
+  .score .cap { display: none; }
+  .check { padding: 8px 10px; }
+  .check .v { font-size: 15px; }
+  .strip { gap: 2px; }
+  .strip button { height: 28px; font-size: 10.5px; border-radius: 5px; }
+  .tl { grid-template-columns: 44px 14px minmax(0, 1fr) auto; }
+  /* Status pills go under the text; the delete button stays at the right of its own line. */
+  .tl .res:not(.res-btn) { grid-column: 3 / 5; align-items: flex-start; text-align: left; margin-top: 4px; }
+
+  .table-wrap { margin: 0 -14px; padding: 0 14px; }
+  .t.stack thead { display: none; }
+  .t.stack tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .t.stack tbody tr:last-child { border-bottom: 0; }
+  .t.stack td { border: 0; padding: 0; text-align: left; min-width: 0; }
+  .t.stack td.full { grid-column: 1 / -1; }
+  .t.stack td[data-label]::before { content: attr(data-label); display: block; font-size: 11.5px; color: var(--muted); font-weight: 500; }
+  .t.stack .num { text-align: left; }
+  .t.stack tbody tr.click:hover td { background: none; }
+  .vid { min-width: 0; }
+  .vid img, .vid .ph { width: 88px; }
+
+  .scrim { align-items: flex-end; padding: 0; }
+  .dialog { width: 100%; max-height: 92vh; border-radius: 18px 18px 0 0; padding: 20px max(16px, env(safe-area-inset-right, 0px)) calc(20px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+  .dialog::before { content: ""; align-self: center; width: 40px; height: 4px; border-radius: 4px; background: var(--line-2); margin: -8px 0 2px; }
+  .drawer { width: 100%; border-left: 0; padding-top: calc(16px + env(safe-area-inset-top, 0px)); padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)); }
+  .toast { bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }
+  .notice { margin-bottom: 12px; }
+}
+.sheet-list { display: flex; flex-direction: column; margin: 0 -6px; }
+.sheet-list a, .sheet-list button { display: flex; align-items: center; gap: 12px; padding: 12px 6px; min-height: 48px; border: 0; border-top: 1px solid var(--line); background: none; text-decoration: none; color: var(--ink); font-weight: 600; font-size: 15px; text-align: left; cursor: pointer; width: 100%; }
+.sheet-list > :first-child { border-top: 0; }
+.sheet-list svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; color: var(--muted); }
+.sheet-list .count { margin-left: auto; font-size: 12px; font-weight: 600; color: #fff; background: var(--yt-red); border-radius: 999px; padding: 0 8px; }
+

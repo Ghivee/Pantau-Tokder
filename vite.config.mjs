@@ -4,7 +4,7 @@ import { resolve } from 'path';
 
 export default defineConfig({
   root: resolve(__dirname, 'app'),
-  // Logos and icons in /assets are copied to the root of the build (index.html uses /tokderlogo.png).
+  // Logos and icons in /assets are copied to the root of the build (index.html uses /logo.svg).
   publicDir: resolve(__dirname, 'assets'),
   build: {
     // Vercel serves the root dist/ folder (vercel.json distDir).

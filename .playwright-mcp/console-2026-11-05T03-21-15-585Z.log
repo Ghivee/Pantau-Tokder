@@ -1,6 +1,0 @@
-[      47ms] [ERROR] Failed to load resource: the server responded with a status of 404 (File not found) @ http://localhost:4173/api/bootstrap:0
-[      47ms] [ERROR] Error: Server menjawab 404
-    at z (http://localhost:4173/assets/main-I7lNSWFm.js:11:8447)
-    at async xt (http://localhost:4173/assets/main-I7lNSWFm.js:11:9474)
-    at async Ct (http://localhost:4173/assets/main-I7lNSWFm.js:11:10262) @ http://localhost:4173/assets/main-I7lNSWFm.js:10
-[    9375ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost:4173/api/bootstrap:0

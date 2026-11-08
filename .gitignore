@@ -10,3 +10,6 @@ reel-watch-backend/
 package-lock.json
 .vercel
 dist
+TikTok for Developers*
+.playwright-mcp/
+.claude/

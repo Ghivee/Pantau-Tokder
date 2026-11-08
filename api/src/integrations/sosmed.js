@@ -8,6 +8,11 @@ const axios = require('axios');
 // Field and metric names follow each platform's current documentation; they are the first thing
 // to check if a platform answers with an error after it changes its API.
 
+// Spasi atau baris baru yang ikut tertempel saat mengisi kunci di Vercel membuat platform menolak kuncinya.
+for (const k of ['TIKTOK_CLIENT_KEY', 'TIKTOK_CLIENT_SECRET', 'INSTAGRAM_APP_ID', 'INSTAGRAM_APP_SECRET', 'FACEBOOK_APP_ID', 'FACEBOOK_APP_SECRET']) {
+  if (process.env[k]) process.env[k] = process.env[k].trim();
+}
+
 const GRAPH = () => process.env.META_GRAPH_VERSION || 'v23.0';
 
 const PLATFORMS = {

@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pantau Tokder</title>
 <meta name="description" content="Pantau Tokder: dasbor internal tim konten Tokder untuk memantau kerja harian dan performa video di YouTube, TikTok, Instagram dan Facebook.">
+<link rel="icon" type="image/svg+xml" href="/logo.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="/icon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
 <link rel="manifest" href="/manifest.webmanifest">
@@ -12,27 +13,30 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Tokder">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0F0F0F" media="(prefers-color-scheme: dark)">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap">
 <script>
   try { var t = localStorage.getItem('pt_theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) {}
-  var f = document.createElement('link'); f.rel = 'stylesheet'; f.href = 'https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap'; document.head.appendChild(f);
 </script>
 </head>
 <body>
+<a class="skip-link" href="#page">Lewati ke isi halaman</a>
 <div class="shell">
   <aside class="side">
     <a class="brand" href="/">
-      <img src="/tokderlogo.png" alt="">
+      <img src="/logo.svg" alt="">
       <span><b>Pantau Tokder</b><small>Tim konten cabai</small></span>
     </a>
     <nav class="nav" id="nav" aria-label="Menu utama"></nav>
     <div class="side-foot" id="side-foot"></div>
   </aside>
-  <main class="main">
+  <main class="main" id="main">
     <header class="appbar" id="appbar"></header>
-    <div id="notice"></div>
-    <div class="page" id="page">
+    <div id="notice" role="status" aria-live="polite"></div>
+    <div class="page" id="page" tabindex="-1">
       <div class="skeleton" style="height:34px;width:240px"></div>
       <div class="skeleton" style="height:96px"></div>
       <div class="skeleton" style="height:320px"></div>
@@ -41,6 +45,6 @@
 </div>
 <nav class="tabbar" id="tabbar" aria-label="Menu"></nav>
 <div id="overlay"></div>
-<script type="module" src="/main.js"></script>
+<script type="module" src="/src/main.js"></script>
 </body>
 </html>
