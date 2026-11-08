@@ -38,7 +38,7 @@ self.addEventListener('fetch', (e) => {
     return;
   }
   // Build files have the content hash in their name, so a saved copy is always right.
-  if (url.pathname.startsWith('/assets/') || /^\/(tokderlogo|icon-[a-z0-9-]+|apple-touch-icon)\.png$/.test(url.pathname)) {
+  if (url.pathname.startsWith('/assets/') || /^\/((icon-[a-z0-9-]+|apple-touch-icon)\.png|logo\.svg)$/.test(url.pathname)) {
     e.respondWith((async () => {
       const hit = await caches.match(req);
       if (hit) return hit;
