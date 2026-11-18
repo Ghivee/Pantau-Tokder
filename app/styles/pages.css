@@ -203,23 +203,28 @@
 @media (min-width: 640px) { .seg.scroll { max-width: 460px; } }
 
 /* Saran */
-.sr h2 { margin: 6px 0 2px; font-size: 20px; font-weight: 700; letter-spacing: -.02em; }
-.sr h3, .sr-topik h3, .sr-alur h3 { margin: 14px 0 4px; font-size: 13px; font-weight: 600; color: var(--muted); }
-.sr p { margin: 0; }
-.sr ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; }
-.sr-k { display: flex; align-items: center; gap: 10px; }
-.sr-n { width: 24px; height: 24px; border-radius: 50%; background: var(--leaf); color: var(--leaf-ink); font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; flex: none; }
-.sr-d { font-size: 12.5px; color: var(--muted); }
-.sr-p { display: flex; flex-wrap: wrap; gap: 8px; }
-.chip { display: inline-flex; align-items: center; padding: 6px 12px; border-radius: 999px; background: var(--sunken); color: var(--leaf); font-size: 14px; text-decoration: none; }
-.sr-j { display: flex; width: 100%; justify-content: space-between; align-items: center; gap: 10px; text-align: left; border: 0; background: transparent; padding: 9px 0; border-top: .5px solid var(--line); font-size: 15px; cursor: pointer; color: var(--ink); }
-.sr-j:first-of-type { border-top: 0; }
-.sr-j svg { width: 16px; height: 16px; flex: none; stroke: var(--muted); fill: none; stroke-width: 1.8; }
-.sr-lok { font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 8px; }
-.sr-stat { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
-.sr-stat b { display: block; font-size: 22px; font-weight: 600; letter-spacing: -.02em; }
-.sr-stat span { font-size: 12px; color: var(--muted); }
-.sr-alur ol { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; }
-@media (max-width: 480px) { .sr-stat { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; } }
+#saran-isi { gap: 12px; }
 @media (min-width: 900px) { #saran-isi { max-width: 720px; } }
-.sr-c { flex: none; font-size: 14px; color: var(--leaf); }
+.sr-sit { margin: 0; font-size: 14px; color: var(--muted); }
+.seg button .dot { margin-right: 5px; width: 8px; height: 8px; }
+.seg.scroll button { padding-left: 8px; padding-right: 8px; font-size: 13px; white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; }
+.sr-chips { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 2px 0; }
+.sr-chips::-webkit-scrollbar { display: none; }
+.sr-chips button { flex: none; border: 0; background: var(--surface); color: var(--ink); border-radius: 999px; padding: 8px 14px; font-size: 14px; font-weight: 500; cursor: pointer; }
+.sr-chips button[aria-pressed="true"] { background: var(--leaf); color: var(--leaf-ink); }
+.sr-isi dl { margin: 0; display: grid; grid-template-columns: 74px minmax(0, 1fr); gap: 14px 12px; align-items: start; }
+.sr-isi dt { font-size: 13px; font-weight: 600; color: var(--muted); padding-top: 2px; }
+.sr-isi dd { margin: 0; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.sr-isi dd b { font-size: 17px; font-weight: 600; letter-spacing: -.015em; line-height: 1.3; }
+.sr-isi dd .muted { font-size: 13px; }
+.sr-isi ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+.sr-prod { display: flex; align-items: center; gap: 12px; padding: 4px 0; border-top: .5px solid var(--line); }
+.sr-prod:first-child { border-top: 0; padding-top: 0; }
+.sr-prod span { flex: 1; min-width: 0; }
+.sr-prod a, .lnk { color: var(--leaf); font-size: 14px; text-decoration: none; background: none; border: 0; padding: 4px 0; cursor: pointer; font-family: inherit; }
+.sr-j { display: block; width: 100%; text-align: left; border: 0; background: transparent; padding: 11px 0; border-top: .5px solid var(--line); font-size: 16px; line-height: 1.35; cursor: pointer; color: var(--ink); letter-spacing: -.01em; }
+.sr-j:first-of-type { border-top: 0; }
+.sr-j:active { opacity: .5; }
+.sr-kata { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { display: inline-flex; align-items: center; padding: 7px 12px; border-radius: 999px; background: var(--sunken); color: var(--ink); border: 0; font-size: 14px; cursor: pointer; font-family: inherit; }
+.chip:active { opacity: .5; }
