@@ -1,20 +1,18 @@
-import { analyticsChannels, api, jamMenit } from '../core/data.js';
+import { analyticsChannels, api } from '../core/data.js';
 import { AFTER, PAGES } from '../core/registry.js';
 import { route } from '../core/router.js';
 import { S } from '../core/state.js';
 import { daysBack } from '../core/stats.js';
 import { $, esc } from '../lib/dom.js';
-import { angkaUang, bacaCsv } from '../lib/csv.js';
-import { WIB, addDays, durasi, fmt, nf, signed, sum, tglPanjang, tglPendek, today } from '../lib/format.js';
+import { WIB, addDays, fmt, nf, signed, sum, tglPanjang, tglPendek, today } from '../lib/format.js';
 import { toast } from '../ui/bits.js';
 import { drawLines } from '../ui/charts.js';
 import { closeOverlay, confirmDialog, openDialog } from '../ui/dialog.js';
 import { icon } from '../ui/icons.js';
-import { render } from '../ui/layout.js';
 
-// Rekap 3 channel: views, CTR, retensi, real-time dan klik afiliasi per channel, plus satu diagram pembanding.
-// Views dan retensi dari YouTube Analytics; real-time dari bacaan total tayangan tiap menit; CTR dan klik afiliasi
-// diimpor dari CSV karena YouTube Analytics API tidak menyediakan CTR dan afiliasi tidak punya API.
+// Rekap 3 channel, sepenuhnya otomatis: views dan retensi dari YouTube Analytics, CTR dari YouTube Reporting API,
+// real-time dari bacaan total tayangan tiap menit, klik dari pelacak tautan.
+
 
 const R = (S.rekap = { metrik: null, klikTautan: [], tautan: null, snap: [], galatMetrik: null, galatRt: null, metrikPilih: 'views' });
 const persen = (v) => (v == null ? '—' : nf.format(Math.round(v * 10) / 10) + '%');
@@ -24,7 +22,7 @@ const dot = (id) => `<i class="dot" style="background:${chColor(id)}"></i>`;
 const nama = (c) => `<span class="ed">${dot(c.id)}${esc(c.nama)}</span>`;
 
 const METRIK = [
-  ['views', 'Views'], ['ctr', 'CTR'], ['retensi', 'Retensi'], ['realtime', 'Real-time'], ['klik', 'Klik afiliasi'],
+  ['views', 'Views'], ['ctr', 'CTR'], ['retensi', 'Retensi'], ['realtime', 'Real-time'], ['klik', 'Klik'],
 ];
 
 // ---------- hitungan ----------
@@ -46,12 +44,10 @@ function ctrOf(id, days) {
   return imp > 0 ? sum(r, (m) => (m.impresi ? m.ctr * m.impresi : 0)) / sum(r.filter((m) => m.impresi), (m) => m.impresi) : sum(r, (m) => m.ctr) / r.length;
 }
 
-// Klik afiliasi per hari: dari pelacak tautan bila hari itu punya klik terlacak, kalau tidak dari CSV yang diimpor.
+// Klik afiliasi per hari: hanya dari pelacak tautan (otomatis). Angka dari impor CSV lama tidak ditampilkan.
 function klikHari(id, tanggal) {
   const t = R.klikTautan.find((k) => k.channel_id === id && k.tanggal === tanggal);
-  if (t) return t.jumlah;
-  const m = (R.metrik || []).find((x) => x.channel_id === id && x.tanggal === tanggal);
-  return m && m.klik_afiliasi != null ? m.klik_afiliasi : null;
+  return t ? t.jumlah : null;
 }
 
 function klikOf(id, days) { const v = days.map((d) => klikHari(id, d)).filter((x) => x != null); return v.length ? sum(v) : null; }
@@ -111,77 +107,44 @@ function seriesFor(chans, p) {
   return { labels, titles, fmtY: persen, label: 'Retensi di tengah video, menurut hari tayang', series: chans.map((c) => ({ ...warna(c), values: p.days.map((d) => { const v = retensiVideos(c.id, [d]); return v.length ? sum(v, (x) => S.insight.retMap.get(x.id).tengah) / v.length : null; }) })) };
 }
 
-const kosongDiagram = {
-  views: 'Belum ada angka views dari YouTube Analytics. Hubungkan channel di Pengaturan.',
-  ctr: 'Belum ada data CTR. CTR terisi otomatis 1–2 hari setelah sinkronisasi pertama; atau pakai Impor CSV.',
-  klik: 'Belum ada klik. Buat tautan di kartu Tautan afiliasi di bawah, pakai di deskripsi video, dan klik terhitung otomatis.',
-  retensi: 'Belum ada kurva retensi untuk video di periode ini.',
-  realtime: 'Bacaan real-time baru mulai terkumpul. Biarkan halaman ini terbuka beberapa menit.',
-};
 
-// Satu baris per angka, satu kolom per channel: nilai di atas, batang tipis di bawahnya pada skala yang sama dalam satu baris.
-// Nilai tertinggi ditebalkan; warna batang mengikuti channel.
-function matriks(chans, baris) {
-  const kosong = (t) => `<span class="muted">${t}</span>`;
-  const baru = (b) => (b.v == null || !b.vp ? '' : `<span class="sub ${b.v >= b.vp ? 'ok' : 'bad'}">${signed(Math.round(((b.v - b.vp) / b.vp) * 100), (x) => nf.format(x) + '%')} vs sebelumnya</span>`);
-  const baris2 = [
-    { l: 'Views', d: 'total periode', val: (b) => b.v, f: fmt, sub: baru, kosong: 'belum ada data' },
-    { l: 'CTR', d: 'klik dari impresi', val: (b) => b.ctr, f: persen, sub: () => '', kosong: 'belum ada' },
-    { l: 'Retensi', d: 'masih menonton di tengah video', val: (b) => (b.ret ? b.ret.tengah : null), f: persen, max: 100, sub: (b) => (b.ret ? `<span class="sub">${b.ret.n} video</span>` : ''), kosong: 'belum ada kurva' },
-    { l: 'Real-time', d: 'views dalam ± 1 jam', val: (b) => (b.jam ? b.jam.naik : null), f: (v) => '+' + fmt(v), sub: (b) => (b.jam ? `<span class="sub">${b.jam.menit} menit</span>` : ''), kosong: R.galatRt ? 'tidak terbaca' : 'mengumpulkan…' },
-    { l: 'Klik afiliasi', d: 'tautan terlacak', val: (b) => b.klik, f: fmt, sub: () => '', kosong: 'belum ada' },
-  ];
-  return `<div class="cmp" role="table" aria-label="Perbandingan channel">
-    <div class="cmp-r cmp-h" role="row"><span role="columnheader"></span>${baris.map((b) => `<span role="columnheader" class="cmp-ch">${nama(b.c)}${b.c.connected ? '' : '<span class="sub">belum tersambung</span>'}</span>`).join('')}</div>
-    ${baris2.map((r) => {
-      const v = baris.map(r.val), ada = v.filter((x) => x != null);
-      const max = r.max || Math.max(...ada, 0) * 1.0, top = ada.length > 1 ? Math.max(...ada) : null;
-      return `<div class="cmp-r" role="row"><span role="rowheader" class="cmp-l"><b>${r.l}</b><span class="sub">${r.d}</span></span>
-        ${baris.map((b, i) => (v[i] == null ? `<span role="cell" class="cmp-c">${kosong(r.kosong)}</span>`
-          : `<span role="cell" class="cmp-c" title="${esc(b.c.nama)}: ${r.f(v[i])}"><b class="v${v[i] === top ? ' top' : ''}">${r.f(v[i])}</b><span class="bar"><i style="width:${max > 0 ? Math.max(2, (v[i] / max) * 100) : 0}%;background:${chColor(b.c.id)}"></i></span>${r.sub(b)}</span>`)).join('')}</div>`;
-    }).join('')}
-  </div>`;
+// ---------- tampilan ----------
+
+// Satu kartu per angka; di dalamnya satu baris per channel: nama, nilai, dan batang tipis pada skala yang sama.
+// Nilai tertinggi ditebalkan. Warna batang mengikuti channel.
+function kartuAngka(judul, baris, val, f, { max, delta } = {}) {
+  const v = baris.map(val), ada = v.filter((x) => x != null);
+  const skala = max || Math.max(...ada, 0), top = ada.length > 1 ? Math.max(...ada) : null;
+  return `<section class="card met"><h2>${judul}</h2>${baris.map((b, i) => `
+    <div class="mrow"><span class="nm">${dot(b.c.id)}${esc(b.c.nama)}</span>
+      <span class="vl"><b class="v${v[i] != null && v[i] === top ? ' top' : ''}">${v[i] == null ? '<span class="muted">—</span>' : f(v[i])}</b>${delta && v[i] != null ? delta(b) : ''}</span>
+      <span class="bar">${v[i] == null || skala <= 0 ? '' : `<i style="width:${Math.max(2, (v[i] / skala) * 100)}%;background:${chColor(b.c.id)}"></i>`}</span></div>`).join('')}</section>`;
 }
 
 function isi() {
   const chans = analyticsChannels();
   const p = periode();
-  const sel = (ids, ds) => S.daily.filter((d) => ids.includes(d.channel_id) && ds.includes(d.tanggal));
-  const views = (id, ds) => { const r = sel([id], ds); return r.length ? sum(r, (d) => d.views) : null; };
-  const baris = chans.map((c) => {
-    const v = views(c.id, p.days), vp = views(c.id, p.prev);
-    const t = sel([c.id], p.days);
-    const dur = t.length && sum(t, (d) => d.views) ? Math.round((sum(t, (d) => d.menit_tonton) * 60) / sum(t, (d) => d.views)) : null;
-    return { c, v, vp, dur, ctr: ctrOf(c.id, p.days), ret: retensiOf(c.id, p.days), jam: naikRealtime(c.id, 3600000), hari: naikRealtime(c.id, 86400000), klik: klikOf(c.id, p.days), total: totalViews(c.id) };
-  });
-  const belum = (txt) => `<span class="muted">${txt}</span>`;
-  const ubah = (a, b) => (a == null || !b ? '' : `<div class="sub ${a >= b ? 'ok' : 'bad'}">${signed(Math.round(((a - b) / b) * 100), (x) => nf.format(x) + '%')} vs ${S.anPeriode} hari sebelumnya</div>`);
+  const sel = (id, ds) => S.daily.filter((d) => d.channel_id === id && ds.includes(d.tanggal));
+  const views = (id, ds) => { const r = sel(id, ds); return r.length ? sum(r, (d) => d.views) : null; };
+  const baris = chans.map((c) => ({ c, v: views(c.id, p.days), vp: views(c.id, p.prev), ctr: ctrOf(c.id, p.days), ret: retensiOf(c.id, p.days), jam: naikRealtime(c.id, 3600000), klik: klikOf(c.id, p.days) }));
+  const delta = (b) => (b.v == null || !b.vp ? '' : `<span class="dl ${b.v >= b.vp ? 'ok' : 'bad'}">${signed(Math.round(((b.v - b.vp) / b.vp) * 100), (x) => nf.format(x) + '%')}</span>`);
   const sd = seriesFor(chans, p);
   const adaData = sd.series.some((s) => s.values.some((v) => v != null));
+  const belum = chans.filter((c) => !c.connected);
   return `
-    ${R.galatRt ? `<div class="notice" role="status"><span><b>Real-time belum terbaca.</b> ${esc(R.galatRt)}</span></div>` : ''}
-    ${R.galatMetrik ? `<div class="notice" role="status"><span><b>CTR dan klik afiliasi belum termuat.</b> ${esc(R.galatMetrik)}</span></div>` : ''}
-    <section class="card">
-      <div class="card-h"><h2>Perbandingan ${S.anPeriode} hari</h2><p>${p.latest ? 'Views dan retensi sampai ' + tglPanjang(p.latest) + ' (YouTube terlambat 2–3 hari). ' : ''}Panjang batang membandingkan channel pada angka yang sama.</p></div>
-      ${matriks(chans, baris)}
-      <details class="cmp-detail"><summary>Lihat sebagai tabel</summary>
-      <div class="table-wrap"><table class="t stack"><thead><tr><th>Channel</th><th class="num">Views</th><th class="num">CTR</th><th class="num">Retensi</th><th class="num">Real-time</th><th class="num">Klik afiliasi</th></tr></thead><tbody>
-      ${baris.map((b) => `<tr>
-        <td class="full"><b>${nama(b.c)}</b></td>
-        <td class="num" data-label="Views">${b.v == null ? '—' : fmt(b.v)}</td>
-        <td class="num" data-label="CTR">${b.ctr == null ? '—' : persen(b.ctr)}</td>
-        <td class="num" data-label="Retensi">${b.ret ? persen(b.ret.tengah) + (b.dur != null ? ' · ' + durasi(b.dur) + ' per view' : '') : '—'}</td>
-        <td class="num" data-label="Real-time">${b.jam ? '+' + fmt(b.jam.naik) + ' / ' + b.jam.menit + ' mnt' + (b.hari && b.hari.menit > b.jam.menit + 30 ? ', +' + fmt(b.hari.naik) + ' / ' + (b.hari.menit >= 1440 ? '24 jam' : jamMenit(b.hari.menit)) : '') : '—'}</td>
-        <td class="num" data-label="Klik afiliasi">${b.klik == null ? '—' : fmt(b.klik)}</td></tr>`).join('')}
-      </tbody></table></div>
-      </details>
-    </section>
+    ${belum.length ? `<div class="notice" role="status"><span>${belum.map((c) => esc(c.nama)).join(', ')} belum tersambung.</span></div>` : ''}
+    ${R.galatRt ? `<div class="notice" role="status"><span>Real-time: ${esc(R.galatRt)}</span></div>` : ''}
+    <div class="met-grid">
+      ${kartuAngka('Views', baris, (b) => b.v, fmt, { delta })}
+      ${kartuAngka('CTR', baris, (b) => b.ctr, persen)}
+      ${kartuAngka('Retensi', baris, (b) => (b.ret ? b.ret.tengah : null), persen, { max: 100 })}
+      ${kartuAngka('Real-time · per jam', baris, (b) => (b.jam ? b.jam.naik : null), (v) => '+' + fmt(v))}
+      ${kartuAngka('Klik', baris, (b) => b.klik, fmt)}
+    </div>
     <section class="card" id="kartu-banding">
-      <div class="card-h"><h2>Perkembangan</h2><p>Pilih angka untuk melihat arahnya dari hari ke hari.</p></div>
-      <div class="seg mb-12" role="group" aria-label="Angka yang dibandingkan">${METRIK.map(([k, l]) => `<button data-act="rekap-metrik" data-v="${k}" aria-pressed="${R.metrikPilih === k}">${l}</button>`).join('')}</div>
-      <div class="chart-legend">${chans.map((c) => `<span>${dot(c.id)}${esc(c.nama)}</span>`).join('')}</div>
-      ${adaData ? '<div class="chart minh-230" id="rekap-chart"></div>' : `<div class="empty"><b>Belum ada data</b>${kosongDiagram[R.metrikPilih]}</div>`}
-      <p class="muted fs-125 mt-10">${{ views: 'Views harian semua video di channel.', ctr: 'CTR harian (klik dibanding impresi) dari laporan reach YouTube.', retensi: 'Persentase penonton yang masih menonton di tengah video, rata-rata video yang tayang di hari itu.', realtime: 'Tayangan per jam (WIB) dari bacaan total tayangan tiap menit. Hanya terkumpul selama halaman ini terbuka.', klik: 'Klik harian pada tautan afiliasi yang dilacak aplikasi (atau laporan yang diimpor).' }[R.metrikPilih]}</p>
+      <div class="seg scroll" role="group" aria-label="Angka">${METRIK.map(([k, l]) => `<button data-act="rekap-metrik" data-v="${k}" aria-pressed="${R.metrikPilih === k}">${l}</button>`).join('')}</div>
+      <div class="chart-legend mt-12">${chans.map((c) => `<span>${dot(c.id)}${esc(c.nama)}</span>`).join('')}</div>
+      ${adaData ? '<div class="chart minh-230" id="rekap-chart"></div>' : '<div class="empty">Belum ada data</div>'}
     </section>`;
 }
 
@@ -190,41 +153,29 @@ const urlTautan = (kode) => location.origin + '/go/' + kode;
 function tautanKartu(chans) {
   const L = R.tautan;
   return `<section class="card" id="kartu-tautan">
-      <div class="card-h"><h2>Tautan afiliasi</h2><p>Pakai tautan pendek ini di deskripsi video. Tiap klik pengunjung terhitung otomatis per channel, lalu diteruskan ke tautan afiliasi asli.</p></div>
-      <div class="stack">
-        <div class="row">
-          <label class="field"><span>Nama (produk / video)</span><input class="input" id="tl-label" maxlength="80" placeholder="mis. Pupuk NPK, video 12"></label>
-          <label class="field"><span>Channel</span><select class="input" id="tl-ch">${chans.map((c) => `<option value="${esc(c.id)}">${esc(c.nama)}</option>`).join('')}</select></label>
-        </div>
-        <label class="field"><span>Tautan afiliasi asli (https://…)</span><input class="input" id="tl-tujuan" inputmode="url" placeholder="https://shope.ee/…"></label>
-        <div class="err" id="tl-err" role="alert"></div>
-        <div class="tools"><button class="btn primary" data-act="tautan-buat">${icon('plus')}Buat tautan</button></div>
-      </div>
-      ${L == null ? '<p class="muted mt-12">Memuat…</p>' : L.length ? `<div class="table-wrap mt-12"><table class="t"><thead><tr><th>Nama</th><th>Tautan pendek</th><th class="num">Klik 7 hari</th><th class="num">Total</th><th></th></tr></thead><tbody>
-        ${L.map((t) => `<tr><td><b>${esc(t.label)}</b><div class="sub">${esc((chans.find((c) => c.id === t.channel_id) || {}).nama || t.channel_id)}</div></td>
-          <td class="mono">${esc(urlTautan(t.kode))}</td><td class="num">${nf.format(t.tujuh_hari)}</td><td class="num">${nf.format(t.total)}</td>
-          <td class="row-actions"><button class="btn sm" data-act="tautan-salin" data-kode="${esc(t.kode)}">Salin</button><button class="btn sm ghost danger" data-act="tautan-hapus" data-kode="${esc(t.kode)}">Hapus</button></td></tr>`).join('')}
-        </tbody></table></div>` : '<p class="muted mt-12">Belum ada tautan.</p>'}
+      <div class="card-h"><h2>Tautan</h2><button class="btn sm" data-act="tautan-baru" aria-label="Tautan baru">${icon('plus')}Baru</button></div>
+      ${L == null ? '<div class="empty">…</div>' : L.length ? `<div class="tl-list">${L.map((t) => `
+        <div class="tl-row"><div class="tl-t"><b>${esc(t.label)}</b><span class="muted mono">${esc(urlTautan(t.kode).replace(/^https?:\/\//, ''))}</span>
+          <span class="muted">${esc((chans.find((c) => c.id === t.channel_id) || {}).nama || '')}</span></div>
+          <div class="tl-n"><b>${nf.format(t.tujuh_hari)}</b><span class="muted">7 hari</span></div>
+          <div class="tl-a"><button class="btn sm ghost" data-act="tautan-salin" data-kode="${esc(t.kode)}">Salin</button><button class="btn sm ghost danger" data-act="tautan-hapus" data-kode="${esc(t.kode)}">Hapus</button></div></div>`).join('')}</div>` : '<div class="empty">Belum ada tautan</div>'}
     </section>`;
 }
 
 PAGES.rekap = function () {
-  const nConn = analyticsChannels().filter((c) => c.connected).length, n = analyticsChannels().length;
-  return `<header class="head"><div><h1>Rekap 3 channel</h1><p><b>${nConn}</b> dari ${n} channel tersambung ke YouTube Analytics.</p></div>
-      <div class="tools"><div class="seg" role="group" aria-label="Periode">${[7, 28, 90].map((x) => `<button data-act="an-periode" data-v="${x}" aria-pressed="${S.anPeriode === x}">${x} hari</button>`).join('')}</div>
-      <button class="btn sm" data-act="rekap-impor">${icon('plus')}Impor CSV</button></div></header>
-    <div id="rekap-isi">${isi()}</div>
+  return `<header class="head"><h1>Rekap</h1>
+      <div class="seg" role="group" aria-label="Periode">${[7, 28, 90].map((x) => `<button data-act="an-periode" data-v="${x}" aria-pressed="${S.anPeriode === x}">${x} hari</button>`).join('')}</div></header>
+    <div id="rekap-isi" class="stack-page">${isi()}</div>
     <div id="rekap-tautan">${tautanKartu(analyticsChannels())}</div>`;
 };
 
 function gambar() {
   const box = $('#rekap-chart');
   if (!box) return;
-  const sd = seriesFor(analyticsChannels(), periode());
-  drawLines(box, sd);
+  drawLines(box, seriesFor(analyticsChannels(), periode()));
 }
 
-// Kartu tautan di luar #rekap-isi: pembaruan real-time tiap menit tidak boleh menghapus isian yang sedang diketik.
+// Kartu tautan di luar #rekap-isi: pembaruan tiap menit tidak boleh mengganggu dialog atau isian.
 function segarkanTautan() {
   const el = $('#rekap-tautan');
   if (el && route() === 'rekap') el.innerHTML = tautanKartu(analyticsChannels());
@@ -244,26 +195,39 @@ async function muatMetrik() {
   try { R.tautan = (await api('/api/rekap/tautan')).tautan; } catch (e) { if (!R.tautan) R.tautan = []; }
 }
 
+export function tautanDialog() {
+  const chans = analyticsChannels();
+  openDialog(`<h2>Tautan baru</h2>
+      <div class="stack">
+        <label class="field"><span>Nama</span><input class="input" id="tl-label" maxlength="80" autocomplete="off"></label>
+        <label class="field"><span>Channel</span><select class="input" id="tl-ch">${chans.map((c) => `<option value="${esc(c.id)}">${esc(c.nama)}</option>`).join('')}</select></label>
+        <label class="field"><span>Tautan afiliasi</span><input class="input" id="tl-tujuan" inputmode="url" placeholder="https://" autocomplete="off" autocapitalize="off"></label>
+      </div>
+      <div class="err" id="tl-err" role="alert"></div>
+      <div class="actions"><button type="button" class="btn ghost" data-act="close-overlay">Batal</button><button class="btn primary" data-act="tautan-buat">Buat</button></div>`);
+}
+
 export async function buatTautan() {
   const v = (id) => $(id).value.trim(), err = $('#tl-err');
   err.textContent = '';
   try {
     const t = await api('/api/rekap/tautan', { method: 'POST', body: { label: v('#tl-label'), channel_id: $('#tl-ch').value, tujuan: v('#tl-tujuan') } });
     R.tautan = [t, ...(R.tautan || [])];
-    segarkanTautan(); segarkanRekap();
-    try { await navigator.clipboard.writeText(urlTautan(t.kode)); toast('Tautan dibuat dan disalin'); } catch (e) { toast('Tautan dibuat'); }
+    closeOverlay();
+    segarkanTautan();
+    try { await navigator.clipboard.writeText(urlTautan(t.kode)); toast('Disalin'); } catch (e) { toast('Tautan dibuat'); }
   } catch (e) { err.textContent = e.message; }
 }
 
 export async function salinTautan(kode) {
-  try { await navigator.clipboard.writeText(urlTautan(kode)); toast('Tautan disalin'); } catch (e) { toast('Salin manual: ' + urlTautan(kode), true); }
+  try { await navigator.clipboard.writeText(urlTautan(kode)); toast('Disalin'); } catch (e) { toast(urlTautan(kode), true); }
 }
 
 export function hapusTautan(kode) {
   const t = (R.tautan || []).find((x) => x.kode === kode);
   if (!t) return;
-  confirmDialog('Hapus tautan?', `"${t.label}" dan riwayat kliknya dihapus. Tautan ini di deskripsi video akan berhenti bekerja.`, 'Hapus', async () => {
-    try { await api('/api/rekap/tautan/' + encodeURIComponent(kode), { method: 'DELETE' }); R.tautan = R.tautan.filter((x) => x.kode !== kode); R.klikTautan = []; await muatMetrik(); segarkanTautan(); segarkanRekap(); toast('Tautan dihapus'); } catch (e) { toast(e.message, true); }
+  confirmDialog('Hapus tautan?', `${t.label}. Tautan di deskripsi video berhenti bekerja.`, 'Hapus', async () => {
+    try { await api('/api/rekap/tautan/' + encodeURIComponent(kode), { method: 'DELETE' }); R.tautan = R.tautan.filter((x) => x.kode !== kode); await muatMetrik(); segarkanTautan(); segarkanRekap(); } catch (e) { toast(e.message, true); }
   });
 }
 
@@ -287,111 +251,4 @@ AFTER.rekap = function () {
   if (!timer) mulaiRealtime();
 };
 
-export const pilihMetrik = (v) => { R.metrikPilih = v; segarkanRekap(); const b = $('#kartu-banding'); if (b) b.scrollIntoView({ block: 'nearest' }); };
-
-// ---------- impor CSV ----------
-
-// "2026-10-21", "21/10/2026", "Oct 21, 2026" → "2026-10-21"
-function tglIso(v) {
-  const s = String(v || '').trim();
-  let m = s.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
-  if (m) return ok(m[1], m[2], m[3]);
-  m = s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})/);
-  if (m) return ok(m[3], m[2], m[1]);
-  const d = new Date(s + ' UTC');
-  return s && !isNaN(d) ? d.toISOString().slice(0, 10) : null;
-}
-const ok = (y, mo, d) => { const x = new Date(Date.UTC(+y, +mo - 1, +d)); return x.getUTCMonth() === +mo - 1 && x.getUTCDate() === +d ? x.toISOString().slice(0, 10) : null; };
-
-export function imporRekapDialog() {
-  const chans = analyticsChannels();
-  openDialog(`<h2>Impor CSV ke Rekap</h2>
-      <p>Cadangan bila data otomatis belum ada: CTR dari ekspor YouTube Studio, atau klik dari laporan dashboard afiliasi. Hari yang sama ditimpa; jenis lain tidak tersentuh. Klik dari tautan pelacak lebih diutamakan di hari yang punya klik terlacak.</p>
-      <div class="stack">
-        <div class="row">
-          <label class="field"><span>Jenis</span><select class="input" id="rk-jenis"><option value="ctr">CTR (ekspor YouTube Studio)</option><option value="klik">Klik afiliasi</option></select></label>
-          <label class="field"><span>Channel</span><select class="input" id="rk-ch">${chans.map((c) => `<option value="${esc(c.id)}">${esc(c.nama)}</option>`).join('')}</select></label>
-        </div>
-        <label class="field"><span>File CSV</span><input class="input" type="file" id="rk-file" accept=".csv,text/csv"></label>
-        <div id="rk-isi"></div>
-      </div>
-      <div class="err" id="rk-err" role="alert"></div>
-      <div class="actions"><button type="button" class="btn ghost" data-act="close-overlay">Batal</button><button class="btn primary" id="rk-simpan" disabled>Simpan</button></div>`, (d) => {
-    d.classList.add('wide');
-    let rows = null, hasil = null;
-    const isiEl = $('#rk-isi', d), err = $('#rk-err', d), simpan = $('#rk-simpan', d);
-    const jenis = () => $('#rk-jenis', d).value;
-    const opt = (sel, kosong) => (kosong ? `<option value="" ${sel < 0 ? 'selected' : ''}>(tidak ada)</option>` : '') + rows[0].map((h, i) => `<option value="${i}" ${i === sel ? 'selected' : ''}>${esc(h || 'Kolom ' + (i + 1))}</option>`).join('');
-    const tebak = (re) => rows[0].findIndex((h) => re.test(h));
-
-    const hitung = () => {
-      err.textContent = '';
-      const [, ...data] = rows;
-      const ci = +$('#rk-tgl', d).value, cv = +$('#rk-nilai', d).value, cimp = $('#rk-imp') ? $('#rk-imp').value : '';
-      const cf = $('#rk-fkol') ? $('#rk-fkol').value : '', fv = $('#rk-fval') ? $('#rk-fval').value.trim().toLowerCase() : '';
-      const per = {}; let lewat = 0, saring = 0;
-      data.forEach((r) => {
-        if (cf !== '' && fv && !String(r[+cf] || '').toLowerCase().includes(fv)) { saring++; return; }
-        const t = tglIso(r[ci]), n = angkaUang(r[cv]);
-        if (!t || n == null || n < 0) { lewat++; return; }
-        const o = (per[t] ||= { tanggal: t, w: 0, n: 0, imp: 0, k: 0, c: 0 });
-        if (jenis() === 'klik') { o.k += n; return; }
-        const imp = cimp !== '' ? angkaUang(r[+cimp]) : null;
-        o.c++; o.n += n; if (imp) { o.imp += imp; o.w += n * imp; }
-      });
-      const baris = Object.values(per).sort((a, b) => (a.tanggal < b.tanggal ? -1 : 1)).map((o) => (jenis() === 'klik'
-        ? { tanggal: o.tanggal, klik: o.k }
-        : { tanggal: o.tanggal, ctr: o.imp > 0 ? Math.round((o.w / o.imp) * 1000) / 1000 : Math.round((o.n / o.c) * 1000) / 1000, impresi: o.imp > 0 ? o.imp : null }));
-      hasil = baris;
-      const el = $('#rk-hasil', d);
-      if (!baris.length) { el.innerHTML = '<div class="empty"><b>Tidak ada baris yang terbaca</b>Periksa pilihan kolom tanggal dan nilai.</div>'; simpan.disabled = true; return; }
-      const nilai = (b) => (jenis() === 'klik' ? nf.format(b.klik) : persen(b.ctr));
-      const bukan = jenis() === 'ctr' && baris.some((b) => b.ctr > 100);
-      el.innerHTML = `<p><b>${baris.length}</b> hari terbaca, ${tglPendek(baris[0].tanggal)} – ${tglPendek(baris[baris.length - 1].tanggal)}${lewat ? `, ${lewat} baris dilewati` : ''}${saring ? `, ${saring} baris tersaring` : ''}.</p>
-        <table class="t"><thead><tr><th>Tanggal</th><th class="num">${jenis() === 'klik' ? 'Klik' : 'CTR'}</th></tr></thead><tbody>${baris.slice(-5).map((b) => `<tr><td>${tglPendek(b.tanggal)}</td><td class="num"><b>${nilai(b)}</b></td></tr>`).join('')}</tbody></table>
-        ${jenis() === 'ctr' && baris.every((b) => b.ctr <= 1) ? '<p class="muted fs-125">Semua CTR ≤ 1. Bila di file CTR ditulis sebagai pecahan (0,045 = 4,5%), pilih kolom yang berupa persen.</p>' : ''}`;
-      if (bukan) { err.textContent = 'Ada CTR di atas 100%. Periksa kolom nilai.'; simpan.disabled = true; return; }
-      simpan.disabled = baris.length > 800;
-      if (baris.length > 800) err.textContent = 'Maksimal 800 hari per impor.';
-    };
-
-    const pasang = () => {
-      const k = jenis() === 'klik';
-      const tg = tebak(/tanggal|date|waktu|time|hari|day/i), nv = tebak(k ? /klik|click/i : /click-through|clickthrough|\bctr\b|rasio klik|rasio proporsi/i), im = tebak(/impres/i);
-      isiEl.innerHTML = `<div class="stack">
-          <div class="row">
-            <label class="field"><span>Kolom tanggal</span><select class="input" id="rk-tgl">${opt(Math.max(0, tg))}</select></label>
-            <label class="field"><span>${k ? 'Kolom jumlah klik' : 'Kolom CTR'}</span><select class="input" id="rk-nilai">${opt(Math.max(0, nv))}</select></label>
-            ${k ? '' : `<label class="field"><span>Kolom impresi (opsional)</span><select class="input" id="rk-imp">${opt(im, true)}</select></label>`}
-          </div>
-          ${k ? `<div class="row"><label class="field"><span>Saring baris (opsional): kolom</span><select class="input" id="rk-fkol">${opt(-1, true)}</select></label>
-            <label class="field"><span>mengandung teks</span><input class="input" id="rk-fval" placeholder="mis. kode channel di Sub ID"></label></div>
-            <p class="muted fs-125">Satu laporan afiliasi yang memuat beberapa channel? Pisahkan dengan kolom Sub ID, lalu impor sekali per channel.</p>` : ''}
-          <div id="rk-hasil"></div></div>`;
-      isiEl.querySelectorAll('select, input').forEach((e) => e.addEventListener('input', hitung));
-      hitung();
-    };
-
-    $('#rk-jenis', d).addEventListener('change', () => { if (rows) pasang(); });
-    $('#rk-file', d).addEventListener('change', async (ev) => {
-      const f = ev.target.files[0];
-      err.textContent = ''; simpan.disabled = true; isiEl.innerHTML = ''; rows = null;
-      if (!f) return;
-      if (f.size > 5e6) { err.textContent = 'File terlalu besar (maksimal 5 MB).'; return; }
-      rows = bacaCsv(await f.text());
-      if (rows.length < 2) { err.textContent = 'File kosong atau bukan CSV.'; rows = null; return; }
-      pasang();
-    });
-    simpan.addEventListener('click', async () => {
-      if (!hasil || !hasil.length) return;
-      simpan.disabled = true; err.textContent = '';
-      try {
-        const r = await api('/api/rekap/impor', { method: 'PUT', timeout: 60000, body: { jenis: jenis(), channel_id: $('#rk-ch', d).value, baris: hasil } });
-        await muatMetrik();
-        closeOverlay();
-        toast(r.baris + ' hari tersimpan');
-        render();
-      } catch (e) { err.textContent = e.message; simpan.disabled = false; }
-    });
-  });
-}
+export const pilihMetrik = (v) => { R.metrikPilih = v; segarkanRekap(); };

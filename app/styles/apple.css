@@ -1,0 +1,98 @@
+/* Tampilan mengikuti bahasa visual Apple (iOS): huruf sistem, latar abu bertingkat, kartu putih membulat tanpa bingkai,
+   judul besar, kontrol segmen, bilah tab buram. Dimuat terakhir; hanya menimpa token dan gaya dasar. */
+:root {
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, "Helvetica Neue", sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, monospace;
+  --paper: #F2F2F7; --surface: #FFFFFF; --sunken: #EFEFF4;
+  --ink: #000000; --ink-2: #3A3A3C; --muted: #6C6C70;
+  --line: rgba(60, 60, 67, .16); --line-2: rgba(60, 60, 67, .3);
+  --leaf: #007AFF; --leaf-ink: #FFFFFF; --leaf-soft: rgba(0, 122, 255, .1); --yt-red: #007AFF;
+  --ok: #248A3D; --warn: #B25000; --bad: #D70015;
+  --chart-grid: rgba(60, 60, 67, .12);
+  --shadow: 0 8px 30px rgba(0, 0, 0, .12);
+  --r: 10px; --r-lg: 16px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #000000; --surface: #1C1C1E; --sunken: #2C2C2E;
+    --ink: #FFFFFF; --ink-2: #D1D1D6; --muted: #98989F;
+    --line: rgba(84, 84, 88, .55); --line-2: rgba(84, 84, 88, .8);
+    --leaf: #0A84FF; --leaf-ink: #FFFFFF; --leaf-soft: rgba(10, 132, 255, .16); --yt-red: #0A84FF;
+    --ok: #30D158; --warn: #FF9F0A; --bad: #FF453A;
+    --chart-grid: rgba(84, 84, 88, .45); --shadow: 0 8px 30px rgba(0, 0, 0, .6);
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #000000; --surface: #1C1C1E; --sunken: #2C2C2E;
+  --ink: #FFFFFF; --ink-2: #D1D1D6; --muted: #98989F;
+  --line: rgba(84, 84, 88, .55); --line-2: rgba(84, 84, 88, .8);
+  --leaf: #0A84FF; --leaf-ink: #FFFFFF; --leaf-soft: rgba(10, 132, 255, .16); --yt-red: #0A84FF;
+  --ok: #30D158; --warn: #FF9F0A; --bad: #FF453A;
+  --chart-grid: rgba(84, 84, 88, .45); --shadow: 0 8px 30px rgba(0, 0, 0, .6);
+}
+body { font: 400 15px/1.4 var(--font); letter-spacing: -.01em; }
+b, strong { font-weight: 600; }
+
+/* Judul besar */
+.head h1 { font-size: 34px; line-height: 1.1; font-weight: 700; letter-spacing: -.025em; }
+.head { align-items: flex-end; }
+
+/* Kartu: putih, membulat, tanpa bingkai */
+.card { border: 0; border-radius: var(--r-lg); padding: 18px 20px; }
+.card-h h2 { font-size: 17px; font-weight: 600; letter-spacing: -.015em; }
+.card-h p { font-size: 13px; }
+.notice { border-radius: 12px; }
+
+/* Kontrol segmen ala iOS */
+.seg { gap: 0; padding: 2px; background: var(--sunken); border-radius: 9px; }
+.seg button { border: 0; background: transparent; border-radius: 7px; padding: 6px 14px; font-weight: 500; font-size: 13px; color: var(--ink); flex: 1; }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(0, 0, 0, .14), 0 0 0 .5px rgba(0, 0, 0, .04); }
+:root[data-theme="dark"] .seg button[aria-pressed="true"] { background: #636366; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .seg button[aria-pressed="true"] { background: #636366; } }
+
+/* Tombol */
+.btn { height: 40px; border-radius: 12px; border: 0; background: var(--sunken); font-weight: 600; font-size: 15px; padding: 0 16px; }
+.btn:hover { background: var(--sunken); filter: brightness(.97); }
+.btn.primary { background: var(--leaf); color: var(--leaf-ink); }
+.btn.primary:hover { background: var(--leaf); filter: brightness(1.06); }
+.btn.ghost { background: transparent; color: var(--leaf); }
+.btn.ghost:hover { background: var(--leaf-soft); }
+.btn.sm { height: 32px; border-radius: 10px; font-size: 14px; padding: 0 12px; }
+.btn.icon { width: 40px; padding: 0; }
+.input, select.input, textarea.input { height: 44px; border: 0; border-radius: 12px; background: var(--sunken); font-size: 16px; padding: 0 14px; }
+textarea.input { height: auto; padding: 10px 14px; }
+.input:focus { outline: 2px solid var(--leaf); outline-offset: 0; }
+.field > span { font-size: 13px; font-weight: 500; color: var(--muted); }
+.pill { font-weight: 500; }
+
+/* Dialog seperti sheet iOS */
+.scrim { background: rgba(0, 0, 0, .4); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.dialog { border-radius: 20px; padding: 24px; }
+.dialog h2 { font-size: 20px; font-weight: 700; }
+
+/* Menu samping desktop */
+.side { background: transparent; border-right: 0; }
+.brand img { width: 64px; height: 64px; }
+.nav-label { border-top: 0; margin-top: 0; padding: 18px 20px 6px; }
+.nav a { margin: 1px 10px; padding: 0 12px; height: 38px; border-radius: 10px; gap: 12px; font-size: 15px; }
+.nav a[aria-current="page"] { background: var(--leaf-soft); color: var(--leaf); font-weight: 600; }
+.nav a[aria-current="page"] svg { color: var(--leaf); }
+.side-foot { border-top: 0; }
+.side-foot .legal, .side-foot .fresh { display: none; }
+
+/* iPhone: bilah atas dan tab buram */
+@media (max-width: 900px) {
+  body::before { background: transparent; }
+  .appbar { background: color-mix(in srgb, var(--paper) 78%, transparent); -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px); border-bottom: 0; margin-bottom: 4px; }
+  .appbar .ttl small { display: none; }
+  .appbar .ttl b { font-size: 17px; font-weight: 600; }
+  .tabbar { background: color-mix(in srgb, var(--surface) 78%, transparent); -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px); border-top: .5px solid var(--line); }
+  .tabbar a, .tabbar button { font-size: 10.5px; font-weight: 500; min-height: 52px; }
+  .tabbar [aria-current="page"] { color: var(--leaf); }
+  .tabbar [aria-current="page"]::before { display: none; }
+  .head h1 { font-size: 34px; }
+  .card { padding: 16px; border-radius: 16px; }
+  .btn { height: 44px; border-radius: 12px; }
+  .btn.sm { height: 34px; border-radius: 10px; }
+  .seg button { padding: 8px 6px; }
+}
