@@ -26,3 +26,22 @@ export function angkaUang(v) {
   const n = Number(s);
   return Number.isFinite(n) ? n : null;
 }
+
+const ISO_OK = (y, mo, d) => { const x = new Date(Date.UTC(+y, +mo - 1, +d)); return x.getUTCFullYear() === +y && x.getUTCMonth() === +mo - 1 && x.getUTCDate() === +d ? x.toISOString().slice(0, 10) : null; };
+
+// "2026-10-21 13:00", "21/10/2026 08:00", "21-10-2026", "Oct 21, 2026" → "2026-10-21" (hari lebih dulu, seperti laporan Indonesia)
+export function tglIso(v) {
+  const s = String(v || '').trim();
+  let m = s.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
+  if (m) return ISO_OK(m[1], m[2], m[3]);
+  m = s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})/);
+  if (m) return ISO_OK(m[3], m[2], m[1]);
+  const d = new Date(s + ' UTC');
+  return s && /[a-z]/i.test(s) && !isNaN(d) ? d.toISOString().slice(0, 10) : null;
+}
+
+// Sidik jari 32 heks (SHA-256) dari teks: kunci baris laporan supaya impor ulang tidak menggandakan.
+export async function sidik(teks) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(teks));
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('').slice(0, 32);
+}

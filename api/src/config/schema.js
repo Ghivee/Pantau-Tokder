@@ -242,6 +242,17 @@ const STATEMENTS = [
     PRIMARY KEY (video_id, tanggal)
   )`,
   `CREATE INDEX IF NOT EXISTS video_reach_channel_idx ON video_reach (channel_id, tanggal)`,
+  // Komisi afiliasi per pesanan dari laporan marketplace (diimpor); kunci = sidik jari baris supaya impor ulang tidak menggandakan.
+  `CREATE TABLE IF NOT EXISTS afiliasi_komisi (
+    kunci VARCHAR(64) PRIMARY KEY,
+    tanggal DATE NOT NULL,
+    produk VARCHAR(200) NOT NULL,
+    komisi NUMERIC(14,2) NOT NULL,
+    qty INTEGER,
+    sumber VARCHAR(40),
+    diimpor_at TIMESTAMP DEFAULT NOW()
+  )`,
+  `CREATE INDEX IF NOT EXISTS afiliasi_komisi_tanggal_idx ON afiliasi_komisi (tanggal)`,
   // Pelacak tautan afiliasi: /go/<kode> mencatat klik per hari lalu meneruskan ke tujuan.
   `CREATE TABLE IF NOT EXISTS tautan (
     kode VARCHAR(16) PRIMARY KEY,
