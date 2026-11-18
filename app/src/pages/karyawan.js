@@ -22,6 +22,7 @@ PAGES.karyawan = function () {
               <dt>Kode</dt><dd><span class="slot">#${esc(e.kode_identifikasi)}</span></dd>
               <dt>Jadwal</dt><dd>${slotsOf(e).map((s) => `<span class="slot">${s}</span>`).join('') || '<span class="muted">Belum diatur</span>'}</dd>
               <dt>Target</dt><dd>${targetOf(e)} video per hari</dd>
+              <dt>Penghasilan</dt><dd>${e.lihat_penghasilan ? '<span class="pill ok">Boleh lihat</span>' : '<span class="muted">Tidak</span>'}</dd>
               <dt>PIN</dt><dd>${e.punya_pin ? '<span class="pill ok">Sudah diatur</span>' : '<span class="pill warn">Belum diatur</span>'}</dd>
               <dt>7 hari</dt><dd>${st.n} video · tepat ${pct(st.tepat)} · ${fmt(st.views)} views</dd>
             </dl>
@@ -30,9 +31,9 @@ PAGES.karyawan = function () {
         }).join('') || '<div class="card empty"><b>Belum ada karyawan</b>Masuk sebagai pemilik untuk menambahkan.</div>'}</div>
         <section class="card">
           <div class="card-h"><h2>Hak akses</h2></div>
-          <div class="table-wrap"><table class="t stack"><thead><tr><th>Bisa…</th><th>Pemilik</th><th>Editor</th><th>Editor terbatas</th></tr></thead><tbody>
-            ${[['Melihat ringkasan, harian, konten, analytics', 'Ya', 'Ya', 'Ya'], ['Mencatat aktivitas sendiri', 'Ya (siapa pun)', 'Ya', 'Ya'], ['Absen masuk dan pulang', '—', 'Ya', 'Ya'], ['Menetapkan pembuat video', 'Ya', 'Ya', '—'], ['Mengatur karyawan, presensi, sinkronisasi, pendapatan', 'Ya', '—', '—']]
-              .map((r) => `<tr><td class="full"><b>${r[0]}</b></td>${['Pemilik', 'Editor', 'Editor terbatas'].map((l, i) => `<td data-label="${l}">${r[i + 1]}</td>`).join('')}</tr>`).join('')}
+          <div class="table-wrap"><table class="t stack"><thead><tr><th>Bisa…</th><th>Pemilik</th><th>Manajer</th><th>Editor</th><th>Editor terbatas</th><th>Penonton</th></tr></thead><tbody>
+            ${[['Melihat rekap dan saran', 'Ya', 'Ya', 'Ya', 'Ya', 'Ya'], ['Mengunggah video sebagai draf', 'Ya', 'Ya', 'Ya', 'Ya', '—'], ['Membuat tautan affiliate', 'Ya', 'Ya', 'Ya', 'Ya', '—'], ['Menayangkan ke publik', 'Ya', 'Ya', 'Ya', '—', '—'], ['Menghapus posting dan tautan', 'Ya', 'Ya', '—', '—', '—'], ['Menghubungkan akun, mengatur tim', 'Ya', '—', '—', '—', '—'], ['Melihat penghasilan', 'Ya', 'Bila diberi tanda', 'Bila diberi tanda', 'Bila diberi tanda', 'Bila diberi tanda']]
+              .map((r) => `<tr><td class="full"><b>${r[0]}</b></td>${['Pemilik', 'Manajer', 'Editor', 'Editor terbatas', 'Penonton'].map((l, i) => `<td data-label="${l}">${r[i + 1]}</td>`).join('')}</tr>`).join('')}
           </tbody></table></div>
         </section>`;
   };

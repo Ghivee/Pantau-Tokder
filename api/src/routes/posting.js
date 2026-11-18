@@ -5,11 +5,28 @@ const { fail, bad } = require('../utils/httpError');
 const db = require('../config/db');
 const { sign } = require('../utils/encryption');
 const posting = require('../services/postingService');
-const { requireAdmin } = require('../middlewares/sessionAuth');
+const { requireAnyAuth } = require('../middlewares/sessionAuth');
+
 const { createAuditMiddleware } = require('../utils/auditLog');
+const { requireIzin, bisa } = require('../utils/izin');
 
 const base = (req) => (process.env.PUBLIC_URL || `${req.headers['x-forwarded-proto'] || 'https'}://${req.headers.host || 'pantautokder.vercel.app'}`).replace(/\/+$/, '');
 const idOf = (req) => { if (!/^\d+$/.test(req.params.id)) throw bad(400, 'Posting tidak dikenal'); return Number(req.params.id); };
+
+// Video dari karyawan membawa kodenya di deskripsi (mis. #AL), supaya sinkronisasi mengenali pembuatnya.
+function sisipKode(deskripsi, kode) {
+  const k = String(kode || '').replace(/^#/, '').trim();
+  const teks = String(deskripsi || '');
+  if (!k) return teks;
+  const esc = k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`(^|[^A-Za-z0-9])#?${esc}($|[^A-Za-z0-9])`, 'i').test(teks) ? teks : (teks.trimEnd() + '\n#' + k).trim();
+}
+
+async function denganKode(req, deskripsi) {
+  if (!req.editor) return deskripsi;
+  const r = await db.query('SELECT kode_identifikasi FROM editors WHERE id = $1', [req.editor.id]);
+  return sisipKode(deskripsi, r.rows[0] && r.rows[0].kode_identifikasi);
+}
 const VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/webm'];
 const MAX_BYTES = 2 * 1024 * 1024 * 1024;
 
@@ -22,7 +39,7 @@ router.post('/blob', async (req, res) => {
     const out = await handleUpload({
       body: req.body, request: req,
       onBeforeGenerateToken: async () => {
-        if (!req.isAdmin) throw bad(401, 'Masuk sebagai pemilik dulu');
+        if (!bisa(req, 'upload')) throw bad(req.editor ? 403 : 401, req.editor ? 'Peran Anda tidak boleh mengunggah' : 'Masuk dulu');
         return { allowedContentTypes: VIDEO_TYPES, maximumSizeInBytes: MAX_BYTES, addRandomSuffix: true };
       },
     });
@@ -30,21 +47,22 @@ router.post('/blob', async (req, res) => {
   } catch (err) { fail(res, err, 'Izin unggah ditolak'); }
 });
 
-router.get('/', requireAdmin, async (req, res) => { try { res.json(await posting.daftar()); } catch (err) { fail(res, err); } });
+router.get('/', requireAnyAuth, async (req, res) => { try { res.json(await posting.daftar()); } catch (err) { fail(res, err); } });
 
 // POST /api/posting: video is already in Blob; prepare it on every chosen account (as drafts)
-router.post('/', requireAdmin, createAuditMiddleware('posting', 'create', () => 'baru'), async (req, res) => {
+router.post('/', requireIzin('upload'), createAuditMiddleware('posting', 'create', () => 'baru'), async (req, res) => {
   try {
     const b = req.body || {};
     const ids = (a) => (Array.isArray(a) ? a.filter((x) => /^\d+$/.test(String(x))).map(Number) : []);
     const yt = Array.isArray(b.youtube) ? b.youtube.filter((x) => /^UC[\w-]{22}$/.test(String(x))) : [];
-    res.status(201).json(await posting.buat({ judul: b.judul, deskripsi: b.deskripsi, blob_url: b.blob_url, ukuran: b.ukuran, mime: b.mime, sosmedIds: ids(b.akun), youtubeIds: yt }, base(req)));
+    const deskripsi = await denganKode(req, b.deskripsi);
+    res.status(201).json(await posting.buat({ judul: b.judul, deskripsi, blob_url: b.blob_url, ukuran: b.ukuran, mime: b.mime, sosmedIds: ids(b.akun), youtubeIds: yt }, base(req)));
   } catch (err) { fail(res, err); }
 });
 
-router.post('/:id/segarkan', requireAdmin, async (req, res) => { try { res.json(await posting.segarkan(idOf(req))); } catch (err) { fail(res, err); } });
-router.post('/:id/tayang', requireAdmin, createAuditMiddleware('posting', 'publish', (req) => req.params.id), async (req, res) => { try { res.json(await posting.tayangkan(idOf(req))); } catch (err) { fail(res, err); } });
-router.delete('/:id', requireAdmin, createAuditMiddleware('posting', 'delete', (req) => req.params.id), async (req, res) => { try { await posting.hapus(idOf(req)); res.status(204).send(); } catch (err) { fail(res, err); } });
+router.post('/:id/segarkan', requireAnyAuth, async (req, res) => { try { res.json(await posting.segarkan(idOf(req))); } catch (err) { fail(res, err); } });
+router.post('/:id/tayang', requireIzin('tayang'), createAuditMiddleware('posting', 'publish', (req) => req.params.id), async (req, res) => { try { res.json(await posting.tayangkan(idOf(req))); } catch (err) { fail(res, err); } });
+router.delete('/:id', requireIzin('hapus'), createAuditMiddleware('posting', 'delete', (req) => req.params.id), async (req, res) => { try { await posting.hapus(idOf(req)); res.status(204).send(); } catch (err) { fail(res, err); } });
 
 // GET /api/posting/media/:id/:sig: the address TikTok pulls the video from. TikTok only accepts
 // addresses under a domain verified in its portal, so the video is passed through our own address.
@@ -74,3 +92,4 @@ router.get('/yt/antrean', cron, async (req, res) => { try { res.json(await posti
 router.post('/yt/:id/hasil', cron, async (req, res) => { try { await posting.hasilYoutube(idOf(req), req.body || {}); res.json({ ok: true }); } catch (err) { fail(res, err); } });
 
 module.exports = router;
+module.exports.sisipKode = sisipKode;

@@ -2,7 +2,7 @@ import { upload } from '@vercel/blob/client';
 import { api } from '../core/data.js';
 import { AFTER, PAGES } from '../core/registry.js';
 import { route } from '../core/router.js';
-import { S } from '../core/state.js';
+import { S, bisa, isAdmin } from '../core/state.js';
 import { $, $$, esc } from '../lib/dom.js';
 import { nf } from '../lib/format.js';
 import { waktuWib } from './presensi.js';
@@ -22,7 +22,7 @@ function postListHtml() {
   return list.map((p) => {
     const siap = p.targets.some((t) => t.status === 'siap');
     return `<div class="post-item"><div class="post-top"><div><b>${esc(p.judul)}</b><div class="muted">${waktuWib(p.created_at)}${p.ukuran ? ' · ' + nf.format(Math.round(p.ukuran / 1048576)) + ' MB' : ''}</div></div>
-        <div class="row-actions"><button class="btn sm ghost" data-act="post-cek" data-id="${p.id}">Cek status</button>${siap ? `<button class="btn sm primary" data-act="post-tayang" data-id="${p.id}">Tayangkan</button>` : ''}<button class="btn sm ghost danger" data-act="post-hapus" data-id="${p.id}">Hapus</button></div></div>
+        <div class="row-actions"><button class="btn sm ghost" data-act="post-cek" data-id="${p.id}">Cek status</button>${siap && bisa('tayang') ? `<button class="btn sm primary" data-act="post-tayang" data-id="${p.id}">Tayangkan</button>` : ''}${bisa('hapus') ? `<button class="btn sm ghost danger" data-act="post-hapus" data-id="${p.id}">Hapus</button>` : ''}</div></div>
         <div class="post-chips">${p.targets.map((t) => { const [lb, cl] = STATUS(t); return `<span class="pill ${cl}" title="${esc(t.galat || '')}">${esc((PLAT[t.platform] || t.platform) + ' · ' + (t.akun_nama || ''))}: ${lb}</span>${t.hasil_url ? `<a class="btn sm ghost" href="${esc(t.hasil_url)}" target="_blank" rel="noopener">Buka</a>` : ''}${t.galat ? `<span class="muted fs-125">${esc(t.galat)}</span>` : ''}`; }).join('')}</div></div>`;
   }).join('');
 }
@@ -55,7 +55,7 @@ function postingCard(d) {
   const kotak = (name, val, label, off, note) => `<label class="chk"${off ? ' style="opacity:.55"' : ''}><input type="checkbox" name="${name}" value="${esc(val)}" ${off ? 'disabled' : 'checked'}> ${label}${note ? ` <span class="muted fs-12">${note}</span>` : ''}</label>`;
   return `<section class="card" id="kartu-posting"><div class="card-h"><h2>Upload</h2></div>
       ${d.blob ? '' : '<div class="notice mb-12 mt-0" role="status"><span>Penyimpanan video belum aktif (Vercel → Storage → Blob).</span></div>'}
-      <form id="post-form" class="stack">
+      ${bisa('upload') ? `<form id="post-form" class="stack">
         <label class="field"><span>Judul</span><input class="input" name="judul" maxlength="100" required></label>
         <label class="field"><span>Deskripsi</span><textarea class="input" name="deskripsi" rows="3" maxlength="4000"></textarea></label>
         <label class="field"><span>Video</span><input class="input" type="file" name="video" accept="video/mp4,video/quicktime,video/webm" required></label>
@@ -66,7 +66,7 @@ function postingCard(d) {
         </div></div>
         <div class="err text-bad fs-13" id="post-err" role="alert"></div>
         <div class="tools"><button class="btn primary" id="post-btn" ${d.blob ? '' : 'disabled'}>Unggah</button><span class="muted" id="post-prog"></span></div>
-      </form>
+      </form>` : ''}
       <div id="post-list" class="mt-14">${postListHtml()}</div></section>`;
 }
 
@@ -74,12 +74,12 @@ PAGES.sosmed = function () {
     const d = S.sosmed;
     const head = `<header class="head"><h1>Upload</h1></header>`;
     if (!d) return head + '<section class="card"><div class="empty">Belum termuat</div></section>';
-    const kartu = (p) => `<section class="card"><div class="card-h"><h2>${esc(p.nama)}</h2>${p.siap ? `<a class="btn sm" href="/api/social/connect/${p.id}">${p.koneksi.length ? 'Tambah' : 'Hubungkan'}</a>` : ''}</div>
+    const kartu = (p) => `<section class="card"><div class="card-h"><h2>${esc(p.nama)}</h2>${p.siap && isAdmin() ? `<a class="btn sm" href="/api/social/connect/${p.id}">${p.koneksi.length ? 'Tambah' : 'Hubungkan'}</a>` : ''}</div>
         <div class="checklist">
           ${p.koneksi.map((k) => `<div class="ck"><span class="st ${k.status === 'aktif' && !k.galat ? 'ok' : 'bad'}">${k.status === 'aktif' && !k.galat ? '✓' : '!'}</span><div><b>${esc(k.nama || k.akun_id)}${k.handle ? ' <span class="muted">' + esc(k.handle) + '</span>' : ''}</b>
             ${k.galat ? `<div class="text-bad fs-13">${esc(k.galat)}${k.status === 'putus' ? ' Hubungkan ulang.' : ''}</div>` : ''}</div>
-            <button class="btn sm ghost danger" data-act="putus-sosmed" data-id="${k.id}">Putuskan</button></div>`).join('')}
-          ${p.siap ? '' : `<div class="ck"><span class="st bad">!</span><div><b>Isi di Vercel</b><div class="mono">${p.env.map(esc).join(' · ')}</div></div></div>`}
+            ${isAdmin() ? `<button class="btn sm ghost danger" data-act="putus-sosmed" data-id="${k.id}">Putuskan</button>` : ''}</div>`).join('')}
+          ${p.siap || !isAdmin() ? '' : `<div class="ck"><span class="st bad">!</span><div><b>Isi di Vercel</b><div class="mono">${p.env.map(esc).join(' · ')}</div></div></div>`}
         </div></section>`;
     return head + `
         ${postingCard(d)}
