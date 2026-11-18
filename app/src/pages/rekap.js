@@ -1,4 +1,4 @@
-import { analyticsChannels, api, chColor, jamMenit } from '../core/data.js';
+import { analyticsChannels, api, jamMenit } from '../core/data.js';
 import { AFTER, PAGES } from '../core/registry.js';
 import { route } from '../core/router.js';
 import { S } from '../core/state.js';
@@ -18,7 +18,9 @@ import { render } from '../ui/layout.js';
 
 const R = (S.rekap = { metrik: null, klikTautan: [], tautan: null, snap: [], galatMetrik: null, galatRt: null, metrikPilih: 'views' });
 const persen = (v) => (v == null ? '—' : nf.format(Math.round(v * 10) / 10) + '%');
-const dot = (id) => `<i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${chColor(id)}"></i>`;
+// Warna mengikuti channel (urutan tetap), bukan peringkat nilainya; tiga warna ini sudah divalidasi (lihat pages.css).
+const chColor = (id) => { const i = analyticsChannels().findIndex((c) => c.id === id); return i >= 0 && i < 3 ? `var(--ch-${i + 1})` : 'var(--muted)'; };
+const dot = (id) => `<i class="dot" style="background:${chColor(id)}"></i>`;
 const nama = (c) => `<span class="ed">${dot(c.id)}${esc(c.nama)}</span>`;
 
 const METRIK = [
@@ -117,6 +119,30 @@ const kosongDiagram = {
   realtime: 'Bacaan real-time baru mulai terkumpul. Biarkan halaman ini terbuka beberapa menit.',
 };
 
+// Satu baris per angka, satu kolom per channel: nilai di atas, batang tipis di bawahnya pada skala yang sama dalam satu baris.
+// Nilai tertinggi ditebalkan; warna batang mengikuti channel.
+function matriks(chans, baris) {
+  const kosong = (t) => `<span class="muted">${t}</span>`;
+  const baru = (b) => (b.v == null || !b.vp ? '' : `<span class="sub ${b.v >= b.vp ? 'ok' : 'bad'}">${signed(Math.round(((b.v - b.vp) / b.vp) * 100), (x) => nf.format(x) + '%')} vs sebelumnya</span>`);
+  const baris2 = [
+    { l: 'Views', d: 'total periode', val: (b) => b.v, f: fmt, sub: baru, kosong: 'belum ada data' },
+    { l: 'CTR', d: 'klik dari impresi', val: (b) => b.ctr, f: persen, sub: () => '', kosong: 'belum ada' },
+    { l: 'Retensi', d: 'masih menonton di tengah video', val: (b) => (b.ret ? b.ret.tengah : null), f: persen, max: 100, sub: (b) => (b.ret ? `<span class="sub">${b.ret.n} video</span>` : ''), kosong: 'belum ada kurva' },
+    { l: 'Real-time', d: 'views dalam ± 1 jam', val: (b) => (b.jam ? b.jam.naik : null), f: (v) => '+' + fmt(v), sub: (b) => (b.jam ? `<span class="sub">${b.jam.menit} menit</span>` : ''), kosong: R.galatRt ? 'tidak terbaca' : 'mengumpulkan…' },
+    { l: 'Klik afiliasi', d: 'tautan terlacak', val: (b) => b.klik, f: fmt, sub: () => '', kosong: 'belum ada' },
+  ];
+  return `<div class="cmp" role="table" aria-label="Perbandingan channel">
+    <div class="cmp-r cmp-h" role="row"><span role="columnheader"></span>${baris.map((b) => `<span role="columnheader" class="cmp-ch">${nama(b.c)}${b.c.connected ? '' : '<span class="sub">belum tersambung</span>'}</span>`).join('')}</div>
+    ${baris2.map((r) => {
+      const v = baris.map(r.val), ada = v.filter((x) => x != null);
+      const max = r.max || Math.max(...ada, 0) * 1.0, top = ada.length > 1 ? Math.max(...ada) : null;
+      return `<div class="cmp-r" role="row"><span role="rowheader" class="cmp-l"><b>${r.l}</b><span class="sub">${r.d}</span></span>
+        ${baris.map((b, i) => (v[i] == null ? `<span role="cell" class="cmp-c">${kosong(r.kosong)}</span>`
+          : `<span role="cell" class="cmp-c" title="${esc(b.c.nama)}: ${r.f(v[i])}"><b class="v${v[i] === top ? ' top' : ''}">${r.f(v[i])}</b><span class="bar"><i style="width:${max > 0 ? Math.max(2, (v[i] / max) * 100) : 0}%;background:${chColor(b.c.id)}"></i></span>${r.sub(b)}</span>`)).join('')}</div>`;
+    }).join('')}
+  </div>`;
+}
+
 function isi() {
   const chans = analyticsChannels();
   const p = periode();
@@ -132,26 +158,28 @@ function isi() {
   const ubah = (a, b) => (a == null || !b ? '' : `<div class="sub ${a >= b ? 'ok' : 'bad'}">${signed(Math.round(((a - b) / b) * 100), (x) => nf.format(x) + '%')} vs ${S.anPeriode} hari sebelumnya</div>`);
   const sd = seriesFor(chans, p);
   const adaData = sd.series.some((s) => s.values.some((v) => v != null));
-  const tombolImpor = `<button class="btn sm" data-act="rekap-impor">${icon('plus')}Impor CSV</button>`;
   return `
     ${R.galatRt ? `<div class="notice" role="status"><span><b>Real-time belum terbaca.</b> ${esc(R.galatRt)}</span></div>` : ''}
     ${R.galatMetrik ? `<div class="notice" role="status"><span><b>CTR dan klik afiliasi belum termuat.</b> ${esc(R.galatMetrik)}</span></div>` : ''}
     <section class="card">
-      <div class="card-h"><h2>Rekap ${S.anPeriode} hari</h2><p>${p.latest ? 'Views dan retensi sampai ' + tglPanjang(p.latest) + ' (YouTube terlambat 2–3 hari). ' : ''}Real-time dan klik afiliasi mengikuti bacaan terbaru.</p></div>
+      <div class="card-h"><h2>Perbandingan ${S.anPeriode} hari</h2><p>${p.latest ? 'Views dan retensi sampai ' + tglPanjang(p.latest) + ' (YouTube terlambat 2–3 hari). ' : ''}Panjang batang membandingkan channel pada angka yang sama.</p></div>
+      ${matriks(chans, baris)}
+      <details class="cmp-detail"><summary>Lihat sebagai tabel</summary>
       <div class="table-wrap"><table class="t stack"><thead><tr><th>Channel</th><th class="num">Views</th><th class="num">CTR</th><th class="num">Retensi</th><th class="num">Real-time</th><th class="num">Klik afiliasi</th></tr></thead><tbody>
       ${baris.map((b) => `<tr>
-        <td class="full"><b>${nama(b.c)}</b>${b.c.connected ? '' : ' <span class="pill warn">belum tersambung</span>'}</td>
-        <td class="num" data-label="Views">${b.v == null ? belum('belum ada data') : `<b>${fmt(b.v)}</b>${ubah(b.v, b.vp)}`}</td>
-        <td class="num" data-label="CTR">${b.ctr == null ? belum('belum ada') : `<b>${persen(b.ctr)}</b>`}</td>
-        <td class="num lebar" data-label="Retensi">${b.ret ? `<b>${persen(b.ret.tengah)}</b><div class="sub">bertahan di tengah video · ${b.ret.n} video${b.dur != null ? '<br>' + durasi(b.dur) + ' ditonton per view' : ''}</div>` : belum('belum ada kurva')}</td>
-        <td class="num lebar" data-label="Real-time">${b.jam ? `<b>+${fmt(b.jam.naik)}</b><div class="sub">views / ${b.jam.menit} mnt${b.hari && b.hari.menit > b.jam.menit + 30 ? `<br>+${fmt(b.hari.naik)} / ${b.hari.menit >= 1440 ? '24 jam' : jamMenit(b.hari.menit)}` : ''}</div>` : belum(R.galatRt ? 'tidak terbaca' : 'mengumpulkan…')}</td>
-        <td class="num" data-label="Klik afiliasi">${b.klik == null ? belum('belum ada') : `<b>${fmt(b.klik)}</b>`}</td></tr>`).join('')}
+        <td class="full"><b>${nama(b.c)}</b></td>
+        <td class="num" data-label="Views">${b.v == null ? '—' : fmt(b.v)}</td>
+        <td class="num" data-label="CTR">${b.ctr == null ? '—' : persen(b.ctr)}</td>
+        <td class="num" data-label="Retensi">${b.ret ? persen(b.ret.tengah) + (b.dur != null ? ' · ' + durasi(b.dur) + ' per view' : '') : '—'}</td>
+        <td class="num" data-label="Real-time">${b.jam ? '+' + fmt(b.jam.naik) + ' / ' + b.jam.menit + ' mnt' + (b.hari && b.hari.menit > b.jam.menit + 30 ? ', +' + fmt(b.hari.naik) + ' / ' + (b.hari.menit >= 1440 ? '24 jam' : jamMenit(b.hari.menit)) : '') : '—'}</td>
+        <td class="num" data-label="Klik afiliasi">${b.klik == null ? '—' : fmt(b.klik)}</td></tr>`).join('')}
       </tbody></table></div>
+      </details>
     </section>
     <section class="card" id="kartu-banding">
-      <div class="card-h"><h2>Perbandingan 3 channel</h2><div class="tools">${tombolImpor}</div></div>
+      <div class="card-h"><h2>Perkembangan</h2><p>Pilih angka untuk melihat arahnya dari hari ke hari.</p></div>
       <div class="seg mb-12" role="group" aria-label="Angka yang dibandingkan">${METRIK.map(([k, l]) => `<button data-act="rekap-metrik" data-v="${k}" aria-pressed="${R.metrikPilih === k}">${l}</button>`).join('')}</div>
-      <div class="chart-legend">${chans.map((c) => `<span><i style="background:${chColor(c.id)}"></i>${esc(c.nama)}</span>`).join('')}</div>
+      <div class="chart-legend">${chans.map((c) => `<span>${dot(c.id)}${esc(c.nama)}</span>`).join('')}</div>
       ${adaData ? '<div class="chart minh-230" id="rekap-chart"></div>' : `<div class="empty"><b>Belum ada data</b>${kosongDiagram[R.metrikPilih]}</div>`}
       <p class="muted fs-125 mt-10">${{ views: 'Views harian semua video di channel.', ctr: 'CTR harian (klik dibanding impresi) dari laporan reach YouTube.', retensi: 'Persentase penonton yang masih menonton di tengah video, rata-rata video yang tayang di hari itu.', realtime: 'Tayangan per jam (WIB) dari bacaan total tayangan tiap menit. Hanya terkumpul selama halaman ini terbuka.', klik: 'Klik harian pada tautan afiliasi yang dilacak aplikasi (atau laporan yang diimpor).' }[R.metrikPilih]}</p>
     </section>`;
