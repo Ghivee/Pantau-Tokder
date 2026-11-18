@@ -3,14 +3,15 @@ const axios = require('axios');
 const router = express.Router();
 const db = require('../config/db');
 const { fail, bad } = require('../utils/httpError');
-const { requireAdmin } = require('../middlewares/sessionAuth');
+const { requireAdmin, requireAnyAuth } = require('../middlewares/sessionAuth');
 const crypto = require('crypto');
 const { getChannelIds } = require('../services/channelService');
 
 const TANGGAL = /^\d{4}-\d{2}-\d{2}$/;
 const wib = (n = 0) => new Date(Date.now() + 7 * 3600 * 1000 - n * 86400000).toISOString().slice(0, 10);
 
-router.use(requireAdmin);
+// Pemilik dan karyawan membaca rekap dan membuat tautan; impor dan penghapusan tautan hanya pemilik.
+router.use(requireAnyAuth);
 
 // Angka harian yang diimpor (CTR, impresi, klik afiliasi) untuk periode yang diminta.
 router.get('/', async (req, res) => {
@@ -60,7 +61,7 @@ router.post('/tautan', async (req, res) => {
   } catch (err) { fail(res, err); }
 });
 
-router.delete('/tautan/:kode', async (req, res) => {
+router.delete('/tautan/:kode', requireAdmin, async (req, res) => {
   try {
     await db.query('DELETE FROM tautan WHERE kode = $1', [String(req.params.kode).slice(0, 16)]);
     res.json({ ok: true });

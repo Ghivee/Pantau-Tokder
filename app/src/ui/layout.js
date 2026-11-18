@@ -11,7 +11,7 @@ export function renderNav() {
   const cur = route();
   // Sebelum masuk hanya halaman depan yang tampil: tanpa sidebar dan bilah atas.
   document.querySelector('.shell').classList.toggle('publik', !S.session);
-  $('#nav').innerHTML = S.session ? menuGroups().map((g) => `<div class="nav-label" role="presentation">${g.label}</div>` + g.ids.map((id) => ROUTES.find((x) => x.id === id)).filter(bisaBuka).map((r) =>
+  $('#nav').innerHTML = S.session ? menuGroups().map((g, _i, all) => (all.length > 1 ? `<div class="nav-label" role="presentation">${g.label}</div>` : '') + g.ids.map((id) => ROUTES.find((x) => x.id === id)).filter(bisaBuka).map((r) =>
     `<a href="${pathOf(r.id)}" ${r.id === cur ? 'aria-current="page"' : ''}>${icon(r.icon)}<span>${routeLabel(r)}</span>${badgeOf(r.id) ? `<span class="count">${badgeOf(r.id)}</span>` : ''}</a>`
   ).join('')).join('') : '';
   const who = me();

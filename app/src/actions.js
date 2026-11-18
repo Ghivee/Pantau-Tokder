@@ -8,6 +8,7 @@ import { addDays, idr, today } from './lib/format.js';
 import { aturGajiDialog, cetakSlip, loadGaji, slipDialog } from './pages/gaji.js';
 import { ajukanDialog, putuskanDialog } from './pages/pengajuan.js';
 import { absen, ambilLokasi } from './pages/presensi.js';
+import { muatSaran, salinJudul } from './pages/saran.js';
 import { buatTautan, hapusTautan, pilihMetrik, salinTautan, tautanDialog } from './pages/rekap.js';
 import { bulanLabel, daftarSW, diIOS, muatUlang, pushDidukung, swReg, terpasang } from './pages/shared.js';
 import { pantauPosting, setPosting, showPostList } from './pages/sosmed.js';
@@ -297,6 +298,9 @@ document.addEventListener('click', async (ev) => {
       break;
     }
     case 'tautan-baru': tautanDialog(); break;
+    case 'saran-tautan': tautanDialog(el.dataset.v); break;
+    case 'saran-judul': salinJudul(el.dataset.v); break;
+    case 'saran-muat': muatSaran(); break;
     case 'tautan-buat': buatTautan(); break;
     case 'tautan-salin': salinTautan(el.dataset.kode); break;
     case 'tautan-hapus': hapusTautan(el.dataset.kode); break;

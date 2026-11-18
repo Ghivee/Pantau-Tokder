@@ -144,7 +144,7 @@ async function bootstrap({ isAdmin, editor, ip }) {
     channels: () => channels(),
     scan: () => scanStatus(),
     oauth: () => oauthStatus(),
-    sosmed: () => (isAdmin ? social.ringkasan() : null),
+    sosmed: () => social.ringkasan(),
     goal: () => (isAdmin ? goal() : null),
     daily: () => daily({ isAdmin, dari: wib(190) }),
     presensi: () => presensiFor({ isAdmin, editor, ip }),
