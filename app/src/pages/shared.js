@@ -51,7 +51,7 @@ export function loadInsight(force = false) {
   insightJob = api('/api/insight', { timeout: 30000 })
     .then((r) => { S.insight = { ...r, retMap: new Map(r.retensi.map((x) => [x.id, x])), naikMap: new Map(r.naik.map((x) => [x.id, x])) }; })
     .catch((e) => { S.insight = { error: e.message, retensi: [], naik: [], retMap: new Map(), naikMap: new Map() }; })
-    .finally(() => { insightJob = null; if (['performa', 'tren'].includes(route()) && !$('#overlay').innerHTML) render(); });
+    .finally(() => { insightJob = null; if (['performa', 'tren', 'rekap'].includes(route()) && !$('#overlay').innerHTML) render(); });
   return insightJob;
 }
 

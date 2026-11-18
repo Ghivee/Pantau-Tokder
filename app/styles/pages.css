@@ -165,3 +165,8 @@
 /* Kartu Persiapan: hanya judul langkah dan tombolnya; rincian ada di halaman yang dibuka tombol itu. */
 #kartu-persiapan .ck > div > div, #kartu-persiapan .card-h p { display: none; }
 #kartu-persiapan .ck { padding: 9px 0; }
+
+/* Rekap 3 channel */
+.sub { font-size: 12px; font-weight: 400; color: var(--muted); }
+.sub.ok { color: var(--ok); } .sub.bad { color: var(--bad); }
+@media (min-width: 901px) { #rekap-isi .t.stack { display: table !important; } } /* .stack (utilities) memaksa flex pada tabel; di sini tabel harus tetap tabel */

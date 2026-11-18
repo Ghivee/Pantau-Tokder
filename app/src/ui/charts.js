@@ -149,3 +149,48 @@ export function drawBars(box, { labels, values, ref = 0, fmtV = fmt, label, tipL
   });
   svg.addEventListener('mouseleave', () => { tip.hidden = true; });
 }
+
+// Garis per seri di satu diagram (membandingkan beberapa channel). Nilai null = tidak ada data: garis putus di situ.
+// labels = teks sumbu x, titles = judul tooltip, fmtY = format angka sumbu dan tooltip.
+export function drawLines(box, { labels, titles, series, fmtY = fmt, label = 'Perbandingan channel' }) {
+  const W = Math.max(280, box.clientWidth), H = 250;
+  box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="${esc(label)}"></svg><div class="tip" hidden></div>`;
+  const svg = $('svg', box), tip = $('.tip', box);
+  const all = series.flatMap((s) => s.values).filter((v) => v != null);
+  const max = Math.max(...all, 0), min = Math.min(...all, 0);
+  const step = niceStep(((max - Math.min(min, 0)) || 1) * 1.1);
+  const yMax = Math.ceil((max * 1.08 || step) / step) * step, yMin = min < 0 ? Math.floor(min / step) * step : 0;
+  const ticks = []; for (let v = yMin; v <= yMax + step / 2; v += step) ticks.push(v);
+  const left = Math.max(...ticks.map((t) => measureText(svg, fmtY(t)))) + 10;
+  const m = { t: 10, r: 10, b: 24, l: left };
+  const iw = W - m.l - m.r, ih = H - m.t - m.b, n = labels.length;
+  const x = (i) => m.l + (n === 1 ? iw / 2 : (i / (n - 1)) * iw);
+  const y = (v) => m.t + ih - ((v - yMin) / (yMax - yMin || 1)) * ih;
+  let html = '';
+  ticks.forEach((t) => { html += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(t)}" y2="${y(t)}" stroke="var(--chart-grid)"/><text x="${m.l - 8}" y="${y(t)}" dy="0.32em" text-anchor="end">${fmtY(t)}</text>`; });
+  const every = Math.ceil(n / Math.max(2, Math.floor(iw / 56)));
+  labels.forEach((t, i) => { if ((n - 1 - i) % every === 0) html += `<text x="${x(i)}" y="${H - 6}" text-anchor="middle">${esc(t)}</text>`; });
+  series.forEach((s) => {
+    let d = '', pen = false;
+    s.values.forEach((v, i) => { if (v == null) { pen = false; return; } d += (pen ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v).toFixed(1); pen = true; });
+    html += `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    // A day with data on both sides missing would vanish as a line; show every point as a dot when sparse.
+    if (all.length <= series.length * 40) s.values.forEach((v, i) => { if (v != null) html += `<circle cx="${x(i)}" cy="${y(v)}" r="2.5" fill="${s.color}"/>`; });
+  });
+  html += '<line class="cur" y1="' + m.t + '" y2="' + (m.t + ih) + '" stroke="var(--muted)" stroke-dasharray="3 3" visibility="hidden"/>';
+  svg.innerHTML = html;
+  const cur = $('.cur', svg);
+  const mover = (ev) => {
+    const bx = svg.getBoundingClientRect();
+    const px = (ev.touches ? ev.touches[0].clientX : ev.clientX) - bx.left;
+    const i = Math.max(0, Math.min(n - 1, Math.round(((px / bx.width * W) - m.l) / (iw || 1) * (n - 1))));
+    cur.setAttribute('x1', x(i)); cur.setAttribute('x2', x(i)); cur.setAttribute('visibility', 'visible');
+    tip.innerHTML = `<div class="h">${esc(titles[i])}</div>` + series.map((s) => `<div><i style="background:${s.color}"></i>${esc(s.name)}: <b>${s.values[i] == null ? '—' : fmtY(s.values[i])}</b></div>`).join('');
+    tip.hidden = false;
+    const b = box.getBoundingClientRect();
+    tip.style.left = Math.max(0, Math.min(b.width - tip.offsetWidth, px + 12)) + 'px';
+    tip.style.top = '0px';
+  };
+  svg.addEventListener('mousemove', mover); svg.addEventListener('touchmove', mover, { passive: true });
+  svg.addEventListener('mouseleave', () => { tip.hidden = true; cur.setAttribute('visibility', 'hidden'); });
+}

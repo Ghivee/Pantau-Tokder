@@ -12,6 +12,7 @@ import './pages/pengajuan.js';
 import './pages/pengaturan.js';
 import './pages/performa.js';
 import './pages/presensi.js';
+import './pages/rekap.js';
 import './pages/ringkasan.js';
 import './pages/shared.js';
 import './pages/sosmed.js';
