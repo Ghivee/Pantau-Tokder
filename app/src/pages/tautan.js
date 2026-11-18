@@ -1,46 +1,75 @@
 import { analyticsChannels, api } from '../core/data.js';
 import { AFTER, PAGES } from '../core/registry.js';
-import { route } from '../core/router.js';
 import { S, bisa } from '../core/state.js';
 import { $, esc } from '../lib/dom.js';
 import { idr, nf, tglPendek } from '../lib/format.js';
 import { toast } from '../ui/bits.js';
 import { closeOverlay, confirmDialog, openDialog } from '../ui/dialog.js';
 import { icon } from '../ui/icons.js';
+import { imporAfiliasiDialog } from './afiliasi.js';
 
-// Menu Tautan: saran produk otomatis (seperti rekomendasi di YouTube Shopping) dan tautan pelacak milik tim.
-// Satu ketukan dari saran produk membuka dialog yang namanya sudah terisi; tinggal menempel tautan affiliate.
+// Menu Tautan: semua kebutuhan affiliate di satu tempat, dari atas ke bawah: produk affiliate terlaris (yang terbukti laku),
+// produk dicari (yang dicari penonton di YouTube), lalu tautan pelacak milik tim. Di tiap produk, satu ketukan membuat tautan
+// (nama sudah terisi) atau, bila tautannya sudah ada, menyalinnya.
 
-const T = (S.tautanData = { daftar: null, saran: null, galatSaran: null });
+const T = (S.tautanData = { daftar: null, af: null, afHari: 30, afGalat: null, dicari: null, galatDicari: null });
 
 const urlTautan = (kode) => location.origin + '/go/' + kode;
-const TREN_ALASAN = { terlaris: 'ok', ditanya: 'leaf', dicari: '' };
+const cariShopee = (q) => 'https://shopee.co.id/search?keyword=' + encodeURIComponent(q);
 const channelTerakhir = () => { try { return localStorage.getItem('pt_tl_ch'); } catch (e) { return null; } };
 const simpanChannel = (id) => { try { localStorage.setItem('pt_tl_ch', id); } catch (e) { /* penyimpanan mati */ } };
 
-// Sudah ada tautan untuk produk ini: tampilkan klik 7 harinya dan tombol salin; belum: tombol buat tautan.
-function barisSaran(x) {
-  const chips = x.alasan.map((a) => `<span class="pill ${TREN_ALASAN[a.jenis] || ''}">${esc(a.teks)}</span>`).join('');
-  const aksi = x.tautan
-    ? `<span class="pr-ada"><b>${nf.format(x.tautan.tujuh_hari)}</b><span class="muted">klik 7 hari</span></span><button class="btn sm" data-act="tautan-salin" data-kode="${esc(x.tautan.kode)}">Salin</button>`
-    : `<a class="lnk" href="${esc(x.cari)}" target="_blank" rel="noopener">Cari</a>${bisa('tautan') ? `<button class="btn sm primary" data-act="tautan-baru" data-v="${esc(x.nama.slice(0, 80))}">Buat tautan</button>` : ''}`;
-  return `<div class="pr-row"><div class="pr-t"><span class="pr-nm">${esc(x.nama)}</span><span class="pr-c">${chips}${x.komisi != null ? `<span class="muted">${idr(x.komisi)} · 30 hari</span>` : ''}</span></div><div class="pr-a">${aksi}</div></div>`;
+// Dua nama dianggap produk yang sama bila yang satu memuat yang lain (minimal 6 huruf).
+const norm = (x) => String(x || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+const serupa = (a, b) => { const x = norm(a), y = norm(b); if (!x || !y) return false; const [p, q] = x.length <= y.length ? [x, y] : [y, x]; return p.length >= 6 && q.includes(p); };
+const tautanProduk = (nama) => (T.daftar || []).find((t) => serupa(t.label, nama)) || null;
+
+// Aksi di tiap produk: sudah ada tautan → klik 7 hari dan Salin; belum → Cari di Shopee dan Buat tautan.
+function aksiProduk(nama) {
+  const t = tautanProduk(nama);
+  if (t) return `<span class="pr-ada"><b>${nf.format(t.tujuh_hari)}</b><span class="muted">klik 7 hari</span></span><button class="btn sm" data-act="tautan-salin" data-kode="${esc(t.kode)}">Salin</button>`;
+  return `<a class="lnk" href="${esc(cariShopee(nama))}" target="_blank" rel="noopener">Cari</a>${bisa('tautan') ? `<button class="btn sm primary" data-act="tautan-baru" data-v="${esc(String(nama).slice(0, 80))}">Buat tautan</button>` : ''}`;
 }
 
-function kartuSaran() {
-  const S2 = T.saran;
+// 1. Produk affiliate terlaris menurut komisi di periode terpilih, dibanding periode sebelumnya yang sama panjang.
+// Tanpa izin penghasilan hanya urutan dan arah tren yang tampil, tanpa nominal.
+const TREN = { naik: ['naik', 'ok'], turun: ['turun', 'bad'], stabil: ['stabil', ''], baru: ['baru', 'leaf'] };
+
+function kartuTerlaris() {
+  const A = T.af;
+  if (!A) return T.afGalat ? `<section class="card"><div class="card-h"><h2>Produk affiliate terlaris</h2></div><p class="muted">${esc(T.afGalat)}</p></section>` : '<div class="skeleton" style="height:120px"></div>';
+  const uang = !!A.uang;
+  if (!A.ada_data && !uang) return '';
+  const seg = `<div class="seg" role="group" aria-label="Periode">${[7, 30, 90].map((n) => `<button data-act="af-hari" data-v="${n}" aria-pressed="${A.hari === n}">${n} hari</button>`).join('')}</div>`;
+  const baris = A.terlaris.map((x) => { const [t, c] = TREN[x.tren]; return `
+      <div class="af-row"><span class="af-n">${x.peringkat}</span>
+        <span class="af-p"><span class="af-nm">${esc(x.produk)}</span>
+          <span class="muted"><span class="pill ${c}">${t}</span>${uang ? ` ${nf.format(x.pesanan)} pesanan${x.tren === 'baru' ? '' : ` · sebelumnya ${idr(x.komisi_sebelum)}`}` : ''}</span>
+          <span class="af-akt">${aksiProduk(x.produk)}</span></span>
+        <span class="af-r">${uang ? `<b>${idr(x.komisi)}</b>` : ''}</span></div>`; }).join('');
+  return `<section class="card">
+      <div class="card-h"><h2>Produk affiliate terlaris</h2>${uang ? '<button class="btn sm" data-act="af-impor">Impor laporan</button>' : ''}</div>
+      ${seg}
+      ${A.terlaris.length ? `<div class="af-list mt-12">${baris}</div>${uang ? `<p class="sr-ket">Total komisi ${A.hari} hari: <b>${idr(A.total)}</b>${A.total_sebelum ? ` · sebelumnya ${idr(A.total_sebelum)}` : ''}${A.data_sampai ? ` · data sampai ${tglPendek(A.data_sampai)}` : ''}</p>` : ''}`
+        : `<p class="muted mt-12">Belum ada penjualan dalam ${A.hari} hari terakhir.</p>`}
+    </section>`;
+}
+
+// 2. Produk yang dicari penonton di YouTube (dari saran pencarian; semua channel digabung, tanpa duplikat).
+function kartuDicari() {
   let isi;
-  if (!S2) isi = T.galatSaran ? `<p class="muted">${esc(T.galatSaran)}</p>` : '<div class="skeleton" style="height:140px"></div>';
-  else if (!S2.daftar.length) isi = '<p class="muted">Belum ada saran produk. Saran muncul dari penjualan, pertanyaan penonton, dan pencarian YouTube.</p>';
-  else isi = S2.daftar.map(barisSaran).join('');
-  return `<section class="card"><div class="card-h"><h2>Saran produk</h2><span class="muted">otomatis</span></div>${isi}</section>`;
+  if (T.dicari == null) isi = T.galatDicari ? `<p class="muted">${esc(T.galatDicari)}</p>` : '<div class="skeleton" style="height:100px"></div>';
+  else if (!T.dicari.length) isi = '<p class="muted">Belum ada produk yang terdeteksi dicari.</p>';
+  else isi = T.dicari.map((nama) => `<div class="pr-row"><div class="pr-t"><span class="pr-nm">${esc(nama)}</span></div><div class="pr-a">${aksiProduk(nama)}</div></div>`).join('');
+  return `<section class="card"><div class="card-h"><h2>Produk dicari</h2><span class="muted">di YouTube</span></div>${isi}</section>`;
 }
 
+// 3. Tautan pelacak milik tim, klik terbanyak di atas.
 function kartuTautan() {
   const L = T.daftar, chans = analyticsChannels();
   let isi;
   if (L == null) isi = '<div class="skeleton" style="height:90px"></div>';
-  else if (!L.length) isi = '<p class="muted">Belum ada tautan. Pilih produk di atas untuk membuat yang pertama.</p>';
+  else if (!L.length) isi = '<p class="muted">Belum ada tautan. Buat dari salah satu produk di atas.</p>';
   else isi = `<div class="tl-list">${[...L].sort((a, b) => b.tujuh_hari - a.tujuh_hari || b.total - a.total).map((t) => `
       <div class="tl-row"><div class="tl-t"><b>${esc(t.label)}</b><span class="muted mono">${esc(urlTautan(t.kode).replace(/^https?:\/\//, ''))}</span>
         <span class="muted">${esc((chans.find((c) => c.id === t.channel_id) || {}).nama || '')}${t.video_id ? ' · ' + esc(((S.content.find((v) => v.post_id === t.video_id) || {}).judul) || 'video tertaut') : ''}</span></div>
@@ -50,11 +79,11 @@ function kartuTautan() {
 }
 
 PAGES.tautan = () => `<header class="head"><h1>Tautan</h1>${bisa('tautan') ? `<div class="tools"><button class="btn sm" data-act="tautan-baru" data-v="">${icon('plus')}Baru</button></div>` : ''}</header>
-  <div id="tautan-isi" class="stack-page">${kartuSaran()}${kartuTautan()}</div>`;
+  <div id="tautan-isi" class="stack-page">${kartuTerlaris()}${kartuDicari()}${kartuTautan()}</div>`;
 
 function tampil() {
   const el = $('#tautan-isi');
-  if (el && !$('#overlay').innerHTML) el.innerHTML = kartuSaran() + kartuTautan();
+  if (el && !$('#overlay').innerHTML) el.innerHTML = kartuTerlaris() + kartuDicari() + kartuTautan();
 }
 
 export async function muatTautan() {
@@ -62,15 +91,30 @@ export async function muatTautan() {
   return T.daftar;
 }
 
-async function muatSaranProduk() {
-  try { T.saran = await api('/api/produk-saran', { timeout: 60000 }); T.galatSaran = null; } catch (e) { T.galatSaran = e.message; }
+export async function muatAfiliasi(hari = T.afHari) {
+  T.afHari = hari;
+  try { T.af = await api('/api/afiliasi?hari=' + hari, { timeout: 30000 }); T.afGalat = null; } catch (e) { T.afGalat = e.message; }
+  tampil();
+}
+
+// Frasa produk dari pencarian YouTube tiap channel, digabung dan dibuang yang kembar.
+async function muatDicari() {
+  try {
+    const d = await api('/api/saran', { timeout: 60000 });
+    const lihat = new Set(), daftar = [];
+    for (const c of d.channels) for (const p of c.produk || []) { const k = norm(p.nama); if (!lihat.has(k)) { lihat.add(k); daftar.push(p.nama); } }
+    T.dicari = daftar.slice(0, 8); T.galatDicari = null;
+  } catch (e) { T.galatDicari = e.message; }
   tampil();
 }
 
 AFTER.tautan = () => {
   muatTautan().then(tampil);
-  muatSaranProduk();
+  if (!T.af) muatAfiliasi();
+  if (!T.dicari) muatDicari();
 };
+
+export function imporAfiliasi() { imporAfiliasiDialog(() => muatAfiliasi()); }
 
 // Daftar untuk halaman Upload (disusun menjadi deskripsi): dimuat sekali bila belum ada.
 export const daftarTautan = () => T.daftar;
@@ -119,7 +163,6 @@ export async function buatTautan() {
     if (S.rekap) S.rekap.metrik = null; // klik di Rekap dihitung ulang saat dibuka
     closeOverlay();
     tampil();
-    if (route() === 'tautan') muatSaranProduk();
     try { await navigator.clipboard.writeText(urlTautan(t.kode)); toast('Dibuat dan disalin'); } catch (e) { toast('Tautan dibuat'); }
   } catch (e) { err.textContent = e.message; }
 }
@@ -145,7 +188,6 @@ export function hapusTautan(kode) {
       T.daftar = T.daftar.filter((x) => x.kode !== kode);
       if (S.rekap) S.rekap.metrik = null;
       tampil();
-      if (route() === 'tautan') muatSaranProduk();
-    } catch (e) { toast(e.message, true); }
+      } catch (e) { toast(e.message, true); }
   });
 }
