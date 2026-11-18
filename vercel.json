@@ -31,7 +31,11 @@
       "destination": "/api/index.js"
     },
     {
-      "source": "/((?!api/|assets/).*)",
+      "source": "/go/(.*)",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/((?!api/|assets/|go/).*)",
       "destination": "/index.html"
     }
   ],
