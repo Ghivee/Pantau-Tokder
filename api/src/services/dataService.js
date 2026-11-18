@@ -147,7 +147,7 @@ async function bootstrap({ isAdmin, editor, ip }) {
     oauth: () => oauthStatus(),
     sosmed: () => social.ringkasan(),
     goal: () => (isAdmin ? goal() : null),
-    daily: () => daily({ uang: isAdmin || !!(editor && editor.uang), dari: wib(190) }),
+    daily: () => daily({ uang: isAdmin || !!(editor && editor.uang), dari: wib(400) }),
     presensi: () => presensiFor({ isAdmin, editor, ip }),
     gaji: () => gaji.hitungBulan(wib().slice(0, 7), { editorId: isAdmin ? null : editor.id }),
     pengajuan: () => pengajuanFor({ isAdmin, editor }),

@@ -3,7 +3,7 @@ const db = require('../config/db');
 // Produk affiliate terlaris dari komisi per pesanan yang diimpor. Jumlah rupiah adalah penghasilan: hanya pemilik atau karyawan
 // yang diberi izin yang menerimanya; yang lain hanya mendapat urutan dan arah tren (tanpa nominal dan tanpa jumlah pesanan).
 
-const HARI = [7, 30, 90];
+const HARI = [7, 28, 90, 365];
 const wib = (n = 0) => new Date(Date.now() + 7 * 3600 * 1000 - n * 86400000).toISOString().slice(0, 10);
 const norm = (p) => String(p || '').replace(/\s+/g, ' ').trim();
 
@@ -39,7 +39,7 @@ function tanpaUang(h) {
 }
 
 async function terlaris({ hari, uang }) {
-  const h = HARI.includes(hari) ? hari : 30;
+  const h = HARI.includes(hari) ? hari : 28;
   const r = await db.query(
     `SELECT to_char(tanggal, 'YYYY-MM-DD') AS tanggal, produk, komisi::float AS komisi FROM afiliasi_komisi WHERE tanggal >= $1 ORDER BY tanggal`,
     [wib(2 * h - 1)]);

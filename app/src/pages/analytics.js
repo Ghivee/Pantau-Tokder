@@ -36,7 +36,7 @@ PAGES.analytics = function () {
         <header class="head">
           <div><h1>Analytics</h1><p><b>${nConn}</b> dari ${chans.length} channel tersambung ke YouTube Analytics. ${latest ? 'Angka sampai ' + tglPanjang(latest) + '; YouTube biasanya terlambat 2–3 hari.' : 'Belum ada angka tersimpan.'}</p></div>
           <div class="tools"><div class="seg" role="group" aria-label="Periode">
-            ${[7, 28, 90].map((n) => `<button data-act="an-periode" data-v="${n}" aria-pressed="${S.anPeriode === n}">${n} hari</button>`).join('')}
+            ${[7, 28, 90, 365].map((n) => `<button data-act="an-periode" data-v="${n}" aria-pressed="${S.anPeriode === n}">${n} hari</button>`).join('')}
           </div></div>
         </header>
         ${missing.length ? `<section class="card" style="border-color:var(--warn)"><div class="card-h"><h2>${missing.length} channel belum tersambung</h2><p>${isAdmin() ? 'Klik Hubungkan, login dengan akun tokodeeres@gmail.com, lalu pilih channel yang sesuai di layar Google. Ulangi untuk tiap channel.' : 'Minta pemilik menghubungkannya di Pengaturan.'}</p></div>

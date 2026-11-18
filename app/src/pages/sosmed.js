@@ -54,7 +54,7 @@ export function pantauPosting(n = 0) {
 // Tautan pelacak yang bisa dimasukkan ke deskripsi; diisi setelah daftarnya dimuat.
 function tautanPilihan() {
   const L = daftarTautan();
-  if (!L || !L.length) return '<span class="muted">Belum ada tautan. Buat di Rekap.</span>';
+  if (!L || !L.length) return '<span class="muted">Belum ada tautan. Buat di menu Affiliate.</span>';
   return L.map((t) => `<label class="chk"><input type="checkbox" name="tautan" value="${esc(t.kode)}"> ${esc(t.label)}</label>`).join('');
 }
 

@@ -4,16 +4,16 @@ import { render } from '../ui/layout.js';
 
 export const ROUTES = [
   { id: 'hari-ini', label: 'Hari ini', icon: 'home', karyawan: true },
-  { id: 'rekap', label: 'Rekap', icon: 'chart' },
-  { id: 'saran', label: 'Saran', icon: 'bulb' },
-  { id: 'tautan', label: 'Tautan', icon: 'link' },
+  { id: 'rangkuman', label: 'Rangkuman', icon: 'rangkuman' },
+  { id: 'saran', label: 'Saran', icon: 'video' },
+  { id: 'affiliate', label: 'Affiliate', icon: 'link' },
   { id: 'ringkasan', label: 'Ringkasan', icon: 'home', admin: true },
   { id: 'harian', label: 'Harian', icon: 'day' },
   { id: 'performa', label: 'Performa', short: 'Performa', icon: 'target' },
   { id: 'tren', label: 'Tren channel', short: 'Tren', icon: 'trend' },
   { id: 'konten', label: 'Konten', icon: 'video' },
   { id: 'analytics', label: 'Analytics', icon: 'chart' },
-  { id: 'sosmed', label: 'Upload', icon: 'share' },
+  { id: 'sosmed', label: 'Upload', icon: 'naik' },
   { id: 'presensi', label: 'Presensi', icon: 'pin' },
   { id: 'pengajuan', label: 'Izin & klaim', short: 'Izin', icon: 'inbox' },
   { id: 'gaji', label: 'Gaji', icon: 'wallet' },
@@ -26,26 +26,26 @@ export const ROUTES = [
 
 export const MENU_LENGKAP = false;
 
-export const beranda = () => (me() && MENU_LENGKAP ? 'hari-ini' : 'rekap');
+export const beranda = () => (me() && MENU_LENGKAP ? 'hari-ini' : 'rangkuman');
 
 // The menu in groups, ordered by what each role uses most. The bottom bar on phones shows the first four.
 export function menuGroups() {
-  // Tampilan ringkas untuk pemilik dan karyawan: Rekap, Saran, Upload. Halaman lain (Hari ini, Harian, Presensi, Gaji, dst.)
+  // Tampilan ringkas untuk pemilik dan karyawan: Rangkuman, Saran, Affiliate, Upload. Halaman lain (Hari ini, Harian, Presensi, Gaji, dst.)
   // tidak dihapus, hanya disembunyikan dari menu; set MENU_LENGKAP = true untuk menampilkannya lagi.
-  if (!MENU_LENGKAP) return [{ label: 'Menu', ids: ['rekap', 'saran', 'tautan', 'sosmed', 'karyawan'] }];
+  if (!MENU_LENGKAP) return [{ label: 'Menu', ids: ['rangkuman', 'saran', 'affiliate', 'sosmed', 'karyawan'] }];
   if (me()) return [
     { label: 'Kerja saya', ids: ['hari-ini', 'harian', 'performa', 'presensi', 'pengajuan', 'gaji'] },
-    { label: 'Channel', ids: ['rekap', 'saran', 'tautan', 'sosmed', 'tren', 'analytics', 'konten', 'identifikasi'] },
+    { label: 'Channel', ids: ['rangkuman', 'saran', 'affiliate', 'sosmed', 'tren', 'analytics', 'konten', 'identifikasi'] },
     { label: 'Bantuan', ids: ['panduan'] },
   ];
   return [
-    { label: 'Pantau', ids: ['rekap', 'saran', 'tautan', 'ringkasan', 'harian', 'performa', 'tren', 'konten', 'analytics', 'sosmed'] },
+    { label: 'Pantau', ids: ['rangkuman', 'saran', 'affiliate', 'ringkasan', 'harian', 'performa', 'tren', 'konten', 'analytics', 'sosmed'] },
     { label: 'Tim', ids: ['presensi', 'pengajuan', 'gaji', 'karyawan', 'identifikasi'] },
     { label: 'Pemilik', ids: ['monetisasi', 'pengaturan', 'panduan'] },
   ];
 }
 
-export const TABS = () => (!MENU_LENGKAP ? ['rekap', 'saran', 'tautan', 'sosmed'] : me() ? ['hari-ini', 'presensi', 'performa', 'pengajuan'] : ['rekap', 'harian', 'pengajuan', 'gaji']);
+export const TABS = () => (!MENU_LENGKAP ? ['rangkuman', 'saran', 'affiliate', 'sosmed'] : me() ? ['hari-ini', 'presensi', 'performa', 'pengajuan'] : ['rangkuman', 'harian', 'pengajuan', 'gaji']);
 
 export const routeLabel = (r) => (me() && r.id === 'harian' ? 'Harian saya' : me() && r.id === 'performa' ? 'Performa saya' : me() && r.id === 'konten' ? 'Video channel' : r.label);
 
@@ -57,9 +57,12 @@ export const badgeOf = (id) => (id === 'identifikasi' ? S.unmatched : id === 'pe
 // Pages live at real paths (/harian, /presensi, /harian/3); "/" is the home page of each role.
 export const pathOf = (id) => (id === beranda() ? '/' : '/' + id);
 
+// Alamat lama (sebelum menu diganti nama) tetap membuka halaman yang sama; render() lalu merapikan alamatnya.
+const ALIAS = { rekap: 'rangkuman', tautan: 'affiliate' };
+
 export function route() {
   const h = location.pathname.replace(/^\/+/, '').split('/')[0] || beranda();
-  const r = ROUTES.find((x) => x.id === h);
+  const r = ROUTES.find((x) => x.id === (ALIAS[h] || h));
   if (!r || !bisaBuka(r)) return beranda();
   return r.id;
 }

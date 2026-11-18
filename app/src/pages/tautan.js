@@ -8,11 +8,11 @@ import { closeOverlay, confirmDialog, openDialog } from '../ui/dialog.js';
 import { icon } from '../ui/icons.js';
 import { imporAfiliasiDialog } from './afiliasi.js';
 
-// Menu Tautan: semua kebutuhan affiliate di satu tempat, dari atas ke bawah: produk affiliate terlaris (yang terbukti laku),
+// Menu Affiliate: semua kebutuhan affiliate di satu tempat, dari atas ke bawah: produk affiliate terlaris (yang terbukti laku),
 // produk dicari (yang dicari penonton di YouTube), lalu tautan pelacak milik tim. Di tiap produk, satu ketukan membuat tautan
 // (nama sudah terisi) atau, bila tautannya sudah ada, menyalinnya.
 
-const T = (S.tautanData = { daftar: null, af: null, afHari: 30, afGalat: null, dicari: null, galatDicari: null });
+const T = (S.tautanData = { daftar: null, af: null, afHari: 28, afGalat: null, dicari: null, galatDicari: null });
 
 const urlTautan = (kode) => location.origin + '/go/' + kode;
 const cariShopee = (q) => 'https://shopee.co.id/search?keyword=' + encodeURIComponent(q);
@@ -40,7 +40,7 @@ function kartuTerlaris() {
   if (!A) return T.afGalat ? `<section class="card"><div class="card-h"><h2>Produk affiliate terlaris</h2></div><p class="muted">${esc(T.afGalat)}</p></section>` : '<div class="skeleton" style="height:120px"></div>';
   const uang = !!A.uang;
   if (!A.ada_data && !uang) return '';
-  const seg = `<div class="seg" role="group" aria-label="Periode">${[7, 30, 90].map((n) => `<button data-act="af-hari" data-v="${n}" aria-pressed="${A.hari === n}">${n} hari</button>`).join('')}</div>`;
+  const seg = `<div class="seg" role="group" aria-label="Periode">${[7, 28, 90, 365].map((n) => `<button data-act="af-hari" data-v="${n}" aria-pressed="${A.hari === n}">${n} hari</button>`).join('')}</div>`;
   const baris = A.terlaris.map((x) => { const [t, c] = TREN[x.tren]; return `
       <div class="af-row"><span class="af-n">${x.peringkat}</span>
         <span class="af-p"><span class="af-nm">${esc(x.produk)}</span>
@@ -78,7 +78,7 @@ function kartuTautan() {
   return `<section class="card"><div class="card-h"><h2>Tautan saya</h2><span class="muted">${L ? L.length : ''}</span></div>${isi}</section>`;
 }
 
-PAGES.tautan = () => `<header class="head"><h1>Tautan</h1>${bisa('tautan') ? `<div class="tools"><button class="btn sm" data-act="tautan-baru" data-v="">${icon('plus')}Baru</button></div>` : ''}</header>
+PAGES.affiliate = () => `<header class="head"><h1>Affiliate</h1>${bisa('tautan') ? `<div class="tools"><button class="btn sm" data-act="tautan-baru" data-v="">${icon('plus')}Baru</button></div>` : ''}</header>
   <div id="tautan-isi" class="stack-page">${kartuTerlaris()}${kartuDicari()}${kartuTautan()}</div>`;
 
 function tampil() {
@@ -108,7 +108,7 @@ async function muatDicari() {
   tampil();
 }
 
-AFTER.tautan = () => {
+AFTER.affiliate = () => {
   muatTautan().then(tampil);
   if (!T.af) muatAfiliasi();
   if (!T.dicari) muatDicari();
