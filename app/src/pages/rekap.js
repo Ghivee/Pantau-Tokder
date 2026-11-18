@@ -12,7 +12,7 @@ import { drawLines } from '../ui/charts.js';
 // real-time dari bacaan total tayangan tiap menit, klik dari pelacak tautan.
 
 
-const R = (S.rekap = { metrik: null, klikTautan: [], klikVideo: [], perbaiki: null, snap: [], galatMetrik: null, galatRt: null, metrikPilih: 'views' });
+const R = (S.rekap = { metrik: null, klikTautan: [], klikVideo: [], snap: [], galatMetrik: null, galatRt: null, metrikPilih: 'views' });
 const persen = (v) => (v == null ? '—' : nf.format(Math.round(v * 10) / 10) + '%');
 // Warna mengikuti channel (urutan tetap), bukan peringkat nilainya; tiga warna ini sudah divalidasi (lihat pages.css).
 const chColor = (id) => { const i = analyticsChannels().findIndex((c) => c.id === id); return i >= 0 && i < 3 ? `var(--ch-${i + 1})` : 'var(--muted)'; };
@@ -134,26 +134,6 @@ function videoTeratas(chans) {
   return `<section class="card"><div class="card-h"><h2>Video teratas</h2><span class="muted">dirilis ${n} hari terakhir</span></div><div class="tv">${bagian.join('')}</div></section>`;
 }
 
-// Video yang paling rugi: thumbnail atau judul kurang menarik (CTR rendah), dan pembukaan yang membuat penonton pergi.
-// Dibandingkan dengan rata-rata channel itu sendiri.
-function perbaikiKartu(chans) {
-  const P = R.perbaiki;
-  const nm = (id) => (chans.find((c) => c.id === id) || {}).nama || '';
-  const studio = (id) => 'https://studio.youtube.com/video/' + encodeURIComponent(id) + '/edit';
-  const baris = (x, alasan) => `<div class="pb-row"><span class="pb-t">${dot(x.channel_id)}<span>${esc(x.judul)}</span></span><span class="muted pb-a">${alasan}</span><a class="lnk" href="${studio(x.id)}" target="_blank" rel="noopener">Buka di Studio</a></div>`;
-  let isi;
-  if (!P) isi = '<p class="muted">…</p>';
-  else if (P.galat) isi = `<p class="muted">${esc(P.galat)}</p>`;
-  else if (!P.siap.ctr && !P.siap.retensi) isi = '<p class="muted">Menunggu data CTR dan retensi per video. CTR muncul 1–2 hari setelah sinkronisasi pertama.</p>';
-  else {
-    const t = P.thumbnail.map((x) => ({ ...x, alasan: `CTR ${persen(x.ctr)} · rata-rata channel ${persen(x.ctr_channel)} · ${fmt(x.impresi)} impresi` }));
-    const b = P.pembukaan.map((x) => ({ ...x, alasan: `Bertahan ${Math.round(x.awal)}% di awal · rata-rata channel ${Math.round(x.awal_channel)}% · ${fmt(x.views)} views` }));
-    isi = `<h3>Ganti thumbnail atau judul</h3>${P.siap.ctr ? (t.length ? t.map((x) => baris(x, x.alasan)).join('') : '<p class="muted">Tidak ada yang jauh di bawah rata-rata channel</p>') : '<p class="muted">Menunggu data CTR per video</p>'}
-      <h3>Perbaiki pembukaan</h3>${P.siap.ctr && P.siap.retensi ? (b.length ? b.map((x) => baris(x, x.alasan)).join('') : '<p class="muted">Tidak ada yang jauh di bawah rata-rata channel</p>') : '<p class="muted">Menunggu data CTR dan retensi per video</p>'}`;
-  }
-  return `<section class="card" id="kartu-perbaiki"><div class="card-h"><h2>Perbaiki dulu</h2><span class="muted">video 60 hari terakhir</span></div>${isi}</section>`;
-}
-
 function isi() {
   const chans = analyticsChannels();
   const p = periode();
@@ -169,7 +149,6 @@ function isi() {
     ${belum.length ? `<div class="notice" role="status"><span>${belum.map((c) => esc(c.nama)).join(', ')} belum tersambung.</span></div>` : ''}
     ${R.galatRt ? `<div class="notice" role="status"><span>Real-time: ${esc(R.galatRt)}</span></div>` : ''}
     ${videoTeratas(chans)}
-    ${perbaikiKartu(chans)}
     <div class="met-grid">
       ${kartuAngka('Views', baris, (b) => b.v, fmt, { delta })}
       ${lihatUang() ? kartuAngka('Penghasilan', baris, (b) => b.uang, (v) => 'Rp ' + fmt(v)) : ''}
@@ -206,11 +185,6 @@ export function segarkanRekap() {
 
 let timer = null;
 
-async function muatPerbaiki() {
-  try { R.perbaiki = await api('/api/perbaiki', { timeout: 30000 }); } catch (e) { R.perbaiki = { thumbnail: [], pembukaan: [], siap: { ctr: false, retensi: false }, galat: e.message }; }
-  segarkanRekap();
-}
-
 async function muatMetrik() {
   try { const r = await api('/api/rekap?hari=366'); R.metrik = r.metrik; R.klikTautan = r.klik_tautan || []; R.klikVideo = r.klik_video || []; R.galatMetrik = null; } catch (e) { R.galatMetrik = e.message; if (!R.metrik) R.metrik = []; }
 }
@@ -231,7 +205,6 @@ function mulaiRealtime() {
 
 AFTER.rekap = function () {
   gambar();
-  if (R.perbaiki == null) muatPerbaiki();
   if (R.metrik == null) muatMetrik().then(segarkanRekap);
   if (!timer) mulaiRealtime();
 };

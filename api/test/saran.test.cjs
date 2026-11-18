@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const { analisisGaya } = require('../src/services/gayaService');
-const { buatJudul, temaOf, judulKapital } = require('../src/services/saranService');
+const { temaOf } = require('../src/services/saranService');
 const { sisipKode } = require('../src/routes/posting');
 
 const rows = (judul, f = (i) => 10000 - i * 500) => judul.map((j, i) => ({ judul: j, views: f(i) + (/\?/.test(j) ? 8000 : 0), tipe_video: 'long', umur_hari: 30 }));
@@ -21,40 +21,10 @@ test('gaya: ciri khas mengikuti apa yang sering muncul di video terlaris channel
   assert.strictEqual(a.terlaris[0].judul, ANGKA[0]);
 });
 
-test('judul: channel berbeda mendapat pengait berbeda dari frasa pencarian yang sama', () => {
-  const frasa = ['obat hama cabe rawit', 'pupuk cabe rawit', 'cara menanam cabe rawit'];
-  const t = buatJudul(frasa, analisisGaya(rows(TANYA)), 'budidaya', { pendek: '18 November', panjang: '18 November 2026' });
-  const g = buatJudul(frasa, analisisGaya(rows(ANGKA)), 'budidaya', { pendek: '18 November', panjang: '18 November 2026' });
-  assert.ok(t.some((x) => x.includes('?')) && g.some((x) => /^\d/.test(x)));
-  assert.notDeepStrictEqual(t, g);
-});
-
-test('judul: wajar, tidak mengulang kata, tidak menyebut daerah, maksimal 90 huruf', () => {
-  const frasa = ['harga cabe rawit hari ini', 'harga cabe rawit hari ini di medan', 'prediksi harga cabe rawit 2027', 'mengatasi hama cabe rawit', 'jenis jenis hama cabe rawit', 'obat hama cabe rawit paling ampuh', 'cara menanam cabe rawit di polybag'];
-  for (const tema of ['budidaya', 'harga']) {
-    const j = buatJudul(frasa, analisisGaya(rows(TANYA)), tema, { pendek: '18 November', panjang: '18 November 2026' });
-    assert.ok(j.length >= 8, `${tema}: ${j.length}`);
-    for (const x of j) {
-      assert.ok(x.length <= 90, x);
-      assert.ok(!/medan/i.test(x), x);
-    }
-    assert.strictEqual(new Set(j).size, j.length);
-  }
-  assert.ok(!buatJudul(['prediksi harga cabe rawit 2027'], {}, 'harga', { pendek: '18 November', panjang: '18 November 2026' }).some((x) => x.includes('18 November')));
-  assert.ok(!buatJudul(['obat hama cabe rawit paling ampuh'], {}, 'budidaya', {}).some((x) => /Mana yang Paling Ampuh/.test(x)));
-  assert.ok(!buatJudul(['mengatasi hama cabe rawit'], {}, 'budidaya', {}).some((x) => /Cara Mengatasinya/.test(x)));
-});
-
-test('judul harga memuat tanggal hari ini', () => {
-  const j = buatJudul(['harga cabe rawit hari ini', 'harga cabe rawit'], analisisGaya([]), 'harga', { pendek: '18 November', panjang: '18 November 2026' });
-  assert.ok(j.some((x) => x.includes('18 November')));
-});
-
-test('tema channel dari nama dan kapitalisasi judul', () => {
+test('tema channel dari nama', () => {
   assert.strictEqual(temaOf('Harga Cabe Hari Ini'), 'harga');
   assert.strictEqual(temaOf('Budidaya Cabe'), 'budidaya');
   assert.strictEqual(temaOf('Tokder'), 'tokder');
-  assert.strictEqual(judulKapital('pupuk untuk cabe rawit dan npk'), 'Pupuk untuk Cabe Rawit dan NPK');
 });
 
 test('kode karyawan disisipkan sekali dan tidak menyalahi kata lain', () => {
