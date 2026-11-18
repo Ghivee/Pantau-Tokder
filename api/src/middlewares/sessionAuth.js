@@ -94,14 +94,14 @@ async function identify(req, res, next) {
     const token = readToken(req);
     if (token) {
       const r = await db.query(
-        `SELECT s.tipe, e.id, e.nama, e.peran, e.status FROM sesi s LEFT JOIN editors e ON e.id = s.editor_id
+        `SELECT s.tipe, e.id, e.nama, e.peran, e.status, e.lihat_penghasilan FROM sesi s LEFT JOIN editors e ON e.id = s.editor_id
          WHERE s.token_hash = $1 AND s.expires_at > NOW()`,
         [tokenHash(token)]
       );
       const row = r.rows[0];
       if (row && row.tipe === 'admin') req.isAdmin = true;
       if (row && row.tipe === 'karyawan' && row.id && row.status === 'aktif') {
-        req.editor = { id: row.id, nama: row.nama, peran: row.peran || 'editor' };
+        req.editor = { id: row.id, nama: row.nama, peran: row.peran || 'editor', uang: row.lihat_penghasilan === true };
       }
     }
   } catch (err) {

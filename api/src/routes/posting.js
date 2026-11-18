@@ -5,12 +5,10 @@ const { fail, bad } = require('../utils/httpError');
 const db = require('../config/db');
 const { sign } = require('../utils/encryption');
 const posting = require('../services/postingService');
-const { requireAdmin, requireAnyAuth } = require('../middlewares/sessionAuth');
+const { requireAnyAuth } = require('../middlewares/sessionAuth');
 
-// Karyawan mengunggah dan menyiapkan draf; menayangkan ke publik dan menghapus tetap tindakan pemilik.
-const KARYAWAN_BOLEH_TAYANG = false;
-const tayangGuard = (req, res, next) => (KARYAWAN_BOLEH_TAYANG ? requireAnyAuth(req, res, next) : requireAdmin(req, res, next));
 const { createAuditMiddleware } = require('../utils/auditLog');
+const { requireIzin, bisa } = require('../utils/izin');
 
 const base = (req) => (process.env.PUBLIC_URL || `${req.headers['x-forwarded-proto'] || 'https'}://${req.headers.host || 'pantautokder.vercel.app'}`).replace(/\/+$/, '');
 const idOf = (req) => { if (!/^\d+$/.test(req.params.id)) throw bad(400, 'Posting tidak dikenal'); return Number(req.params.id); };
@@ -41,7 +39,7 @@ router.post('/blob', async (req, res) => {
     const out = await handleUpload({
       body: req.body, request: req,
       onBeforeGenerateToken: async () => {
-        if (!req.isAdmin && !req.editor) throw bad(401, 'Masuk dulu');
+        if (!bisa(req, 'upload')) throw bad(req.editor ? 403 : 401, req.editor ? 'Peran Anda tidak boleh mengunggah' : 'Masuk dulu');
         return { allowedContentTypes: VIDEO_TYPES, maximumSizeInBytes: MAX_BYTES, addRandomSuffix: true };
       },
     });
@@ -52,7 +50,7 @@ router.post('/blob', async (req, res) => {
 router.get('/', requireAnyAuth, async (req, res) => { try { res.json(await posting.daftar()); } catch (err) { fail(res, err); } });
 
 // POST /api/posting: video is already in Blob; prepare it on every chosen account (as drafts)
-router.post('/', requireAnyAuth, createAuditMiddleware('posting', 'create', () => 'baru'), async (req, res) => {
+router.post('/', requireIzin('upload'), createAuditMiddleware('posting', 'create', () => 'baru'), async (req, res) => {
   try {
     const b = req.body || {};
     const ids = (a) => (Array.isArray(a) ? a.filter((x) => /^\d+$/.test(String(x))).map(Number) : []);
@@ -63,8 +61,8 @@ router.post('/', requireAnyAuth, createAuditMiddleware('posting', 'create', () =
 });
 
 router.post('/:id/segarkan', requireAnyAuth, async (req, res) => { try { res.json(await posting.segarkan(idOf(req))); } catch (err) { fail(res, err); } });
-router.post('/:id/tayang', tayangGuard, createAuditMiddleware('posting', 'publish', (req) => req.params.id), async (req, res) => { try { res.json(await posting.tayangkan(idOf(req))); } catch (err) { fail(res, err); } });
-router.delete('/:id', requireAdmin, createAuditMiddleware('posting', 'delete', (req) => req.params.id), async (req, res) => { try { await posting.hapus(idOf(req)); res.status(204).send(); } catch (err) { fail(res, err); } });
+router.post('/:id/tayang', requireIzin('tayang'), createAuditMiddleware('posting', 'publish', (req) => req.params.id), async (req, res) => { try { res.json(await posting.tayangkan(idOf(req))); } catch (err) { fail(res, err); } });
+router.delete('/:id', requireIzin('hapus'), createAuditMiddleware('posting', 'delete', (req) => req.params.id), async (req, res) => { try { await posting.hapus(idOf(req)); res.status(204).send(); } catch (err) { fail(res, err); } });
 
 // GET /api/posting/media/:id/:sig: the address TikTok pulls the video from. TikTok only accepts
 // addresses under a domain verified in its portal, so the video is passed through our own address.

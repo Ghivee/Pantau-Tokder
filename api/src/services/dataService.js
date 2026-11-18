@@ -26,15 +26,16 @@ function samarkan(row, selfId) {
   return row;
 }
 
-async function content({ isAdmin, selfId, editorId, platform, status } = {}) {
+async function content({ isAdmin, uang, selfId, editorId, platform, status } = {}) {
   let sql = `SELECT ${LIST_COLUMNS} FROM content WHERE 1=1`;
   const params = [];
   if (editorId && editorId !== 'all') { params.push(editorId); sql += ` AND editor_id = $${params.length}`; }
   if (platform && platform !== 'all') { params.push(platform); sql += ` AND platform = $${params.length}`; }
   if (status) { params.push(status); sql += ` AND status_identifikasi = $${params.length}`; }
   const rows = (await db.query(sql + ' ORDER BY tanggal_upload DESC', params)).rows;
-  // Revenue is for the owner only.
-  if (!isAdmin) rows.forEach((r) => { delete r.revenue; samarkan(r, selfId); });
+  // Penghasilan hanya untuk pemilik dan karyawan yang diberi izin; karyawan tidak diberi tahu pembuat video rekannya.
+  if (!uang) rows.forEach((r) => { delete r.revenue; });
+  if (!isAdmin) rows.forEach((r) => samarkan(r, selfId));
   return rows;
 }
 
@@ -48,7 +49,7 @@ async function channels() {
   return ids.map((id) => ({ id, nama: names[id] || (byId[id] && byId[id].nama) || id, jumlah_video: (byId[id] && byId[id].jumlah_video) || 0 }));
 }
 
-async function daily({ isAdmin, dari = wib(95), sampai = wib(0) } = {}) {
+async function daily({ uang, dari = wib(95), sampai = wib(0) } = {}) {
   if (!TANGGAL.test(dari)) dari = wib(95);
   if (!TANGGAL.test(sampai)) sampai = wib(0);
   const rows = (await db.query(
@@ -57,7 +58,7 @@ async function daily({ isAdmin, dari = wib(95), sampai = wib(0) } = {}) {
      FROM channel_daily WHERE tanggal BETWEEN $1 AND $2 ORDER BY tanggal`,
     [dari, sampai]
   )).rows;
-  if (!isAdmin) rows.forEach((r) => { delete r.revenue; });
+  if (!uang) rows.forEach((r) => { delete r.revenue; });
   return rows;
 }
 
@@ -138,7 +139,7 @@ async function bootstrap({ isAdmin, editor, ip }) {
   const parts = {
     // An employee gets only their own profile, tasks and attendance.
     editors: () => editorService.getAllEditors().then((l) => (isAdmin ? l : l.filter((e) => e.id === editor.id))),
-    content: () => content({ isAdmin, selfId: editor && editor.id }),
+    content: () => content({ isAdmin, uang: isAdmin || !!(editor && editor.uang), selfId: editor && editor.id }),
     aktivitas: () => aktivitas({ dari: wib(60), editorId: isAdmin ? null : editor.id }),
     kalender: () => kalenderFor(),
     channels: () => channels(),
@@ -146,7 +147,7 @@ async function bootstrap({ isAdmin, editor, ip }) {
     oauth: () => oauthStatus(),
     sosmed: () => social.ringkasan(),
     goal: () => (isAdmin ? goal() : null),
-    daily: () => daily({ isAdmin, dari: wib(190) }),
+    daily: () => daily({ uang: isAdmin || !!(editor && editor.uang), dari: wib(190) }),
     presensi: () => presensiFor({ isAdmin, editor, ip }),
     gaji: () => gaji.hitungBulan(wib().slice(0, 7), { editorId: isAdmin ? null : editor.id }),
     pengajuan: () => pengajuanFor({ isAdmin, editor }),

@@ -1,8 +1,9 @@
 const db = require('../config/db');
 const { hashPin } = require('../middlewares/sessionAuth');
+const { peranValid } = require('../utils/izin');
 
 // Never send the PIN hash to the browser.
-const PUBLIC_COLUMNS = `id, nama, kode_identifikasi, status, created_at, peran, jadwal, target_harian, foto_url,
+const PUBLIC_COLUMNS = `id, nama, kode_identifikasi, status, created_at, peran, lihat_penghasilan, jadwal, target_harian, foto_url,
   (pin IS NOT NULL AND pin <> '') AS punya_pin`;
 
 function cleanJadwal(jadwal) {
@@ -23,15 +24,16 @@ async function getAllEditors() {
 
 async function addEditor(nama, kode, extra = {}) {
   const result = await db.query(
-    `INSERT INTO editors (nama, kode_identifikasi, peran, jadwal, target_harian, foto_url, pin)
-     VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING ${PUBLIC_COLUMNS}`,
+    `INSERT INTO editors (nama, kode_identifikasi, peran, jadwal, target_harian, foto_url, pin, lihat_penghasilan)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING ${PUBLIC_COLUMNS}`,
     [
       nama, kode,
-      extra.peran === 'terbatas' ? 'terbatas' : 'editor',
+      peranValid(extra.peran),
       cleanJadwal(extra.jadwal) || '',
       parseInt(extra.target_harian, 10) || 3,
       extra.foto_url || null,
       extra.pin ? hashPin(extra.pin) : null,
+      extra.lihat_penghasilan === true,
     ]
   );
   return result.rows[0];
@@ -41,7 +43,8 @@ async function updateEditor(id, nama, kode, extra = {}) {
   const sets = ['nama = $1', 'kode_identifikasi = $2'];
   const params = [nama, kode];
   const add = (col, val) => { params.push(val); sets.push(`${col} = $${params.length}`); };
-  if (extra.peran !== undefined) add('peran', extra.peran === 'terbatas' ? 'terbatas' : 'editor');
+  if (extra.peran !== undefined) add('peran', peranValid(extra.peran));
+  if (extra.lihat_penghasilan !== undefined) add('lihat_penghasilan', extra.lihat_penghasilan === true);
   if (extra.jadwal !== undefined) add('jadwal', cleanJadwal(extra.jadwal) || '');
   if (extra.target_harian !== undefined && extra.target_harian !== '') add('target_harian', parseInt(extra.target_harian, 10) || 3);
   if (extra.foto_url !== undefined) add('foto_url', extra.foto_url || null);

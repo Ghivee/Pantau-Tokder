@@ -1,6 +1,6 @@
 import { analyticsChannels, chColor, jamMenit } from '../core/data.js';
 import { AFTER, PAGES } from '../core/registry.js';
-import { S, isAdmin } from '../core/state.js';
+import { S, isAdmin, lihatUang } from '../core/state.js';
 import { daysBack } from '../core/stats.js';
 import { $, $$, esc } from '../lib/dom.js';
 import { addDays, durasi, fmt, median, nf, pct, rpOrDash, signed, sum, tglPanjang, tglPendek, today } from '../lib/format.js';
@@ -29,7 +29,7 @@ PAGES.analytics = function () {
       return `<span class="d ${x >= 0 ? 'ok' : 'bad'}">${signed(x, (v) => nf.format(v) + '%')} dari ${S.anPeriode} hari sebelumnya</span>`;
     };
     const avgDur = (t) => (t.views ? durasi(Math.round((t.menit * 60) / t.views)) : '—');
-    const showRev = isAdmin() && cur.rev != null;
+    const showRev = lihatUang() && cur.rev != null;
     const nConn = chans.filter((c) => c.connected).length;
     const missing = chans.filter((c) => !c.connected);
     return `
@@ -63,7 +63,7 @@ PAGES.analytics = function () {
                 <div class="mini"><h3>Views</h3><div class="v">${fmt(t.views)}</div>${change(t.views, p.views)}</div>
                 <div class="mini"><h3>Jam tonton</h3><div class="v">${jamMenit(t.menit)}</div><div class="d">${avgDur(t)} per view</div></div>
                 <div class="mini"><h3>Subscriber bersih</h3><div class="v">${signed(t.naik - t.turun)}</div><div class="d">+${nf.format(t.naik)} / −${nf.format(t.turun)}</div></div>
-                ${isAdmin() && t.rev != null ? `<div class="mini"><h3>Pendapatan</h3><div class="v">${rpOrDash(t.rev)}</div>${change(t.rev, p.rev)}</div>` : `<div class="mini"><h3>Video baru</h3><div class="v">${nf.format(S.content.filter((x) => x._ch === c.id && days.includes(x._day)).length)}</div><div class="d">di periode ini</div></div>`}
+                ${lihatUang() && t.rev != null ? `<div class="mini"><h3>Pendapatan</h3><div class="v">${rpOrDash(t.rev)}</div>${change(t.rev, p.rev)}</div>` : `<div class="mini"><h3>Video baru</h3><div class="v">${nf.format(S.content.filter((x) => x._ch === c.id && days.includes(x._day)).length)}</div><div class="d">di periode ini</div></div>`}
               </div>
               <div class="chart an-spark mt-12" data-ch="${esc(c.id)}"></div>`
             : `<div class="empty"><b>${c.connected ? 'Menunggu data' : 'Belum ada data'}</b>${c.connected ? 'Klik Sinkronkan sekarang di Pengaturan.' : 'Hubungkan channel ini di Pengaturan.'}</div>`}
@@ -80,7 +80,7 @@ PAGES.analytics = function () {
 // Revenue and growth advice computed from the channels' own numbers. A rule shows only when
 // there is enough data behind it, and each one states the numbers it is based on.
 function strategiHtml(days, chans) {
-  const admin = isAdmin();
+  const admin = lihatUang();
   const out = [];
   const money = rpOrDash;
   const period = S.anPeriode + ' hari';

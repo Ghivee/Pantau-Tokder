@@ -1,4 +1,5 @@
 const express = require('express');
+const { bisaLihatUang, hapusUang } = require('../utils/izin');
 const router = express.Router();
 const { fail, bad } = require('../utils/httpError');
 const { requireAnyAuth, requireAdmin } = require('../middlewares/sessionAuth');
@@ -21,7 +22,7 @@ router.get('/daily', requireAnyAuth, async (req, res) => {
     const result = await computeDailyScore(editorId, day);
     if (!result) return res.status(404).json({ error: 'Karyawan tidak ditemukan' });
     
-    res.json(result);
+    res.json(bisaLihatUang(req) ? result : hapusUang(result));
   } catch (err) {
     fail(res, err);
   }
@@ -42,7 +43,7 @@ router.get('/period', requireAnyAuth, async (req, res) => {
     const result = await computePeriodScore(editorId, days);
     if (!result) return res.status(404).json({ error: 'Karyawan tidak ditemukan' });
     
-    res.json(result);
+    res.json(bisaLihatUang(req) ? result : hapusUang(result));
   } catch (err) {
     fail(res, err);
   }
@@ -53,7 +54,7 @@ router.get('/all', requireAdmin, async (req, res) => {
   try {
     const days = Math.min(90, Math.max(1, parseInt(req.query.days || '7', 10)));
     const results = await getAllEditorScores(days);
-    res.json({ days, editors: results });
+    res.json(bisaLihatUang(req) ? { days, editors: results } : hapusUang({ days, editors: results }));
   } catch (err) {
     fail(res, err);
   }
@@ -70,7 +71,7 @@ router.get('/leaderboard', requireAdmin, async (req, res) => {
       .sort((a, b) => b.skor - a.skor)
       .map((r, i) => ({ rank: i + 1, ...r }));
     
-    res.json({ days, leaderboard: ranked });
+    res.json(bisaLihatUang(req) ? { days, leaderboard: ranked } : hapusUang({ days, leaderboard: ranked }));
   } catch (err) {
     fail(res, err);
   }
