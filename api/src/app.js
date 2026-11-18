@@ -133,6 +133,7 @@ app.use('/api/push', require('./routes/push'));
 app.use('/api/social', require('./routes/social'));
 app.use('/api/posting', require('./routes/posting'));
 app.use('/api/rekap', require('./routes/rekap'));
+app.use('/go', require('./routes/go'));
 app.use('/api', cspReportRouter);
 
 app.use('/api', (req, res) => res.status(404).json({ error: 'Alamat API tidak ditemukan' }));
