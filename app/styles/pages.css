@@ -171,29 +171,33 @@
 .sub.ok { color: var(--ok); } .sub.bad { color: var(--bad); }
 @media (min-width: 901px) { #rekap-isi .t.stack { display: table !important; } } /* .stack (utilities) memaksa flex pada tabel; di sini tabel harus tetap tabel */
 
-/* Rekap: matriks perbandingan 3 channel. Warna channel: slot 1-3 palet kategorikal yang sudah divalidasi (CVD, kontras, mode gelap). */
+/* Rekap */
 :root { --ch-1: #2a78d6; --ch-2: #eb6834; --ch-3: #1baf7a; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --ch-1: #3987e5; --ch-2: #d95926; --ch-3: #199e70; } }
 :root[data-theme="dark"] { --ch-1: #3987e5; --ch-2: #d95926; --ch-3: #199e70; }
-.dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; flex: none; }
-.cmp { display: flex; flex-direction: column; }
-.cmp-r { display: grid; grid-template-columns: minmax(96px, 1.1fr) repeat(3, minmax(0, 1.4fr)); gap: 0 20px; align-items: start; padding: 14px 0; border-top: 1px solid var(--line); }
-.cmp-r.cmp-h { border-top: 0; padding: 6px 0 12px; }
-.cmp-ch { display: flex; flex-direction: column; gap: 2px; font-weight: 500; font-size: 13px; min-width: 0; }
-.cmp-ch .ed { display: inline-flex; align-items: center; gap: 7px; }
-.cmp-l { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.cmp-l b { font-size: 14px; font-weight: 500; }
-.cmp-c { display: flex; flex-direction: column; gap: 6px; min-width: 0; font-size: 13px; }
-.cmp-c .v { font-size: 20px; font-weight: 500; letter-spacing: -.01em; color: var(--ink-2); font-variant-numeric: tabular-nums; }
-.cmp-c .v.top { color: var(--ink); font-weight: 700; }
-.cmp-c .bar { display: block; height: 6px; background: var(--sunken, var(--line)); border-radius: 3px; overflow: hidden; }
-.cmp-c .bar i { display: block; height: 100%; border-radius: 0 3px 3px 0; }
-.cmp-detail { margin-top: 6px; border-top: 1px solid var(--line); padding-top: 10px; }
-.cmp-detail summary { cursor: pointer; font-size: 13px; color: var(--muted); padding: 4px 0; }
-@media (max-width: 640px) {
-  .cmp-r { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 12px; }
-  .cmp-r > .cmp-l { grid-column: 1 / -1; flex-direction: row; align-items: baseline; gap: 8px; }
-  .cmp-r.cmp-h > span:first-child { display: none; }
-  .cmp-c .v { font-size: 17px; }
-  .cmp-ch { font-size: 12px; }
-}
+.dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.stack-page { display: flex; flex-direction: column; gap: 16px; }
+.met-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 12px; }
+.met { padding-block: 14px 8px; }
+.met h2 { margin: 0 0 2px; font-size: 13px; font-weight: 600; color: var(--muted); letter-spacing: 0; }
+.mrow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 5px 12px; align-items: baseline; padding: 8px 0; border-top: .5px solid var(--line); }
+.mrow:first-of-type { border-top: 0; }
+.mrow .nm { display: inline-flex; align-items: center; gap: 8px; min-width: 0; font-size: 15px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.mrow .vl { display: inline-flex; align-items: baseline; gap: 8px; }
+.mrow .v { font-size: 19px; font-weight: 500; letter-spacing: -.02em; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.mrow .v.top { color: var(--ink); font-weight: 700; }
+.mrow .dl { font-size: 12px; font-weight: 500; }
+.mrow .dl.ok { color: var(--ok); } .mrow .dl.bad { color: var(--bad); }
+.mrow .bar { grid-column: 1 / -1; height: 4px; border-radius: 3px; background: var(--sunken); overflow: hidden; }
+.mrow .bar i { display: block; height: 100%; border-radius: 0 3px 3px 0; }
+.seg.scroll { display: flex; overflow-x: auto; scrollbar-width: none; }
+.seg.scroll::-webkit-scrollbar { display: none; }
+.tl-list { display: flex; flex-direction: column; }
+.tl-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; align-items: center; padding: 12px 0; border-top: .5px solid var(--line); }
+.tl-row:first-child { border-top: 0; }
+.tl-t { display: flex; flex-direction: column; min-width: 0; gap: 1px; font-size: 13px; }
+.tl-t b { font-size: 15px; } .tl-t .mono { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tl-n { display: flex; flex-direction: column; align-items: flex-end; font-size: 12px; } .tl-n b { font-size: 20px; font-weight: 600; }
+.tl-a { grid-column: 1 / -1; display: flex; gap: 4px; margin-left: -12px; }
+@media (min-width: 640px) { .tl-row { grid-template-columns: minmax(0, 1fr) 70px auto; } .tl-a { grid-column: auto; margin: 0; } }
+@media (min-width: 640px) { .seg.scroll { max-width: 460px; } }
