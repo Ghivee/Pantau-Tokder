@@ -7,6 +7,8 @@ import { $, $$, esc } from '../lib/dom.js';
 import { nf } from '../lib/format.js';
 import { waktuWib } from './presensi.js';
 import { toast } from '../ui/bits.js';
+import { confirmDialog } from '../ui/dialog.js';
+import { daftarTautan, muatTautan } from './rekap.js';
 
 const PLAT = { tiktok: 'TikTok', instagram: 'Instagram', facebook: 'Facebook', youtube: 'YouTube' };
 
@@ -49,6 +51,31 @@ export function pantauPosting(n = 0) {
   }, 12000);
 }
 
+// Tautan pelacak yang bisa dimasukkan ke deskripsi; diisi setelah daftarnya dimuat.
+function tautanPilihan() {
+  const L = daftarTautan();
+  if (!L || !L.length) return '<span class="muted">Belum ada tautan. Buat di Rekap.</span>';
+  return L.map((t) => `<label class="chk"><input type="checkbox" name="tautan" value="${esc(t.kode)}"> ${esc(t.label)}</label>`).join('');
+}
+
+// Judul + tautan yang dicentang menjadi deskripsi siap pakai (produk, tautan pelacak, pernyataan afiliasi, tagar).
+export function susunDeskripsi() {
+  const f = $('#post-form');
+  if (!f) return;
+  const err = $('#post-err');
+  err.textContent = '';
+  const judul = f.elements.judul.value.trim();
+  if (!judul) { err.textContent = 'Isi judul dulu'; f.elements.judul.focus(); return; }
+  const jalan = async () => {
+    try {
+      const r = await api('/api/posting/deskripsi', { method: 'POST', body: { judul, tautan: $$('[name=tautan]:checked', f).map((x) => x.value) } });
+      f.elements.deskripsi.value = r.deskripsi;
+      toast('Deskripsi siap');
+    } catch (e) { err.textContent = e.message; }
+  };
+  if (f.elements.deskripsi.value.trim()) confirmDialog('Ganti deskripsi?', 'Isi deskripsi sekarang akan diganti.', 'Ganti', jalan); else jalan();
+}
+
 function postingCard(d) {
   const sosmedAkun = d.platforms.flatMap((p) => p.koneksi);
   const yt = ((S.oauth && S.oauth.channels) || []).filter((c) => c.connected);
@@ -58,6 +85,8 @@ function postingCard(d) {
       ${bisa('upload') ? `<form id="post-form" class="stack">
         <label class="field"><span>Judul</span><input class="input" name="judul" maxlength="100" required></label>
         <label class="field"><span>Deskripsi</span><textarea class="input" name="deskripsi" rows="3" maxlength="4000"></textarea></label>
+        <div class="field"><span>Tautan produk</span><div class="kata" id="post-tautan">${tautanPilihan()}</div></div>
+        <div><button type="button" class="btn sm" data-act="susun-deskripsi">Susun deskripsi</button></div>
         <label class="field"><span>Video</span><input class="input" type="file" name="video" accept="video/mp4,video/quicktime,video/webm" required></label>
         <div class="field"><span>Kirim ke</span><div class="kata">
           ${sosmedAkun.map((k) => kotak('akun', k.id, esc(PLAT[k.platform] + ' · ' + (k.nama || k.akun_id)), !k.bisa_posting, k.bisa_posting ? '' : 'hubungkan ulang')).join('')}
@@ -89,6 +118,7 @@ PAGES.sosmed = function () {
 
 AFTER.sosmed = function () {
     pantauPosting();
+    muatTautan().then(() => { const el = $('#post-tautan'); if (el && !$$('[name=tautan]:checked', el).length) el.innerHTML = tautanPilihan(); });
     const f = $('#post-form');
     if (!f) return;
     f.addEventListener('submit', async (ev) => {

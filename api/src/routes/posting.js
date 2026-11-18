@@ -9,6 +9,7 @@ const { requireAnyAuth } = require('../middlewares/sessionAuth');
 
 const { createAuditMiddleware } = require('../utils/auditLog');
 const { requireIzin, bisa } = require('../utils/izin');
+const { susunDeskripsi } = require('../utils/deskripsi');
 
 const base = (req) => (process.env.PUBLIC_URL || `${req.headers['x-forwarded-proto'] || 'https'}://${req.headers.host || 'pantautokder.vercel.app'}`).replace(/\/+$/, '');
 const idOf = (req) => { if (!/^\d+$/.test(req.params.id)) throw bad(400, 'Posting tidak dikenal'); return Number(req.params.id); };
@@ -45,6 +46,18 @@ router.post('/blob', async (req, res) => {
     });
     res.json(out);
   } catch (err) { fail(res, err, 'Izin unggah ditolak'); }
+});
+
+// POST /api/posting/deskripsi: menyusun deskripsi siap pakai dari judul dan tautan pelacak yang dipilih.
+router.post('/deskripsi', requireIzin('upload'), async (req, res) => {
+  try {
+    const b = req.body || {};
+    const kode = (Array.isArray(b.tautan) ? b.tautan : []).map((x) => String(x).toLowerCase()).filter((x) => /^[a-z0-9]{3,16}$/.test(x)).slice(0, 10);
+    const r = kode.length ? await db.query('SELECT kode, label FROM tautan WHERE kode = ANY($1)', [kode]) : { rows: [] };
+    const label = new Map(r.rows.map((x) => [x.kode, x.label]));
+    const tautan = kode.filter((k) => label.has(k)).map((k) => ({ label: label.get(k), url: `${base(req)}/go/${k}` }));
+    res.json({ deskripsi: susunDeskripsi({ judul: String(b.judul || '').slice(0, 100), tautan }) });
+  } catch (err) { fail(res, err); }
 });
 
 router.get('/', requireAnyAuth, async (req, res) => { try { res.json(await posting.daftar()); } catch (err) { fail(res, err); } });
