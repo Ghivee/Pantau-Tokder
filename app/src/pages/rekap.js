@@ -164,9 +164,9 @@ function isi() {
     </section>`;
 }
 
-PAGES.rekap = function () {
-  return `<header class="head"><h1>Rekap</h1>
-      <div class="seg" role="group" aria-label="Periode">${[7, 28, 90].map((x) => `<button data-act="an-periode" data-v="${x}" aria-pressed="${S.anPeriode === x}">${x} hari</button>`).join('')}</div></header>
+PAGES.rangkuman = function () {
+  return `<header class="head"><h1>Rangkuman</h1>
+      <div class="seg" role="group" aria-label="Periode">${[7, 28, 90, 365].map((x) => `<button data-act="an-periode" data-v="${x}" aria-pressed="${S.anPeriode === x}">${x} hari</button>`).join('')}</div></header>
     <div id="rekap-isi" class="stack-page">${isi()}</div>`;
 };
 
@@ -178,7 +178,7 @@ function gambar() {
 
 export function segarkanRekap() {
   const el = $('#rekap-isi');
-  if (!el || route() !== 'rekap' || $('#overlay').innerHTML) return;
+  if (!el || route() !== 'rangkuman' || $('#overlay').innerHTML) return;
   el.innerHTML = isi();
   gambar();
 }
@@ -198,12 +198,12 @@ function mulaiRealtime() {
   clearInterval(timer);
   bacaRealtime();
   timer = setInterval(() => {
-    if (route() !== 'rekap') { clearInterval(timer); timer = null; return; }
+    if (route() !== 'rangkuman') { clearInterval(timer); timer = null; return; }
     if (document.visibilityState === 'visible') bacaRealtime();
   }, 60000);
 }
 
-AFTER.rekap = function () {
+AFTER.rangkuman = function () {
   gambar();
   if (R.metrik == null) muatMetrik().then(segarkanRekap);
   if (!timer) mulaiRealtime();

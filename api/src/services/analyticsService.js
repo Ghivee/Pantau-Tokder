@@ -165,4 +165,19 @@ async function pastikanRupiah() {
   }
 }
 
-module.exports = { pastikanRupiah, saveConnection, removeConnection, listConnections, accessTokens, accessTokenFor, takeTokenErrors, syncChannelDaily, migrateLegacyToken };
+// Periode 365 hari butuh riwayat setahun. Setiap channel mengambil 400 hari sekali (ditandai di settings), sesudah itu cukup
+// 95 hari terakhir tiap sinkronisasi. Tanda hanya dipasang setelah pengambilan berhasil, jadi yang gagal diulang berikutnya.
+const KUNCI_RIWAYAT = 'riwayat_harian_v1:';
+
+async function hariSinkron(channelId, rupiahBaru) {
+  if (rupiahBaru) return 400;
+  const r = await db.query('SELECT 1 FROM settings WHERE key = $1', [KUNCI_RIWAYAT + channelId]);
+  return r.rows.length ? 95 : 400;
+}
+
+async function tandaiRiwayat(channelId, hari) {
+  if (hari < 400) return;
+  await db.query(`INSERT INTO settings (key, value, updated_at) VALUES ($1, $2, NOW()) ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = NOW()`, [KUNCI_RIWAYAT + channelId, new Date().toISOString()]);
+}
+
+module.exports = { hariSinkron, tandaiRiwayat, pastikanRupiah, saveConnection, removeConnection, listConnections, accessTokens, accessTokenFor, takeTokenErrors, syncChannelDaily, migrateLegacyToken };

@@ -204,7 +204,9 @@ async function runFullScan() {
     if (Date.now() - startedAt > TIME_BUDGET_MS + 8000) break;
     try {
       // Right after the switch to rupiah, the whole stored history is fetched again in rupiah.
-      analyticsDays += await analyticsService.syncChannelDaily(channelId, token, rupiah.baru ? 400 : 95);
+      const hari = await analyticsService.hariSinkron(channelId, rupiah.baru);
+      analyticsDays += await analyticsService.syncChannelDaily(channelId, token, hari);
+      await analyticsService.tandaiRiwayat(channelId, hari);
     } catch (e) {
       errors.push(`Analytics ${channelId} gagal: ${e.response?.data?.error?.message || e.message}`);
     }
