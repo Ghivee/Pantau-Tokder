@@ -3,14 +3,13 @@ const { getChannelIds, getChannelNames } = require('./channelService');
 const { analisisGaya } = require('./gayaService');
 const { sarankanPencarian, videoTerlaris } = require('../integrations/pencarian');
 
-// Saran judul dan kata kunci per channel dari tiga sumber nyata:
-//  - pencarian YouTube (frasa yang diketik penonton) untuk kata kunci dan bahan judul,
-//  - video terlaris di YouTube untuk kata kunci itu (contoh pasar),
-//  - video channel sendiri (ciri khas judul yang bekerja di channel itu).
+// Bahan halaman Saran dan Tautan per channel dari sumber nyata:
+//  - pencarian YouTube (frasa yang diketik penonton): produk yang dicari,
+//  - video terlaris di YouTube untuk kata kunci itu (populer di channel lain),
+//  - video channel sendiri: kata terkuatnya memperkaya kata benih pencarian.
 // Sasaran penonton: petani cabe rawit di seluruh Indonesia, jadi tidak memakai lokasi atau cuaca.
 
 const TTL_PENCARIAN = 12 * 3600 * 1000, TTL_TERLARIS = 24 * 3600 * 1000;
-const BULAN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
 const temaOf = (nama) => (/harga/i.test(nama) ? 'harga' : /budidaya/i.test(nama) ? 'budidaya' : 'tokder');
 
@@ -61,55 +60,11 @@ async function contohTerlaris(channelId, benih) {
   } catch (e) { console.warn('saran terlaris:', e.message); return { tersedia: false, daftar: [] }; }
 }
 
-const judulKapital = (f) => f.replace(/\b([a-z])/g, (m) => m.toUpperCase()).replace(/\bNpk\b/g, 'NPK').replace(/\b(Dan|Yang|Untuk|Di|Dari|Dengan|Atau|Agar|Ke)\b/g, (m) => m.toLowerCase());
 
 // Sasaran seluruh Indonesia: frasa yang menyebut daerah atau pasar tertentu tidak dipakai.
 const DAERAH = /\b(medan|jakarta|bandung|surabaya|jawa|sumatera|sumatra|kalimantan|sulawesi|bali|lampung|aceh|riau|jambi|palembang|makassar|pare|brebes|malang|kediri|garut|semarang|yogya|yogyakarta|bogor|bekasi|tangerang|depok|banten|jatim|jateng|jabar|ntt|ntb|papua|manado|padang|pekanbaru|batam|pontianak|banjarmasin|samarinda|kendari|ambon|mataram|kupang|kab|kota|pasar|induk|kramat|jati|cibitung|keputran)\b/;
 
 const awalProduk = /^(obat|pupuk|fungisida|insektisida|pestisida|mulsa|perekat|benih|bibit|alat|sprayer|polybag|ajir|dolomit|trichoderma|racun|zpt)\b/;
-const MASALAH_KATA = /\b(hama|penyakit|rontok|layu|busuk|keriting|kuning|mati|patek|thrips|kutu|ulat|gagal)\b/;
-const jenisFrasa = (f) => (/^cara\b/.test(f) ? 'cara' : awalProduk.test(f) ? 'produk' : /^(membasmi|basmi|mengatasi|atasi|pengendalian|penanggulangan|mencegah)\b/.test(f) ? 'tindakan' : /^jenis\b/.test(f) ? 'jenis' : MASALAH_KATA.test(f) ? 'masalah' : 'umum');
-const SUDAH_SOLUSI = /\b(cara|mengatasi|atasi|solusi|penyebab|penanggulangan|pengendalian|membasmi|basmi|mencegah)\b/;
-const SUDAH_PILIHAN = /\b(terbaik|ampuh|paling|rekomendasi|murah)\b/;
-const TAHUN = /\b20\d\d\b/;
-
-// Judul dari frasa pencarian nyata. Pengait dipilih menurut jenis frasa (supaya kalimatnya wajar, dan tidak mengulang kata yang
-// sudah ada di frasa) lalu diurutkan menurut kebiasaan channel: yang cocok dengan ciri channel (tanya, angka, kapital, seru)
-// didahulukan, jadi tiap channel mendapat gaya sendiri.
-function buatJudul(frasa, gaya, tema, tgl) {
-  const P = judulKapital;
-  const pref = gaya.preferensi || {};
-  const suka = (id) => !!pref[id] && pref[id].atas >= 0.3 && pref[id].atas >= pref[id].semua * 1.15;
-  const urut = (daftar) => daftar.sort((x, y) => (y.gaya && suka(y.gaya) ? 1 : 0) - (x.gaya && suka(x.gaya) ? 1 : 0));
-  const kata = (f) => f.split(' ').length;
-  const H = {
-    cara: (f) => { const Q = P(f.replace(/^cara\s+/, '')); return [{ t: `Cara ${Q}: Panduan Lengkap` }, { t: `Kesalahan Saat ${Q} yang Sering Terjadi` }, { t: `${Q}? Begini Caranya`, gaya: 'tanya' }, { t: `5 Kesalahan Saat ${Q}`, gaya: 'angka' }, { t: `Cara ${Q} (JANGAN SALAH!)`, gaya: 'kapital' }, { t: `Cara ${Q}, Wajib Tahu!`, gaya: 'seru' }]; },
-    produk: (f) => [{ t: `${P(f)}: Cara Pakai yang Benar` }, { t: `${P(f)}: Mana yang Paling Ampuh?`, gaya: 'tanya', skip: SUDAH_PILIHAN }, { t: `3 Pilihan ${P(f)} yang Layak Dicoba`, gaya: 'angka', skip: kata(f) > 5 || SUDAH_PILIHAN.test(f) }, { t: `Review ${P(f)}` }, { t: `${P(f)}, Cek Ini Sebelum Beli` }, { t: `${P(f)} (JANGAN SALAH PILIH!)`, gaya: 'kapital' }, { t: `${P(f)}, Wajib Coba!`, gaya: 'seru' }],
-    masalah: (f) => [{ t: `${P(f)}: Penyebab dan Cara Mengatasinya`, skip: SUDAH_SOLUSI.test(f) }, { t: `${P(f)}? Ini Solusinya`, gaya: 'tanya', skip: SUDAH_SOLUSI.test(f) }, { t: `3 Penyebab ${P(f)} yang Sering Terlewat`, gaya: 'angka', skip: SUDAH_SOLUSI.test(f) || kata(f) > 5 }, { t: `${P(f)}: Kenali dan Tangani Sebelum Terlambat` }, { t: `${P(f)} (JANGAN DIBIARKAN!)`, gaya: 'kapital' }, { t: `${P(f)}, Segera Tangani!`, gaya: 'seru' }],
-    tindakan: (f) => [{ t: `${P(f)}: Panduan Lengkap` }, { t: `${P(f)}? Begini Caranya`, gaya: 'tanya' }, { t: `5 Langkah ${P(f)}`, gaya: 'angka', skip: kata(f) > 6 }, { t: `${P(f)} (JANGAN SALAH!)`, gaya: 'kapital' }, { t: `${P(f)}, Wajib Tahu!`, gaya: 'seru' }],
-    jenis: (f) => [{ t: `${P(f)} dan Cara Mengatasinya` }, { t: `${P(f)}: Kenali Sebelum Terlambat` }, { t: `${P(f)}? Ini Daftarnya`, gaya: 'tanya' }, { t: `${P(f)} (JANGAN SALAH!)`, gaya: 'kapital' }],
-    umum: (f) => [{ t: `${P(f)}: Panduan Lengkap` }, { t: `${P(f)}? Ini Jawabannya`, gaya: 'tanya' }, { t: `5 Hal Penting Soal ${P(f)}`, gaya: 'angka', skip: kata(f) > 6 }, { t: `${P(f)} yang Perlu Diketahui Petani` }, { t: `${P(f)}, Wajib Tahu!`, gaya: 'seru' }],
-    harga: (f) => [{ t: `${P(f)} ${tgl.pendek}`, skip: TAHUN.test(f) }, { t: `${P(f)}: Naik atau Turun?`, gaya: 'tanya', skip: /\b(naik|turun)\b/.test(f) }, { t: `${P(f)}: Update ${tgl.pendek}`, skip: TAHUN.test(f) }, { t: `${P(f)} | ${tgl.panjang}`, gaya: 'pemisah', skip: TAHUN.test(f) }, { t: `${P(f)} ${tgl.panjang}`, skip: TAHUN.test(f) }, { t: `${P(f)}` }],
-  };
-  const ok = frasa.filter((f) => !DAERAH.test(f));
-  // Beragam: paling banyak 3 frasa dengan dua kata awal yang sama.
-  const hitung = {}, pilih = [];
-  for (const f of ok) { const k = f.split(' ').slice(0, 2).join(' '); hitung[k] = (hitung[k] || 0) + 1; if (hitung[k] <= 3) pilih.push(f); }
-  const maks = 20, out = [], pakaiPer = {}, pakaiPola = {};
-  // Tiga putaran: tiap putaran memberi tiap frasa satu judul dengan pengait terbaik menurut gaya channel yang belum dipakai
-  // frasa itu. Satu pola pengait dipakai paling banyak 3 kali supaya daftar tidak seragam.
-  for (let putaran = 0; putaran < 3 && out.length < maks; putaran++) {
-    for (const f of pilih) {
-      if (out.length >= maks) break;
-      const jenis = tema === 'harga' ? 'harga' : jenisFrasa(f);
-      const opsi = urut(H[jenis](f).map((o, i) => ({ ...o, k: jenis + ':' + i })).filter((o) => !o.skip));
-      const o = opsi.find((x) => !(pakaiPer[f] || (pakaiPer[f] = new Set())).has(x.k) && (pakaiPola[x.k] || 0) < 3 && x.t.length <= 90 && !out.includes(x.t));
-      if (!o) continue;
-      pakaiPer[f].add(o.k); pakaiPola[o.k] = (pakaiPola[o.k] || 0) + 1; out.push(o.t);
-    }
-  }
-  return out;
-}
 
 // Produk dari frasa pencarian yang memang diawali nama produk, satu per jenis (dua kata awal berbeda) supaya beragam.
 function daftarProduk(frasa) {
@@ -136,8 +91,6 @@ async function dataChannel() {
 
 async function saran() {
   const [ids, names, video] = await Promise.all([getChannelIds(), getChannelNames(), dataChannel()]);
-  const w = new Date(Date.now() + 7 * 3600 * 1000);
-  const tgl = { pendek: `${w.getUTCDate()} ${BULAN[w.getUTCMonth()]}`, panjang: `${w.getUTCDate()} ${BULAN[w.getUTCMonth()]} ${w.getUTCFullYear()}` };
   const channels = await Promise.all(ids.map(async (id) => {
     const nama = names[id] || id, tema = temaOf(nama);
     const gaya = analisisGaya(video[id] || []);
@@ -147,8 +100,7 @@ async function saran() {
     try { frasa = await kataPencarian(id, benih); } catch (e) { galat = e.message; }
     const terlaris = await contohTerlaris(id, BENIH[tema]);
     return {
-      id, nama, tema, gaya, galat,
-      kata: frasa.slice(0, 30), judul: buatJudul(frasa, gaya, tema, tgl),
+      id, nama, tema, galat,
       produk: tema === 'harga' ? [] : daftarProduk(frasa),
       youtube: terlaris,
     };
@@ -157,4 +109,4 @@ async function saran() {
   return { channels, dihitung: new Date().toISOString() };
 }
 
-module.exports = { saran, buatJudul, temaOf, judulKapital };
+module.exports = { saran, temaOf };
