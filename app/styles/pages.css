@@ -251,3 +251,19 @@
 .sr-qh { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; font-size: 15px; }
 .sr-qc { font-size: 14px; color: var(--ink-2); line-height: 1.35; }
 .sr-q:active { opacity: .5; }
+
+/* Produk affiliate terlaris, topik, kata laris */
+.af-list { display: flex; flex-direction: column; }
+.af-row { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 10px 0; border-top: .5px solid var(--line); }
+.af-row:first-child { border-top: 0; }
+.af-n { font-size: 15px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; padding-top: 1px; }
+.af-p { display: flex; flex-direction: column; gap: 3px; min-width: 0; font-size: 13px; }
+.af-nm { font-size: 15px; line-height: 1.3; color: var(--ink); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.af-r { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; white-space: nowrap; }
+.af-r b { font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.tp-row { padding: 10px 0; border-top: .5px solid var(--line); display: flex; flex-direction: column; gap: 3px; }
+.card-h + .tp-row { border-top: 0; }
+.tp-h { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; font-size: 15px; }
+.tp-x { font-weight: 600; font-variant-numeric: tabular-nums; display: inline-flex; gap: 6px; align-items: baseline; }
+.tp-x.ok { color: var(--ok); } .tp-x.bad { color: var(--bad); }
+.tp-s { font-size: 13px; line-height: 1.35; }

@@ -3,15 +3,14 @@ import { AFTER, PAGES } from '../core/registry.js';
 import { S, me } from '../core/state.js';
 import { daysBack } from '../core/stats.js';
 import { $, esc } from '../lib/dom.js';
-import { addDays, fmt, median, nf, signed, sum, tglPanjang, tglPendek } from '../lib/format.js';
-import { bantuan, kali, loadInsight, peerRatios } from './shared.js';
+import { addDays, fmt, nf, signed, sum, tglPanjang, tglPendek } from '../lib/format.js';
+import { bantuan, kali, loadInsight } from './shared.js';
+import { kataLaris, topikTerakhir } from '../core/tren-data.js';
 import { editorCell, vidCell } from '../ui/bits.js';
 import { drawStacked } from '../ui/charts.js';
 import { render } from '../ui/layout.js';
 
-const STOP = new Set('yang dan untuk dengan dari agar supaya biar bisa tidak jangan paling sangat lebih sudah belum akan pada dalam atau juga saat kalau jika tanpa buat ini itu nya kok loh lah dong aja saja banget gini begini cara tips hari video shorts short part episode terbaru viral sekarang kita kamu anda mereka harus semua banyak sampai cuma setelah sebelum bikin'.split(' '));
 
-const kataOf = (t) => [...new Set(String(t || '').toLowerCase().replace(/#[\p{L}\d_]+/gu, ' ').match(/\p{L}{4,}/gu) || [])].filter((w) => !STOP.has(w));
 
 PAGES.tren = function () {
   const ch = S.trenCh;
@@ -34,17 +33,9 @@ PAGES.tren = function () {
   const naik = S.insight && !S.insight.error ? vids.map((c) => { const x = S.insight.naikMap.get(c.id); const h = x && x.hari; return h && h.jam >= 12 && h.jam <= 72 && h.naik > 0 ? { c, per: (h.naik * 24) / h.jam } : null; }).filter(Boolean).sort((a, b) => b.per - a.per) : [];
   const baru = naik.filter((x) => x.c._age <= 14).slice(0, 6), lama = naik.filter((x) => x.c._age > 30).slice(0, 5);
 
-  // Topics and title words: the last 14 days against the 15–60 days before, each against its own window
-  const win = (a, b) => vids.filter((c) => c._age >= a && c._age < b);
-  const recent = win(2, 16), base = win(16, 60);
-  const rR = peerRatios(recent), rB = peerRatios(base);
-  const group = (list, key) => { const g = {}; list.forEach((c) => key(c).forEach((k) => { (g[k] ||= []).push(c); })); return g; };
-  const gR = group(recent, (c) => [c._topik]), gB = group(base, (c) => [c._topik]);
-  const topik = Object.keys(gR).filter((t) => gR[t].length >= 2).map((t) => ({ t, n: gR[t].length, r: median(gR[t].map((c) => rR.get(c.id)).filter((x) => x != null)), b: gB[t] && gB[t].length >= 2 ? median(gB[t].map((c) => rB.get(c.id)).filter((x) => x != null)) : null, best: gR[t].reduce((a, b) => (b.views > a.views ? b : a)) })).sort((a, b) => b.r - a.r);
-  const last30 = win(2, 32), r30 = peerRatios(last30);
-  const gK = group(last30, (c) => kataOf(c.judul));
-  const kata = Object.entries(gK).filter(([, l]) => l.length >= 3 && l.length <= last30.length * 0.6).map(([k, l]) => ({ k, n: l.length, r: median(l.map((c) => r30.get(c.id)).filter((x) => x != null)) })).sort((a, b) => b.r - a.r);
-  const kuat = kata.filter((x) => x.r >= 1.15).slice(0, 8), lemah = kata.filter((x) => x.r <= 0.85).slice(-4).reverse();
+  // Topics and title words: shared with the Saran page (core/tren-data.js)
+  const topik = topikTerakhir(vids);
+  const { kuat, lemah } = kataLaris(vids);
   const fmtNaik = (x) => `<tr class="click" data-act="video" data-id="${x.c.id}"><td class="full">${vidCell(x.c)}</td>${me() ? '' : `<td data-label="Pembuat">${editorCell(x.c)}</td>`}<td class="mono" data-label="Tayang">${tglPendek(x.c._day)}</td><td class="num" data-label="Naik / 24 jam"><b>+${fmt(x.per)}</b></td><td class="num" data-label="Total views">${fmt(x.c.views)}</td></tr>`;
   const naikHead = '<thead><tr><th>Video</th>' + (me() ? '' : '<th>Pembuat</th>') + '<th>Tayang</th><th class="num">Naik / 24 jam</th><th class="num">Total views</th></tr></thead>';
   const naikEmpty = !S.insight ? '<div class="skeleton" style="height:120px"></div>' : S.insight.error ? `<div class="empty"><b>Belum bisa dimuat</b>${esc(S.insight.error)}</div>` : '<div class="empty"><b>Belum ada catatan kenaikan</b>Kenaikan dihitung dari dua sinkronisasi yang berjarak 12–72 jam. Data muncul setelah aplikasi dibuka atau sinkron otomatis berjalan di dua hari berbeda.</div>';
