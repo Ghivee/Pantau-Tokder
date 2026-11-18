@@ -24,7 +24,10 @@ router.get('/', async (req, res) => {
     const k = await db.query(
       `SELECT t.channel_id, to_char(k.tanggal, 'YYYY-MM-DD') AS tanggal, SUM(k.jumlah)::int AS jumlah
        FROM tautan_klik k JOIN tautan t ON t.kode = k.kode WHERE k.tanggal >= $1 GROUP BY t.channel_id, k.tanggal ORDER BY k.tanggal`, [wib(hari)]);
-    res.json({ metrik: r.rows, klik_tautan: k.rows });
+    const kv = await db.query(
+      `SELECT t.video_id, to_char(k.tanggal, 'YYYY-MM-DD') AS tanggal, SUM(k.jumlah)::int AS jumlah
+       FROM tautan_klik k JOIN tautan t ON t.kode = k.kode WHERE t.video_id IS NOT NULL AND k.tanggal >= $1 GROUP BY t.video_id, k.tanggal ORDER BY k.tanggal`, [wib(hari)]);
+    res.json({ metrik: r.rows, klik_tautan: k.rows, klik_video: kv.rows });
   } catch (err) { fail(res, err); }
 });
 
@@ -32,7 +35,7 @@ router.get('/', async (req, res) => {
 router.get('/tautan', async (req, res) => {
   try {
     const r = await db.query(
-      `SELECT t.kode, t.channel_id, t.label, t.tujuan, t.created_at,
+      `SELECT t.kode, t.channel_id, t.video_id, t.label, t.tujuan, t.created_at,
               COALESCE(SUM(k.jumlah), 0)::int AS total,
               COALESCE(SUM(k.jumlah) FILTER (WHERE k.tanggal >= $1), 0)::int AS tujuh_hari
        FROM tautan t LEFT JOIN tautan_klik k ON k.kode = t.kode GROUP BY t.kode ORDER BY t.created_at DESC`, [wib(6)]);
@@ -51,11 +54,19 @@ router.post('/tautan', requireIzin('tautan'), async (req, res) => {
     try { u = new URL(String(b.tujuan || '').trim()); } catch (e) { throw bad(400, 'Tujuan harus berupa alamat lengkap, diawali https://'); }
     if (u.protocol !== 'https:') throw bad(400, 'Tujuan harus diawali https://');
     if (String(u).length > 2000) throw bad(400, 'Alamat tujuan terlalu panjang');
+    // Kaitan ke video bersifat opsional; bila diisi, video itu harus ada di channel yang sama.
+    let video = null;
+    if (b.video_id != null && String(b.video_id).trim() !== '') {
+      video = String(b.video_id).trim();
+      if (!/^[\w-]{6,20}$/.test(video)) throw bad(400, 'Video tidak valid');
+      const ada = await db.query('SELECT 1 FROM content WHERE post_id = $1 AND channel_id = $2 LIMIT 1', [video, b.channel_id]);
+      if (!ada.rows.length) throw bad(400, 'Video itu tidak ada di channel yang dipilih');
+    }
     const n = (await db.query('SELECT COUNT(*)::int AS n FROM tautan')).rows[0].n;
     if (n >= 500) throw bad(400, 'Terlalu banyak tautan; hapus yang tidak terpakai');
     for (let i = 0; i < 5; i++) {
       const kode = crypto.randomBytes(5).toString('base64url').replace(/[-_]/g, 'x').slice(0, 6).toLowerCase();
-      const r = await db.query(`INSERT INTO tautan (kode, channel_id, label, tujuan) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING RETURNING kode, channel_id, label, tujuan, created_at`, [kode, b.channel_id, label, String(u)]);
+      const r = await db.query(`INSERT INTO tautan (kode, channel_id, label, tujuan, video_id) VALUES ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING RETURNING kode, channel_id, video_id, label, tujuan, created_at`, [kode, b.channel_id, label, String(u), video]);
       if (r.rows[0]) return res.json({ ...r.rows[0], total: 0, tujuh_hari: 0 });
     }
     throw bad(500, 'Gagal membuat kode tautan, coba lagi');
