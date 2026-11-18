@@ -208,6 +208,10 @@ async function runFullScan() {
     } catch (e) {
       errors.push(`Analytics ${channelId} gagal: ${e.response?.data?.error?.message || e.message}`);
     }
+    // CTR dari YouTube Reporting API; kegagalannya tidak boleh mengganggu angka lain.
+    try { await require('./rekapService').syncCtr(channelId, token); } catch (e) {
+      errors.push(`CTR ${channelId} gagal: ${e.response?.data?.error?.message || e.message}`);
+    }
   }
 
   // TikTok, Instagram and Facebook accounts the owner connected (nothing happens when none are).

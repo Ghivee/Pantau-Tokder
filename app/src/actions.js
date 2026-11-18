@@ -8,7 +8,7 @@ import { addDays, idr, today } from './lib/format.js';
 import { aturGajiDialog, cetakSlip, loadGaji, slipDialog } from './pages/gaji.js';
 import { ajukanDialog, putuskanDialog } from './pages/pengajuan.js';
 import { absen, ambilLokasi } from './pages/presensi.js';
-import { imporRekapDialog, pilihMetrik } from './pages/rekap.js';
+import { buatTautan, hapusTautan, imporRekapDialog, pilihMetrik, salinTautan } from './pages/rekap.js';
 import { bulanLabel, daftarSW, diIOS, muatUlang, pushDidukung, swReg, terpasang } from './pages/shared.js';
 import { pantauPosting, setPosting, showPostList } from './pages/sosmed.js';
 import { toast } from './ui/bits.js';
@@ -297,6 +297,9 @@ document.addEventListener('click', async (ev) => {
       break;
     }
     case 'rekap-impor': imporRekapDialog(); break;
+    case 'tautan-buat': buatTautan(); break;
+    case 'tautan-salin': salinTautan(el.dataset.kode); break;
+    case 'tautan-hapus': hapusTautan(el.dataset.kode); break;
     case 'rekap-metrik': pilihMetrik(el.dataset.v); break;
     case 'an-periode': S.anPeriode = +el.dataset.v; render(); break;
     default: await aksiBaru(act, el, ev); break;
