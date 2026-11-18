@@ -205,19 +205,8 @@
 /* Saran */
 #saran-isi { gap: 12px; }
 @media (min-width: 900px) { #saran-isi { max-width: 720px; } }
-.sr-sit { margin: 0; font-size: 14px; color: var(--muted); }
 .seg button .dot { margin-right: 5px; width: 8px; height: 8px; }
 .seg.scroll button { padding-left: 8px; padding-right: 8px; font-size: 13px; white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; }
-.sr-chips { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 2px 0; }
-.sr-chips::-webkit-scrollbar { display: none; }
-.sr-chips button { flex: none; border: 0; background: var(--surface); color: var(--ink); border-radius: 999px; padding: 8px 14px; font-size: 14px; font-weight: 500; cursor: pointer; }
-.sr-chips button[aria-pressed="true"] { background: var(--leaf); color: var(--leaf-ink); }
-.sr-isi dl { margin: 0; display: grid; grid-template-columns: 74px minmax(0, 1fr); gap: 14px 12px; align-items: start; }
-.sr-isi dt { font-size: 13px; font-weight: 600; color: var(--muted); padding-top: 2px; }
-.sr-isi dd { margin: 0; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.sr-isi dd b { font-size: 17px; font-weight: 600; letter-spacing: -.015em; line-height: 1.3; }
-.sr-isi dd .muted { font-size: 13px; }
-.sr-isi ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
 .sr-prod { display: flex; align-items: center; gap: 12px; padding: 4px 0; border-top: .5px solid var(--line); }
 .sr-prod:first-child { border-top: 0; padding-top: 0; }
 .sr-prod span { flex: 1; min-width: 0; }
@@ -228,3 +217,12 @@
 .sr-kata { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip { display: inline-flex; align-items: center; padding: 7px 12px; border-radius: 999px; background: var(--sunken); color: var(--ink); border: 0; font-size: 14px; cursor: pointer; font-family: inherit; }
 .chip:active { opacity: .5; }
+
+.chip.tetap { cursor: default; }
+.chip.tetap:active { opacity: 1; }
+.sr-ket { margin: 12px 0 4px; font-size: 13px; font-weight: 600; color: var(--muted); }
+.sr-ket:first-child { margin-top: 0; }
+.sr-kata + .sr-ket { margin-top: 14px; }
+.sr-ct { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-top: .5px solid var(--line); font-size: 15px; line-height: 1.35; }
+.sr-ket + .sr-ct { border-top: 0; }
+.sr-ct b { flex: none; font-weight: 600; font-variant-numeric: tabular-nums; }

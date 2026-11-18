@@ -1,70 +1,60 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { ringkasCuaca, aturan, kondisiOf, temaOf } = require('../src/services/saranService');
-const { MASALAH, harga, SEPANJANG_MASA, gabung } = require('../src/services/saranData');
+const { analisisGaya } = require('../src/services/gayaService');
+const { buatJudul, temaOf, judulKapital } = require('../src/services/saranService');
 const { sisipKode } = require('../src/routes/posting');
 
-const hari = (lalu, depan, suhu = 29, rh = 80) => ({
-  precipitation_sum: [...lalu, ...depan], temperature_2m_max: Array(14).fill(suhu), relative_humidity_2m_mean: Array(14).fill(rh),
+const rows = (judul, f = (i) => 10000 - i * 500) => judul.map((j, i) => ({ judul: j, views: f(i) + (/\?/.test(j) ? 8000 : 0), tipe_video: 'long', umur_hari: 30 }));
+const TANYA = ['Kenapa Cabe Rawit Rontok? Ini Penyebabnya', 'Cabe Rawit Layu Mendadak? Selamatkan', 'Hama Thrips Cabe Rawit? Atasi', 'Cara Semai Cabe Rawit', 'Panen Cabe Rawit Harian', 'Jarak Tanam Cabe Rawit', 'Pupuk Cabe Rawit Murah', 'Pangkas Cabe Rawit', 'Mulsa Cabe Rawit'];
+const ANGKA = ['5 Pupuk Cabe Rawit Terbaik', '3 Kesalahan Tanam Cabe Rawit', '7 Hama Cabe Rawit', 'Cara Semai Cabe Rawit', 'Panen Cabe Rawit Harian', 'Jarak Tanam Cabe Rawit', 'Pupuk Murah', 'Pangkas Cabe Rawit', 'Mulsa Cabe Rawit'];
+
+test('gaya: butuh minimal 8 video yang sudah berumur 3 hari', () => {
+  assert.strictEqual(analisisGaya(rows(TANYA.slice(0, 5))).cukup, false);
+  assert.strictEqual(analisisGaya([...rows(TANYA), { judul: 'Baru', views: 1, tipe_video: 'long', umur_hari: 1 }]).n, 9);
+  assert.strictEqual(analisisGaya([]).n, 0);
 });
 
-test('minggu basah: patek dan akar busuk muncul, hama kering tidak', () => {
-  const c = ringkasCuaca(hari([12, 12, 12, 12, 12, 12, 12], [15, 15, 15, 15, 15, 15, 15], 28, 90));
-  const id = aturan(c).map((x) => x.id);
-  assert.ok(id.includes('patek') && id.includes('akar') && !id.includes('hama'));
-  assert.strictEqual(kondisiOf(c), 'hujan');
+test('gaya: ciri khas mengikuti apa yang sering muncul di video terlaris channel itu', () => {
+  assert.ok(analisisGaya(rows(TANYA)).ciri.includes('Judul berupa pertanyaan'));
+  const a = analisisGaya(rows(ANGKA));
+  assert.ok(a.ciri.includes('Memakai angka') && !a.ciri.includes('Judul berupa pertanyaan'));
+  assert.strictEqual(a.terlaris[0].judul, ANGKA[0]);
 });
 
-test('minggu kering dan panas: hama muncul, patek tidak', () => {
-  const c = ringkasCuaca(hari([0, 0, 0, 0, 0, 0, 0], [0, 0, 1, 0, 0, 0, 0], 33, 60));
-  const id = aturan(c).map((x) => x.id);
-  assert.ok(id.includes('hama') && !id.includes('patek'));
-  assert.strictEqual(kondisiOf(c), 'kering');
+test('judul: channel berbeda mendapat pengait berbeda dari frasa pencarian yang sama', () => {
+  const frasa = ['obat hama cabe rawit', 'pupuk cabe rawit', 'cara menanam cabe rawit'];
+  const t = buatJudul(frasa, analisisGaya(rows(TANYA)), 'budidaya', { pendek: '18 November', panjang: '18 November 2026' });
+  const g = buatJudul(frasa, analisisGaya(rows(ANGKA)), 'budidaya', { pendek: '18 November', panjang: '18 November 2026' });
+  assert.ok(t.some((x) => x.includes('?')) && g.some((x) => /^\d/.test(x)));
+  assert.notDeepStrictEqual(t, g);
 });
 
-test('selalu ada 1 sampai 4 masalah dengan dasar data', () => {
-  for (const c of [ringkasCuaca(hari(Array(7).fill(5), Array(7).fill(3))), ringkasCuaca(hari(Array(7).fill(0), Array(7).fill(0)))]) {
-    const a = aturan(c);
-    assert.ok(a.length >= 1 && a.length <= 4);
-    assert.ok(a.every((x) => MASALAH[x.id] && x.dasar));
+test('judul: wajar, tidak mengulang kata, tidak menyebut daerah, maksimal 90 huruf', () => {
+  const frasa = ['harga cabe rawit hari ini', 'harga cabe rawit hari ini di medan', 'prediksi harga cabe rawit 2027', 'mengatasi hama cabe rawit', 'jenis jenis hama cabe rawit', 'obat hama cabe rawit paling ampuh', 'cara menanam cabe rawit di polybag'];
+  for (const tema of ['budidaya', 'harga']) {
+    const j = buatJudul(frasa, analisisGaya(rows(TANYA)), tema, { pendek: '18 November', panjang: '18 November 2026' });
+    assert.ok(j.length >= 8, `${tema}: ${j.length}`);
+    for (const x of j) {
+      assert.ok(x.length <= 90, x);
+      assert.ok(!/medan/i.test(x), x);
+    }
+    assert.strictEqual(new Set(j).size, j.length);
   }
+  assert.ok(!buatJudul(['prediksi harga cabe rawit 2027'], {}, 'harga', { pendek: '18 November', panjang: '18 November 2026' }).some((x) => x.includes('18 November')));
+  assert.ok(!buatJudul(['obat hama cabe rawit paling ampuh'], {}, 'budidaya', {}).some((x) => /Mana yang Paling Ampuh/.test(x)));
+  assert.ok(!buatJudul(['mengatasi hama cabe rawit'], {}, 'budidaya', {}).some((x) => /Cara Mengatasinya/.test(x)));
 });
 
-test('setiap masalah punya isi video serta banyak judul dan kata kunci per tema', () => {
-  for (const m of Object.values(MASALAH)) {
-    assert.ok(m.masalah && m.solusi.length === 3 && m.produk.length >= 2);
-    assert.ok(m.produk.every((p) => p.url.startsWith('https://shopee.co.id/search?keyword=')));
-    assert.ok(m.budidaya.judul.length >= 6 && m.budidaya.kata.length >= 8);
-    assert.ok(m.tokder.judul.length >= 5 && m.tokder.kata.length >= 6);
-    for (const j of [...m.budidaya.judul, ...m.tokder.judul]) assert.ok(j.length <= 100, 'judul YouTube maksimal 100 karakter: ' + j);
-  }
+test('judul harga memuat tanggal hari ini', () => {
+  const j = buatJudul(['harga cabe rawit hari ini', 'harga cabe rawit'], analisisGaya([]), 'harga', { pendek: '18 November', panjang: '18 November 2026' });
+  assert.ok(j.some((x) => x.includes('18 November')));
 });
 
-test('channel harga: judul memuat tanggal, tidak menebak arah harga, tiap kondisi punya variasi', () => {
-  for (const k of ['hujan', 'kering', 'campuran']) {
-    const h = harga(k, '18 November 2026', '18 November', 'November 2026');
-    assert.ok(h.judul.length >= 8 && h.kata.length >= 10);
-    assert.ok(h.judul.some((j) => j.includes('18 November')));
-    assert.ok(h.kata.includes('harga cabe November 2026'));
-    for (const j of h.judul) assert.ok(j.length <= 100);
-    assert.ok(h.judul.every((j) => !/pasti (naik|turun)/i.test(j)));
-  }
-});
-
-test('judul dan kata kunci banyak per channel, tanpa duplikat dan muat batas YouTube', () => {
-  for (const m of Object.values(MASALAH)) for (const [tema, umum] of [['budidaya', SEPANJANG_MASA.budidaya], ['tokder', SEPANJANG_MASA.tokder]]) {
-    const g = gabung(m[tema], umum);
-    assert.ok(g.judul.length >= 13 && g.kata.length >= 14, `${tema}: ${g.judul.length} judul, ${g.kata.length} kata`);
-    assert.strictEqual(new Set(g.judul).size, g.judul.length);
-    assert.ok(g.judul.every((j) => j.length <= 100));
-  }
-  assert.ok(harga('hujan', '18 November 2026', '18 November', 'November 2026').judul.length >= 12);
-});
-
-test('tema channel dari nama', () => {
+test('tema channel dari nama dan kapitalisasi judul', () => {
   assert.strictEqual(temaOf('Harga Cabe Hari Ini'), 'harga');
   assert.strictEqual(temaOf('Budidaya Cabe'), 'budidaya');
   assert.strictEqual(temaOf('Tokder'), 'tokder');
+  assert.strictEqual(judulKapital('pupuk untuk cabe rawit dan npk'), 'Pupuk untuk Cabe Rawit dan NPK');
 });
 
 test('kode karyawan disisipkan sekali dan tidak menyalahi kata lain', () => {
