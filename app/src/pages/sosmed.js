@@ -8,7 +8,7 @@ import { nf } from '../lib/format.js';
 import { waktuWib } from './presensi.js';
 import { toast } from '../ui/bits.js';
 import { confirmDialog } from '../ui/dialog.js';
-import { daftarTautan, muatTautan } from './rekap.js';
+import { daftarTautan, muatTautanSekali } from './tautan.js';
 
 const PLAT = { tiktok: 'TikTok', instagram: 'Instagram', facebook: 'Facebook', youtube: 'YouTube' };
 
@@ -118,7 +118,7 @@ PAGES.sosmed = function () {
 
 AFTER.sosmed = function () {
     pantauPosting();
-    muatTautan().then(() => { const el = $('#post-tautan'); if (el && !$$('[name=tautan]:checked', el).length) el.innerHTML = tautanPilihan(); });
+    muatTautanSekali().then(() => { const el = $('#post-tautan'); if (el && !$$('[name=tautan]:checked', el).length) el.innerHTML = tautanPilihan(); });
     const f = $('#post-form');
     if (!f) return;
     f.addEventListener('submit', async (ev) => {

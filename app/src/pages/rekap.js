@@ -1,20 +1,18 @@
 import { analyticsChannels, api } from '../core/data.js';
 import { AFTER, PAGES } from '../core/registry.js';
 import { route } from '../core/router.js';
-import { S, bisa, lihatUang } from '../core/state.js';
+import { S, lihatUang } from '../core/state.js';
 import { daysBack } from '../core/stats.js';
 import { $, esc } from '../lib/dom.js';
 import { WIB, addDays, fmt, nf, signed, sum, tglPanjang, tglPendek, today } from '../lib/format.js';
-import { thumb, toast } from '../ui/bits.js';
+import { thumb } from '../ui/bits.js';
 import { drawLines } from '../ui/charts.js';
-import { closeOverlay, confirmDialog, openDialog } from '../ui/dialog.js';
-import { icon } from '../ui/icons.js';
 
 // Rekap 3 channel, sepenuhnya otomatis: views dan retensi dari YouTube Analytics, CTR dari YouTube Reporting API,
 // real-time dari bacaan total tayangan tiap menit, klik dari pelacak tautan.
 
 
-const R = (S.rekap = { metrik: null, klikTautan: [], klikVideo: [], perbaiki: null, tautan: null, snap: [], galatMetrik: null, galatRt: null, metrikPilih: 'views' });
+const R = (S.rekap = { metrik: null, klikTautan: [], klikVideo: [], perbaiki: null, snap: [], galatMetrik: null, galatRt: null, metrikPilih: 'views' });
 const persen = (v) => (v == null ? '—' : nf.format(Math.round(v * 10) / 10) + '%');
 // Warna mengikuti channel (urutan tetap), bukan peringkat nilainya; tiga warna ini sudah divalidasi (lihat pages.css).
 const chColor = (id) => { const i = analyticsChannels().findIndex((c) => c.id === id); return i >= 0 && i < 3 ? `var(--ch-${i + 1})` : 'var(--muted)'; };
@@ -187,37 +185,16 @@ function isi() {
     </section>`;
 }
 
-const urlTautan = (kode) => location.origin + '/go/' + kode;
-
-function tautanKartu(chans) {
-  const L = R.tautan;
-  return `<section class="card" id="kartu-tautan">
-      <div class="card-h"><h2>Tautan</h2>${bisa('tautan') ? `<button class="btn sm" data-act="tautan-baru" aria-label="Tautan baru">${icon('plus')}Baru</button>` : ''}</div>
-      ${L == null ? '<div class="empty">…</div>' : L.length ? `<div class="tl-list">${[...L].sort((a, b) => b.tujuh_hari - a.tujuh_hari || b.total - a.total).map((t) => `
-        <div class="tl-row"><div class="tl-t"><b>${esc(t.label)}</b><span class="muted mono">${esc(urlTautan(t.kode).replace(/^https?:\/\//, ''))}</span>
-          <span class="muted">${esc((chans.find((c) => c.id === t.channel_id) || {}).nama || '')}${t.video_id ? ' · ' + esc(((S.content.find((v) => v.post_id === t.video_id) || {}).judul) || 'video tertaut') : ''}</span></div>
-          <div class="tl-n"><b>${nf.format(t.tujuh_hari)}</b><span class="muted">7 hari</span></div>
-          <div class="tl-a"><button class="btn sm ghost" data-act="tautan-salin" data-kode="${esc(t.kode)}">Salin</button>${bisa('hapus') ? `<button class="btn sm ghost danger" data-act="tautan-hapus" data-kode="${esc(t.kode)}">Hapus</button>` : ''}</div></div>`).join('')}</div>` : '<div class="empty">Belum ada tautan</div>'}
-    </section>`;
-}
-
 PAGES.rekap = function () {
   return `<header class="head"><h1>Rekap</h1>
       <div class="seg" role="group" aria-label="Periode">${[7, 28, 90].map((x) => `<button data-act="an-periode" data-v="${x}" aria-pressed="${S.anPeriode === x}">${x} hari</button>`).join('')}</div></header>
-    <div id="rekap-isi" class="stack-page">${isi()}</div>
-    <div id="rekap-tautan">${tautanKartu(analyticsChannels())}</div>`;
+    <div id="rekap-isi" class="stack-page">${isi()}</div>`;
 };
 
 function gambar() {
   const box = $('#rekap-chart');
   if (!box) return;
   drawLines(box, seriesFor(analyticsChannels(), periode()));
-}
-
-// Kartu tautan di luar #rekap-isi: pembaruan tiap menit tidak boleh mengganggu dialog atau isian.
-function segarkanTautan() {
-  const el = $('#rekap-tautan');
-  if (el && route() === 'rekap') el.innerHTML = tautanKartu(analyticsChannels());
 }
 
 export function segarkanRekap() {
@@ -236,52 +213,6 @@ async function muatPerbaiki() {
 
 async function muatMetrik() {
   try { const r = await api('/api/rekap?hari=366'); R.metrik = r.metrik; R.klikTautan = r.klik_tautan || []; R.klikVideo = r.klik_video || []; R.galatMetrik = null; } catch (e) { R.galatMetrik = e.message; if (!R.metrik) R.metrik = []; }
-  try { R.tautan = (await api('/api/rekap/tautan')).tautan; } catch (e) { if (!R.tautan) R.tautan = []; }
-}
-
-export function tautanDialog(label = '') {
-  const chans = analyticsChannels();
-  openDialog(`<h2>Tautan baru</h2>
-      <div class="stack">
-        <label class="field"><span>Nama</span><input class="input" id="tl-label" maxlength="80" autocomplete="off" value="${esc(label)}"></label>
-        <label class="field"><span>Channel</span><select class="input" id="tl-ch">${chans.map((c) => `<option value="${esc(c.id)}">${esc(c.nama)}</option>`).join('')}</select></label>
-        <label class="field"><span>Video (opsional)</span><select class="input" id="tl-video">${opsiVideo(chans[0] && chans[0].id)}</select></label>
-        <label class="field"><span>Tautan afiliasi</span><input class="input" id="tl-tujuan" inputmode="url" placeholder="https://" autocomplete="off" autocapitalize="off"></label>
-      </div>
-      <div class="err" id="tl-err" role="alert"></div>
-      <div class="actions"><button type="button" class="btn ghost" data-act="close-overlay">Batal</button><button class="btn primary" data-act="tautan-buat">Buat</button></div>`, (d) => {
-    $('#tl-ch', d).addEventListener('change', (ev) => { $('#tl-video', d).innerHTML = opsiVideo(ev.target.value); });
-  });
-}
-
-// Video terbaru channel itu (maksimal 40) untuk dikaitkan ke tautan, supaya klik terlihat per video.
-function opsiVideo(channelId) {
-  const v = S.content.filter((c) => c._ch === channelId && c.post_id).sort((a, b) => (a.tanggal_upload < b.tanggal_upload ? 1 : -1)).slice(0, 40);
-  return '<option value="">Tanpa video</option>' + v.map((c) => `<option value="${esc(c.post_id)}">${esc(c.judul)} · ${tglPendek(c._day)}</option>`).join('');
-}
-
-export async function buatTautan() {
-  const v = (id) => $(id).value.trim(), err = $('#tl-err');
-  err.textContent = '';
-  try {
-    const t = await api('/api/rekap/tautan', { method: 'POST', body: { label: v('#tl-label'), channel_id: $('#tl-ch').value, video_id: $('#tl-video').value || null, tujuan: v('#tl-tujuan') } });
-    R.tautan = [t, ...(R.tautan || [])];
-    closeOverlay();
-    segarkanTautan();
-    try { await navigator.clipboard.writeText(urlTautan(t.kode)); toast('Disalin'); } catch (e) { toast('Tautan dibuat'); }
-  } catch (e) { err.textContent = e.message; }
-}
-
-export async function salinTautan(kode) {
-  try { await navigator.clipboard.writeText(urlTautan(kode)); toast('Disalin'); } catch (e) { toast(urlTautan(kode), true); }
-}
-
-export function hapusTautan(kode) {
-  const t = (R.tautan || []).find((x) => x.kode === kode);
-  if (!t) return;
-  confirmDialog('Hapus tautan?', `${t.label}. Tautan di deskripsi video berhenti bekerja.`, 'Hapus', async () => {
-    try { await api('/api/rekap/tautan/' + encodeURIComponent(kode), { method: 'DELETE' }); R.tautan = R.tautan.filter((x) => x.kode !== kode); await muatMetrik(); segarkanTautan(); segarkanRekap(); } catch (e) { toast(e.message, true); }
-  });
 }
 
 async function bacaRealtime() {
@@ -301,15 +232,8 @@ function mulaiRealtime() {
 AFTER.rekap = function () {
   gambar();
   if (R.perbaiki == null) muatPerbaiki();
-  if (R.metrik == null) muatMetrik().then(() => { segarkanRekap(); segarkanTautan(); });
+  if (R.metrik == null) muatMetrik().then(segarkanRekap);
   if (!timer) mulaiRealtime();
 };
 
 export const pilihMetrik = (v) => { R.metrikPilih = v; segarkanRekap(); };
-
-// Daftar tautan untuk halaman Upload (disusun menjadi deskripsi); dimuat sekali bila belum ada.
-export const daftarTautan = () => R.tautan;
-export async function muatTautan() {
-  if (R.tautan == null) { try { R.tautan = (await api('/api/rekap/tautan')).tautan; } catch (e) { return null; } }
-  return R.tautan;
-}

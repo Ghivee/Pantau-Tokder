@@ -10,7 +10,8 @@ import { ajukanDialog, putuskanDialog } from './pages/pengajuan.js';
 import { absen, ambilLokasi } from './pages/presensi.js';
 import { imporAfiliasiDialog } from './pages/afiliasi.js';
 import { muatAfiliasi, muatSaran, pilihChannel, salin } from './pages/saran.js';
-import { buatTautan, hapusTautan, pilihMetrik, salinTautan, tautanDialog } from './pages/rekap.js';
+import { pilihMetrik } from './pages/rekap.js';
+import { buatTautan, hapusTautan, salinTautan, salinTeks, tautanDialog } from './pages/tautan.js';
 import { bulanLabel, daftarSW, diIOS, muatUlang, pushDidukung, swReg, terpasang } from './pages/shared.js';
 import { pantauPosting, setPosting, showPostList, susunDeskripsi } from './pages/sosmed.js';
 import { toast } from './ui/bits.js';
@@ -298,7 +299,8 @@ document.addEventListener('click', async (ev) => {
       f.ips.value = list.join('\n');
       break;
     }
-    case 'tautan-baru': tautanDialog(); break;
+    case 'tautan-baru': tautanDialog(el.dataset.v || ''); break;
+    case 'tautan-teks': salinTeks(el.dataset.kode); break;
     case 'susun-deskripsi': susunDeskripsi(); break;
     case 'saran-tautan': tautanDialog(el.dataset.v); break;
     case 'saran-judul': salin(el.dataset.v); break;
