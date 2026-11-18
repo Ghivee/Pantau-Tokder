@@ -175,7 +175,7 @@ export function drawLines(box, { labels, titles, series, fmtY = fmt, label = 'Pe
     s.values.forEach((v, i) => { if (v == null) { pen = false; return; } d += (pen ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v).toFixed(1); pen = true; });
     html += `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
     // A day with data on both sides missing would vanish as a line; show every point as a dot when sparse.
-    if (all.length <= series.length * 40) s.values.forEach((v, i) => { if (v != null) html += `<circle cx="${x(i)}" cy="${y(v)}" r="2.5" fill="${s.color}"/>`; });
+    if (all.length <= series.length * 14) s.values.forEach((v, i) => { if (v != null) html += `<circle cx="${x(i)}" cy="${y(v)}" r="2.5" fill="${s.color}"/>`; });
   });
   html += '<line class="cur" y1="' + m.t + '" y2="' + (m.t + ih) + '" stroke="var(--muted)" stroke-dasharray="3 3" visibility="hidden"/>';
   svg.innerHTML = html;
