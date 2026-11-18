@@ -17,6 +17,7 @@ import './pages/ringkasan.js';
 import './pages/saran.js';
 import './pages/shared.js';
 import './pages/sosmed.js';
+import './pages/tautan.js';
 import './pages/tren.js';
 import './actions.js';
 import './ui/undo.js';
