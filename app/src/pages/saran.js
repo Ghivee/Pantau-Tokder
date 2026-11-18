@@ -8,7 +8,7 @@ import { toast } from '../ui/bits.js';
 import { kali } from './shared.js';
 
 // Saran untuk tim produksi, per channel, dari data nyata: topik dan kata judul yang laris di channel itu, komentar penonton,
-// video populer di channel ini dan di channel lain. Kebutuhan affiliate (produk, tautan) ada di menu Tautan.
+// video populer di channel ini dan di channel lain. Kebutuhan affiliate (produk, tautan) ada di menu Affiliate.
 const Z = (S.saranData = { data: null, galat: null, memuat: false, ch: null, komentar: null });
 
 const pendek = (n) => String(n).replace(/\s+Hari Ini$/i, '');

@@ -105,7 +105,7 @@ export async function load() {
   render();
   if (S.session) {
     autoSync(); loadInsight(true);
-    cekNotif().then(() => { if (['rekap', 'ringkasan', 'pengaturan', 'pengajuan', 'presensi'].includes(route()) && !$('#overlay').innerHTML) render(); });
+    cekNotif().then(() => { if (['rangkuman', 'ringkasan', 'pengaturan', 'pengajuan', 'presensi'].includes(route()) && !$('#overlay').innerHTML) render(); });
   }
 }
 

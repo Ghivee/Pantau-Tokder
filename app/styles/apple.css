@@ -102,3 +102,14 @@ input[type="file"].input { height: auto; padding: 8px 10px; font-size: 14px; }
 input[type="file"]::file-selector-button { border: 0; background: var(--leaf); color: var(--leaf-ink); border-radius: 8px; padding: 7px 12px; margin-right: 10px; font: inherit; font-weight: 600; cursor: pointer; }
 .chk { border: 0; background: var(--sunken); border-radius: 10px; min-height: 36px; }
 .checklist .ck { border-top: .5px solid var(--line); }
+
+/* Ikon menu lebih besar dan tebal supaya jelas terlihat */
+.nav a svg { width: 24px; height: 24px; stroke-width: 2; color: var(--ink-2); }
+.nav a[aria-current="page"] svg { color: var(--leaf); }
+.btn svg { width: 18px; height: 18px; stroke-width: 2.2; }
+@media (max-width: 900px) {
+  .main { padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }
+  .tabbar a, .tabbar button { min-height: 58px; gap: 4px; font-size: 11px; font-weight: 600; color: var(--ink-2); }
+  .tabbar svg { width: 28px; height: 28px; stroke-width: 2.2; }
+}
+@media (max-width: 900px) { .head > .seg { width: 100%; } }

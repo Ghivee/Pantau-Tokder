@@ -32,7 +32,7 @@ PAGES.karyawan = function () {
         <section class="card">
           <div class="card-h"><h2>Hak akses</h2></div>
           <div class="table-wrap"><table class="t stack"><thead><tr><th>Bisa…</th><th>Pemilik</th><th>Manajer</th><th>Editor</th><th>Editor terbatas</th><th>Penonton</th></tr></thead><tbody>
-            ${[['Melihat rekap dan saran', 'Ya', 'Ya', 'Ya', 'Ya', 'Ya'], ['Mengunggah video sebagai draf', 'Ya', 'Ya', 'Ya', 'Ya', '—'], ['Membuat tautan affiliate', 'Ya', 'Ya', 'Ya', 'Ya', '—'], ['Menayangkan ke publik', 'Ya', 'Ya', 'Ya', '—', '—'], ['Menghapus posting dan tautan', 'Ya', 'Ya', '—', '—', '—'], ['Menghubungkan akun, mengatur tim', 'Ya', '—', '—', '—', '—'], ['Melihat penghasilan', 'Ya', 'Bila diberi tanda', 'Bila diberi tanda', 'Bila diberi tanda', 'Bila diberi tanda']]
+            ${[['Melihat rangkuman dan saran', 'Ya', 'Ya', 'Ya', 'Ya', 'Ya'], ['Mengunggah video sebagai draf', 'Ya', 'Ya', 'Ya', 'Ya', '—'], ['Membuat tautan affiliate', 'Ya', 'Ya', 'Ya', 'Ya', '—'], ['Menayangkan ke publik', 'Ya', 'Ya', 'Ya', '—', '—'], ['Menghapus posting dan tautan', 'Ya', 'Ya', '—', '—', '—'], ['Menghubungkan akun, mengatur tim', 'Ya', '—', '—', '—', '—'], ['Melihat penghasilan', 'Ya', 'Bila diberi tanda', 'Bila diberi tanda', 'Bila diberi tanda', 'Bila diberi tanda']]
               .map((r) => `<tr><td class="full"><b>${r[0]}</b></td>${['Pemilik', 'Manajer', 'Editor', 'Editor terbatas', 'Penonton'].map((l, i) => `<td data-label="${l}">${r[i + 1]}</td>`).join('')}</tr>`).join('')}
           </tbody></table></div>
         </section>`;
