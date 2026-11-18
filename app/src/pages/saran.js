@@ -2,63 +2,75 @@ import { api } from '../core/data.js';
 import { AFTER, PAGES } from '../core/registry.js';
 import { S } from '../core/state.js';
 import { $, esc } from '../lib/dom.js';
-import { fmt, median, nf } from '../lib/format.js';
 import { toast } from '../ui/bits.js';
 
-// Saran video affiliate: masalah → solusi → produk, dari cuaca terkini (server) dan performa topik channel sendiri.
-const Z = (S.saranData = { data: null, galat: null, memuat: false });
+// Saran konten untuk tim produksi: pilih channel, pilih masalah kebun, lalu salin judul dan kata kunci.
+// Isinya dihitung server dari cuaca terkini; channel harga mendapat judul update harga bertanggal.
+const Z = (S.saranData = { data: null, galat: null, memuat: false, ch: null, m: null });
 
-// Topik terkuat 60 hari terakhir dari video channel sendiri (median views, minimal 3 video).
-function topikKuat() {
-  const g = {};
-  S.content.filter((c) => c._age >= 2 && c._age <= 60 && c._topik !== 'Lainnya').forEach((c) => { (g[c._topik] ||= []).push(c.views); });
-  const semua = median(S.content.filter((c) => c._age >= 2 && c._age <= 60).map((c) => c.views));
-  const t = Object.entries(g).filter(([, l]) => l.length >= 3).map(([n, l]) => ({ n, m: median(l), jml: l.length })).sort((a, b) => b.m - a.m)[0];
-  return t && semua && t.m >= semua * 1.2 ? t : null;
-}
+const pendek = (n) => String(n).replace(/\s+Hari Ini$/i, '');
+const chIndex = (id) => (Z.data ? Z.data.channels.findIndex((c) => c.id === id) : -1);
+const warna = (id) => { const i = chIndex(id); return i >= 0 && i < 3 ? `var(--ch-${i + 1})` : 'var(--muted)'; };
 
-function kartu(s, i) {
-  return `<section class="card sr">
-    <div class="sr-k"><span class="sr-n">${i + 1}</span><span class="sr-d">${esc(s.dasar)}</span></div>
-    <h2>${esc(s.masalah)}</h2>
-    <p class="muted">${esc(s.sebab)}</p>
-    <h3>Solusi</h3>
-    <ul>${s.solusi.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
-    <h3>Produk</h3>
-    <div class="sr-p">${s.produk.map((p) => `<a class="chip" href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.kata)}</a>`).join('')}</div>
-    <h3>Judul</h3>
-    ${s.judul.map((j) => `<button class="sr-j" data-act="saran-judul" data-v="${esc(j)}">${esc(j)}<span class="sr-c">Salin</span></button>`).join('')}
-    <div class="tools mt-12"><button class="btn sm primary" data-act="saran-tautan" data-v="${esc(s.produk[0].kata)}">Buat tautan</button></div>
-  </section>`;
+function pilihan() {
+  const d = Z.data;
+  const ch = d.channels.find((c) => c.id === Z.ch) || d.channels[0];
+  const m = d.masalah.find((x) => x.id === Z.m) || d.masalah[0];
+  return { ch, m, isi: m.per[ch.id] };
 }
 
 function isi() {
   if (Z.galat && !Z.data) return `<section class="card"><div class="empty">${esc(Z.galat)}</div><div class="tools"><button class="btn sm" data-act="saran-muat">Coba lagi</button></div></section>`;
-  if (!Z.data) return '<div class="skeleton" style="height:220px"></div><div class="skeleton" style="height:220px"></div>';
-  const c = Z.data.cuaca, t = topikKuat();
-  return `<section class="card sr-cuaca">
-      <div class="sr-lok">${esc(Z.data.lokasi)}</div>
-      <div class="sr-stat"><div><b>${nf.format(c.hujanLalu)}</b><span>mm minggu lalu</span></div><div><b>${nf.format(c.hujanDepan)}</b><span>mm 7 hari ke depan</span></div><div><b>${c.hariHujanDepan}/7</b><span>hari hujan</span></div><div><b>${c.lembap}%</b><span>lembap</span></div></div>
+  if (!Z.data) return '<div class="skeleton" style="height:120px"></div><div class="skeleton" style="height:240px"></div>';
+  const d = Z.data, { ch, m, isi: x } = pilihan();
+  const harga = ch.tema === 'harga';
+  return `
+    <p class="sr-sit">${esc(d.ringkas)} · ${esc(d.lokasi)}</p>
+    <div class="seg scroll" role="group" aria-label="Channel">${d.channels.map((c) => `<button data-act="saran-ch" data-v="${esc(c.id)}" aria-pressed="${c.id === ch.id}"><i class="dot" style="background:${warna(c.id)}"></i>${esc(pendek(c.nama))}</button>`).join('')}</div>
+    ${harga ? '' : `
+    ${d.masalah.length > 1 ? `<div class="sr-chips" role="group" aria-label="Masalah">${d.masalah.map((x2) => `<button data-act="saran-m" data-v="${esc(x2.id)}" aria-pressed="${x2.id === m.id}">${esc(x2.label)}</button>`).join('')}</div>` : ''}
+    <section class="card sr-isi">
+      <dl>
+        <dt>Masalah</dt><dd><b>${esc(m.masalah)}</b><span class="muted">${esc(m.dasar)}</span></dd>
+        <dt>Solusi</dt><dd><ol>${m.solusi.map((s) => `<li>${esc(s)}</li>`).join('')}</ol></dd>
+        <dt>Produk</dt><dd>${m.produk.map((p) => `<div class="sr-prod"><span>${esc(p.nama)}</span><a href="${esc(p.url)}" target="_blank" rel="noopener">Cari</a><button class="lnk" data-act="saran-tautan" data-v="${esc(p.nama)}">Tautan</button></div>`).join('')}</dd>
+      </dl>
+    </section>`}
+    <section class="card">
+      <div class="card-h"><h2>Judul</h2><span class="muted">${x.judul.length} · ketuk untuk menyalin</span></div>
+      ${x.judul.map((j) => `<button class="sr-j" data-act="saran-judul" data-v="${esc(j)}"><span>${esc(j)}</span></button>`).join('')}
     </section>
-    ${t ? `<section class="card sr-topik"><h3>Topik terkuat di channel</h3><b>${esc(t.n)}</b> <span class="muted">median ${fmt(t.m)} views · ${t.jml} video, 60 hari</span></section>` : ''}
-    ${Z.data.saran.map(kartu).join('')}
-    <section class="card sr-alur"><h3>Alur video</h3><ol><li>Masalah: tunjukkan gejalanya di 5 detik pertama</li><li>Penyebab singkat</li><li>Langkah solusi</li><li>Produk yang dipakai, tautan di deskripsi</li><li>Tag produk di YouTube Studio (Earn → Shopping)</li></ol>
-      <p class="muted">Ikuti dosis dan izin edar di label produk.</p></section>`;
+    <section class="card">
+      <div class="card-h"><h2>Kata kunci</h2><button class="btn sm" data-act="saran-kata-semua">Salin semua</button></div>
+      <div class="sr-kata">${x.kata.map((k) => `<button class="chip" data-act="saran-judul" data-v="${esc(k)}">${esc(k)}</button>`).join('')}</div>
+    </section>`;
 }
 
 PAGES.saran = () => `<header class="head"><h1>Saran</h1></header><div id="saran-isi" class="stack-page">${isi()}</div>`;
 
+function tampil() { const el = $('#saran-isi'); if (el) el.innerHTML = isi(); }
+
 export async function muatSaran() {
   if (Z.memuat) return;
   Z.memuat = true;
-  try { Z.data = await api('/api/saran', { timeout: 30000 }); Z.galat = null; } catch (e) { Z.galat = e.message; }
+  try { Z.data = await api('/api/saran', { timeout: 30000 }); Z.galat = null; if (!Z.data.channels.some((c) => c.id === Z.ch)) Z.ch = null; if (!Z.data.masalah.some((x) => x.id === Z.m)) Z.m = null; } catch (e) { Z.galat = e.message; }
   Z.memuat = false;
-  const el = $('#saran-isi');
-  if (el) el.innerHTML = isi();
+  tampil();
 }
 
 AFTER.saran = () => { if (!Z.data || Date.now() - new Date(Z.data.dihitung).getTime() > 3 * 3600 * 1000) muatSaran(); };
 
-export async function salinJudul(v) {
-  try { await navigator.clipboard.writeText(v); toast('Disalin'); } catch (e) { toast(v, true); }
+export const pilihChannel = (id) => { Z.ch = id; tampil(); };
+export const pilihMasalah = (id) => { Z.m = id; tampil(); };
+
+export async function salin(teks, pesan = 'Disalin') {
+  try { await navigator.clipboard.writeText(teks); toast(pesan); } catch (e) { toast(teks, true); }
+}
+
+// Kolom tag YouTube dibatasi 500 karakter: kata kunci diambil dari yang paling penting sampai muat.
+export function salinSemuaKata() {
+  if (!Z.data) return;
+  const kata = []; let n = 0;
+  for (const k of pilihan().isi.kata) { if (n + k.length + 2 > 500) break; kata.push(k); n += k.length + 2; }
+  salin(kata.join(', '), `${kata.length} kata kunci disalin`);
 }

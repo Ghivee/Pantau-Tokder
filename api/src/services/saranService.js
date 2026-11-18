@@ -1,7 +1,9 @@
 const axios = require('axios');
 const db = require('../config/db');
+const { getChannelIds, getChannelNames } = require('./channelService');
+const { MASALAH, harga, SEPANJANG_MASA, gabung } = require('./saranData');
 
-// Saran konten affiliate masalah → solusi → produk, dari cuaca terkini di sentra cabai dan aturan musim.
+// Saran konten: masalah kebun yang relevan dari cuaca terkini, lalu judul dan kata kunci per channel.
 // Cuaca dari Open-Meteo (gratis, tanpa kunci). Lokasi bisa diganti lewat settings 'saran_lokasi' ({nama, lat, lon}).
 const LOKASI_BAWAAN = { nama: 'Garut, Jawa Barat', lat: -7.21, lon: 107.9 };
 const TTL = 3 * 3600 * 1000;
@@ -40,75 +42,43 @@ function ringkasCuaca(d) {
   };
 }
 
-const cari = (q) => ({ kata: q, url: 'https://shopee.co.id/search?keyword=' + encodeURIComponent(q) });
+const BULAN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+const tanggalWib = () => { const d = new Date(Date.now() + 7 * 3600 * 1000); return { h: d.getUTCDate(), b: BULAN[d.getUTCMonth()], t: d.getUTCFullYear() }; };
 
-// Tiap saran: masalah, penyebab singkat, langkah solusi, produk (kategori + kata kunci cari), usulan judul, dasar data.
-// Produk disebut menurut jenis/bahan aktif umum, bukan merek; dosis dan izin edar mengikuti label produk.
+const kondisiOf = (c) => (c.hariHujanDepan >= 4 || c.hujanDepan >= 60 ? 'hujan' : c.hujanDepan < 15 ? 'kering' : 'campuran');
+
+// Masalah kebun yang relevan saat ini, paling mendesak dulu (maksimal 4), dengan dasar cuacanya.
 function aturan(c) {
   const out = [];
-  const lembapHujan = c.hariHujanDepan >= 4 || c.lembap >= 85;
-  if (lembapHujan) out.push({
-    id: 'patek-hujan', prioritas: 90 + c.hariHujanDepan,
-    masalah: 'Buah cabai bercak hitam cekung lalu busuk (patek/antraknosa)',
-    sebab: 'Spora jamur menyebar lewat percikan air hujan dan menyerang saat lembap.',
-    solusi: ['Buang buah dan daun yang sudah terserang', 'Semprot fungisida sebelum hujan, bukan sesudahnya', 'Campur perekat perata supaya tidak tercuci hujan', 'Pasang mulsa agar tanah tidak memercik ke buah'],
-    produk: [cari('fungisida cabai antraknosa'), cari('perekat perata pestisida'), cari('mulsa plastik hitam perak')],
-    judul: ['Cabai Busuk Terus Saat Hujan? Cara Semprot Biar Tidak Tercuci', 'Patek Cabai Musim Hujan: Penyebab dan Cara Mengatasinya'],
-    dasar: `Hujan ${c.hariHujanDepan} dari 7 hari ke depan, kelembapan ${c.lembap}%`,
-  });
-  if (c.hujanLalu >= 80 || c.hujanDepan >= 80) out.push({
-    id: 'akar-busuk', prioritas: 80 + Math.min(15, Math.round((c.hujanLalu + c.hujanDepan) / 20)),
-    masalah: 'Tanaman cabai layu mendadak, pangkal batang busuk (akar busuk dan layu)',
-    sebab: 'Tanah tergenang membuat akar kekurangan udara dan jamur tanah menyerang.',
-    solusi: ['Buat parit pembuangan di antara bedengan', 'Cabut dan jauhkan tanaman yang sudah layu', 'Beri kapur pertanian untuk menstabilkan pH tanah', 'Kocor agens hayati pada tanaman yang sehat'],
-    produk: [cari('trichoderma agens hayati'), cari('dolomit kapur pertanian'), cari('fungisida tanah cabai layu')],
-    judul: ['Cabai Layu Tiba-tiba Setelah Hujan Deras? Ini Penyelamatnya', 'Drainase Kebun Cabai Musim Hujan: Biar Akar Tidak Busuk'],
-    dasar: `Hujan ${c.hujanLalu} mm minggu lalu dan ${c.hujanDepan} mm prakiraan 7 hari`,
-  });
-  if (c.hujanLalu >= 50) out.push({
-    id: 'pupuk-tercuci', prioritas: 70 + Math.min(10, Math.round(c.hujanLalu / 20)),
-    masalah: 'Bunga rontok dan ujung buah menghitam setelah hujan',
-    sebab: 'Hujan mencuci pupuk dan kalsium dari tanah, tanaman kekurangan hara.',
-    solusi: ['Kurangi pupuk nitrogen, tambah kalium untuk pembuahan', 'Beri kalsium lewat kocor atau semprot daun', 'Pupuk sedikit tapi lebih sering saat hujan'],
-    produk: [cari('pupuk kalium cabai'), cari('pupuk kalsium cabai ujung buah busuk'), cari('pupuk daun cabai berbunga')],
-    judul: ['Bunga Cabai Rontok Setelah Hujan: Pupuk Apa yang Dibutuhkan?', 'Ujung Buah Cabai Hitam? Ternyata Kekurangan Ini'],
-    dasar: `Hujan ${c.hujanLalu} mm dalam 7 hari terakhir`,
-  });
-  if (c.hujanLalu < 15 && c.hujanDepan >= 40) out.push({
-    id: 'awal-hujan', prioritas: 85,
-    masalah: 'Awal musim hujan: jamur dan hama meledak saat tanaman belum siap',
-    sebab: 'Peralihan dari kering ke hujan membuat kelembapan naik cepat.',
-    solusi: ['Rapikan parit dan bedengan sebelum hujan deras', 'Semprot fungisida pencegahan sebelum gejala muncul', 'Siapkan perekat dan terpal penutup'],
-    produk: [cari('fungisida pencegahan cabai'), cari('perekat perata pestisida')],
-    judul: ['Persiapan Kebun Cabai Sebelum Musim Hujan: 3 Hal Wajib'],
-    dasar: `Minggu lalu kering (${c.hujanLalu} mm), 7 hari ke depan ${c.hujanDepan} mm`,
-  });
-  if (c.hujanDepan < 15) out.push({
-    id: 'hama-kering', prioritas: 85 + (c.suhuMaks >= 31 ? 5 : 0),
-    masalah: 'Daun cabai keriting dan menguning (thrips, tungau, kutu kebul)',
-    sebab: 'Cuaca kering dan panas membuat hama penghisap berkembang cepat.',
-    solusi: ['Pasang perangkap lengket kuning di sela tanaman', 'Gunakan mulsa perak untuk mengusir kutu kebul', 'Semprot insektisida sore hari, bagian bawah daun', 'Jaga penyiraman agar tanaman tidak stres'],
-    produk: [cari('perangkap lengket kuning'), cari('mulsa perak hitam'), cari('insektisida thrips cabai'), cari('selang irigasi tetes')],
-    judul: ['Daun Cabai Keriting Saat Kemarau? Ini Hama Penyebabnya', 'Mulsa Perak dan Perangkap Kuning: Lawan Thrips Tanpa Boros'],
-    dasar: `Hujan hanya ${c.hujanDepan} mm dalam 7 hari ke depan, suhu maks ±${c.suhuMaks}°C`,
-  });
-  if (!out.length) out.push({
-    id: 'rutin', prioritas: 50,
-    masalah: 'Cuaca campuran: serangan jamur dan hama bisa datang bergantian',
-    sebab: 'Kelembapan naik turun membuat tanaman mudah stres.',
-    solusi: ['Pangkas tunas air dan daun bawah agar sirkulasi udara baik', 'Pantau tanaman tiap pagi, tindak di gejala pertama', 'Rotasi bahan aktif pestisida agar tidak kebal'],
-    produk: [cari('gunting pangkas tanaman'), cari('fungisida cabai'), cari('insektisida cabai')],
-    judul: ['Cek Rutin Kebun Cabai: 3 Gejala yang Jangan Dibiarkan'],
-    dasar: `Hujan ${c.hujanDepan} mm dalam 7 hari ke depan, kelembapan ${c.lembap}%`,
-  });
+  const tambah = (id, prioritas, dasar) => out.push({ id, prioritas, dasar });
+  if (c.hariHujanDepan >= 4 || c.lembap >= 85) tambah('patek', 90 + c.hariHujanDepan, `Hujan ${c.hariHujanDepan} dari 7 hari ke depan, lembap ${c.lembap}%`);
+  if (c.hujanLalu >= 80 || c.hujanDepan >= 80) tambah('akar', 80 + Math.min(15, Math.round((c.hujanLalu + c.hujanDepan) / 20)), `Hujan ${c.hujanLalu} mm minggu lalu, ${c.hujanDepan} mm prakiraan`);
+  if (c.hujanLalu >= 50) tambah('pupuk', 70 + Math.min(10, Math.round(c.hujanLalu / 20)), `Hujan ${c.hujanLalu} mm dalam 7 hari terakhir`);
+  if (c.hujanLalu < 15 && c.hujanDepan >= 40) tambah('awal', 85, `Minggu lalu kering (${c.hujanLalu} mm), 7 hari ke depan ${c.hujanDepan} mm`);
+  if (c.hujanDepan < 15) tambah('hama', 85 + (c.suhuMaks >= 31 ? 5 : 0), `Hujan hanya ${c.hujanDepan} mm dalam 7 hari ke depan, suhu maks ±${c.suhuMaks}°C`);
+  if (!out.length) tambah('rutin', 50, `Hujan ${c.hujanDepan} mm dalam 7 hari ke depan, lembap ${c.lembap}%`);
   return out.sort((a, b) => b.prioritas - a.prioritas).slice(0, 4);
 }
 
+// Tema channel dari namanya: harga (update harga), budidaya (masalah-solusi kebun), selain itu produk dan alat.
+const temaOf = (nama) => (/harga/i.test(nama) ? 'harga' : /budidaya/i.test(nama) ? 'budidaya' : 'tokder');
+
 async function saran() {
-  const l = await lokasi();
+  const [l, ids, names] = await Promise.all([lokasi(), getChannelIds(), getChannelNames()]);
   const d = await ambilCuaca(l);
   const cuaca = ringkasCuaca(d);
-  return { lokasi: l.nama, cuaca, saran: aturan(cuaca), dihitung: new Date().toISOString() };
+  const kondisi = kondisiOf(cuaca);
+  const w = tanggalWib();
+  const hg = harga(kondisi, `${w.h} ${w.b} ${w.t}`, `${w.h} ${w.b}`, `${w.b} ${w.t}`);
+  const channels = ids.map((id) => ({ id, nama: names[id] || id, tema: temaOf(names[id] || '') }));
+  const masalah = aturan(cuaca).map((x) => {
+    const m = MASALAH[x.id];
+    const per = {};
+    for (const ch of channels) per[ch.id] = ch.tema === 'harga' ? hg : ch.tema === 'budidaya' ? gabung(m.budidaya, SEPANJANG_MASA.budidaya) : gabung(m.tokder, SEPANJANG_MASA.tokder);
+    return { id: x.id, label: m.label, masalah: m.masalah, solusi: m.solusi, produk: m.produk, dasar: x.dasar, per };
+  });
+  const ringkas = kondisi === 'hujan' ? `Hujan ${cuaca.hariHujanDepan} dari 7 hari` : kondisi === 'kering' ? `Kering, hujan ${cuaca.hujanDepan} mm/7 hari` : `Cuaca campuran, hujan ${cuaca.hujanDepan} mm/7 hari`;
+  return { lokasi: l.nama, ringkas: `${ringkas} · lembap ${cuaca.lembap}%`, kondisi, cuaca, channels, masalah, dihitung: new Date().toISOString() };
 }
 
-module.exports = { saran, ringkasCuaca, aturan };
+module.exports = { saran, ringkasCuaca, aturan, kondisiOf, temaOf };
