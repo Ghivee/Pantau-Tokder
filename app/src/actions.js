@@ -11,7 +11,7 @@ import { absen, ambilLokasi } from './pages/presensi.js';
 import { muatSaran, pilihChannel, salin, salinSemuaKata } from './pages/saran.js';
 import { buatTautan, hapusTautan, pilihMetrik, salinTautan, tautanDialog } from './pages/rekap.js';
 import { bulanLabel, daftarSW, diIOS, muatUlang, pushDidukung, swReg, terpasang } from './pages/shared.js';
-import { pantauPosting, setPosting, showPostList } from './pages/sosmed.js';
+import { pantauPosting, setPosting, showPostList, susunDeskripsi } from './pages/sosmed.js';
 import { toast } from './ui/bits.js';
 import { closeOverlay, confirmDialog, openDialog } from './ui/dialog.js';
 import { catatDialog, editorDialog, goalDialog, loginDialog, moreSheet, videoDrawer } from './ui/dialogs.js';
@@ -298,6 +298,7 @@ document.addEventListener('click', async (ev) => {
       break;
     }
     case 'tautan-baru': tautanDialog(); break;
+    case 'susun-deskripsi': susunDeskripsi(); break;
     case 'saran-tautan': tautanDialog(el.dataset.v); break;
     case 'saran-judul': salin(el.dataset.v); break;
     case 'saran-ch': pilihChannel(el.dataset.v); break;

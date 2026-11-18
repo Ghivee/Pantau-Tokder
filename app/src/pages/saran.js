@@ -7,12 +7,24 @@ import { toast } from '../ui/bits.js';
 
 // Saran untuk tim produksi, dari tiga sumber nyata: pencarian YouTube (kata kunci dan bahan judul), video terlaris di YouTube,
 // dan video channel itu sendiri (ciri khas judul yang bekerja). Pilih channel, salin judul dan kata kunci.
-const Z = (S.saranData = { data: null, galat: null, memuat: false, ch: null });
+const Z = (S.saranData = { data: null, galat: null, memuat: false, ch: null, komentar: null });
 
 const pendek = (n) => String(n).replace(/\s+Hari Ini$/i, '');
 const warna = (id) => { const i = Z.data ? Z.data.channels.findIndex((c) => c.id === id) : -1; return i >= 0 && i < 3 ? `var(--ch-${i + 1})` : 'var(--muted)'; };
 const pilihan = () => Z.data.channels.find((c) => c.id === Z.ch) || Z.data.channels[0];
 const rowContoh = (j, sub) => `<div class="sr-ct"><span>${esc(j.judul)}${sub ? `<span class="muted"> · ${esc(sub)}</span>` : ''}</span><b>${fmt(j.views)}</b></div>`;
+
+// Pertanyaan penonton di komentar channel ini, per topik; ketuk untuk menyalin contoh pertanyaannya sebagai bahan judul.
+function kartuKomentar(c) {
+  const K = Z.komentar;
+  const k = K && K.tersedia && K.channels.find((x) => x.id === c.id);
+  if (!k || k.galat) return '';
+  return `<section class="card">
+      <div class="card-h"><h2>Pertanyaan penonton</h2><span class="muted">${nf0(k.dipindai)} komentar terbaru</span></div>
+      ${k.topik.length ? k.topik.map((t) => `<button class="sr-q" data-act="saran-judul" data-v="${esc(t.contoh[0])}"><span class="sr-qh"><b>${esc(t.topik)}</b><span class="muted">${t.n} pertanyaan</span></span><span class="sr-qc">${esc(t.contoh[0])}</span></button>`).join('') : '<p class="muted">Belum ada pertanyaan yang jelas.</p>'}
+    </section>`;
+}
+const nf0 = (n) => new Intl.NumberFormat('id-ID').format(n);
 
 function cirikhas(c) {
   const g = c.gaya;
@@ -34,6 +46,7 @@ function isi() {
       <div class="card-h"><h2>Ciri khas</h2><span class="muted">${c.gaya.n} video</span></div>
       ${cirikhas(c)}
     </section>
+    ${kartuKomentar(c)}
     ${c.judul.length ? `<section class="card">
       <div class="card-h"><h2>Judul</h2><span class="muted">${c.judul.length} · ketuk untuk menyalin</span></div>
       ${c.judul.map((j) => `<button class="sr-j" data-act="saran-judul" data-v="${esc(j)}"><span>${esc(j)}</span></button>`).join('')}
@@ -65,7 +78,15 @@ export async function muatSaran() {
   tampil();
 }
 
-AFTER.saran = () => { if (!Z.data || Date.now() - new Date(Z.data.dihitung).getTime() > 3 * 3600 * 1000) muatSaran(); };
+async function muatKomentar() {
+  try { Z.komentar = await api('/api/komentar', { timeout: 60000 }); } catch (e) { Z.komentar = { tersedia: false, channels: [] }; }
+  tampil();
+}
+
+AFTER.saran = () => {
+  if (!Z.data || Date.now() - new Date(Z.data.dihitung).getTime() > 3 * 3600 * 1000) muatSaran();
+  if (!Z.komentar) muatKomentar();
+};
 
 export const pilihChannel = (id) => { Z.ch = id; tampil(); };
 
