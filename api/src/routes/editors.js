@@ -1,4 +1,5 @@
 const express = require('express');
+const { PERAN } = require('../utils/izin');
 const router = express.Router();
 const { fail, bad } = require('../utils/httpError');
 const editorService = require('../services/editorService');
@@ -22,7 +23,8 @@ function validate(body) {
   const kode = String(b.kode || '').trim().toUpperCase().replace(/^#/, '');
   if (!nama || nama.length > 100) throw bad(400, 'Nama wajib diisi (maksimal 100 karakter)');
   if (!/^[A-Z0-9]{2,10}$/.test(kode)) throw bad(400, 'Kode harus 2–10 huruf/angka, misal AL');
-  if (b.peran !== undefined && !['editor', 'terbatas'].includes(b.peran)) throw bad(400, 'Peran tidak dikenal');
+  if (b.peran !== undefined && !PERAN.includes(b.peran)) throw bad(400, 'Peran tidak dikenal');
+  if (b.lihat_penghasilan !== undefined && typeof b.lihat_penghasilan !== 'boolean') throw bad(400, 'Izin penghasilan tidak valid');
   if (b.status !== undefined && !['aktif', 'nonaktif'].includes(b.status)) throw bad(400, 'Status tidak dikenal');
   if (b.target_harian !== undefined) {
     const t = Number(b.target_harian);

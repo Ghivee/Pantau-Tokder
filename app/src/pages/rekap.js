@@ -1,7 +1,7 @@
 import { analyticsChannels, api } from '../core/data.js';
 import { AFTER, PAGES } from '../core/registry.js';
 import { route } from '../core/router.js';
-import { S, isAdmin } from '../core/state.js';
+import { S, bisa, lihatUang } from '../core/state.js';
 import { daysBack } from '../core/stats.js';
 import { $, esc } from '../lib/dom.js';
 import { WIB, addDays, fmt, nf, signed, sum, tglPanjang, tglPendek, today } from '../lib/format.js';
@@ -126,7 +126,8 @@ function isi() {
   const p = periode();
   const sel = (id, ds) => S.daily.filter((d) => d.channel_id === id && ds.includes(d.tanggal));
   const views = (id, ds) => { const r = sel(id, ds); return r.length ? sum(r, (d) => d.views) : null; };
-  const baris = chans.map((c) => ({ c, v: views(c.id, p.days), vp: views(c.id, p.prev), ctr: ctrOf(c.id, p.days), ret: retensiOf(c.id, p.days), jam: naikRealtime(c.id, 3600000), klik: klikOf(c.id, p.days) }));
+  const uang = (id, ds) => { const r = sel(id, ds).filter((d) => d.revenue != null); return r.length ? sum(r, (d) => d.revenue) : null; };
+  const baris = chans.map((c) => ({ c, uang: uang(c.id, p.days), v: views(c.id, p.days), vp: views(c.id, p.prev), ctr: ctrOf(c.id, p.days), ret: retensiOf(c.id, p.days), jam: naikRealtime(c.id, 3600000), klik: klikOf(c.id, p.days) }));
   const delta = (b) => (b.v == null || !b.vp ? '' : `<span class="dl ${b.v >= b.vp ? 'ok' : 'bad'}">${signed(Math.round(((b.v - b.vp) / b.vp) * 100), (x) => nf.format(x) + '%')}</span>`);
   const sd = seriesFor(chans, p);
   const adaData = sd.series.some((s) => s.values.some((v) => v != null));
@@ -136,6 +137,7 @@ function isi() {
     ${R.galatRt ? `<div class="notice" role="status"><span>Real-time: ${esc(R.galatRt)}</span></div>` : ''}
     <div class="met-grid">
       ${kartuAngka('Views', baris, (b) => b.v, fmt, { delta })}
+      ${lihatUang() ? kartuAngka('Penghasilan', baris, (b) => b.uang, (v) => 'Rp ' + fmt(v)) : ''}
       ${kartuAngka('CTR', baris, (b) => b.ctr, persen)}
       ${kartuAngka('Retensi', baris, (b) => (b.ret ? b.ret.tengah : null), persen, { max: 100 })}
       ${kartuAngka('Real-time · per jam', baris, (b) => (b.jam ? b.jam.naik : null), (v) => '+' + fmt(v))}
@@ -153,12 +155,12 @@ const urlTautan = (kode) => location.origin + '/go/' + kode;
 function tautanKartu(chans) {
   const L = R.tautan;
   return `<section class="card" id="kartu-tautan">
-      <div class="card-h"><h2>Tautan</h2><button class="btn sm" data-act="tautan-baru" aria-label="Tautan baru">${icon('plus')}Baru</button></div>
+      <div class="card-h"><h2>Tautan</h2>${bisa('tautan') ? `<button class="btn sm" data-act="tautan-baru" aria-label="Tautan baru">${icon('plus')}Baru</button>` : ''}</div>
       ${L == null ? '<div class="empty">…</div>' : L.length ? `<div class="tl-list">${L.map((t) => `
         <div class="tl-row"><div class="tl-t"><b>${esc(t.label)}</b><span class="muted mono">${esc(urlTautan(t.kode).replace(/^https?:\/\//, ''))}</span>
           <span class="muted">${esc((chans.find((c) => c.id === t.channel_id) || {}).nama || '')}</span></div>
           <div class="tl-n"><b>${nf.format(t.tujuh_hari)}</b><span class="muted">7 hari</span></div>
-          <div class="tl-a"><button class="btn sm ghost" data-act="tautan-salin" data-kode="${esc(t.kode)}">Salin</button>${isAdmin() ? `<button class="btn sm ghost danger" data-act="tautan-hapus" data-kode="${esc(t.kode)}">Hapus</button>` : ''}</div></div>`).join('')}</div>` : '<div class="empty">Belum ada tautan</div>'}
+          <div class="tl-a"><button class="btn sm ghost" data-act="tautan-salin" data-kode="${esc(t.kode)}">Salin</button>${bisa('hapus') ? `<button class="btn sm ghost danger" data-act="tautan-hapus" data-kode="${esc(t.kode)}">Hapus</button>` : ''}</div></div>`).join('')}</div>` : '<div class="empty">Belum ada tautan</div>'}
     </section>`;
 }
 

@@ -17,7 +17,7 @@ export const ROUTES = [
   { id: 'pengajuan', label: 'Izin & klaim', short: 'Izin', icon: 'inbox' },
   { id: 'gaji', label: 'Gaji', icon: 'wallet' },
   { id: 'identifikasi', label: 'Belum dikenali', icon: 'help' },
-  { id: 'karyawan', label: 'Karyawan', icon: 'team', admin: true },
+  { id: 'karyawan', label: 'Tim', icon: 'team', admin: true },
   { id: 'panduan', label: 'Panduan', icon: 'book' },
   { id: 'monetisasi', label: 'Pendapatan', icon: 'money', admin: true },
   { id: 'pengaturan', label: 'Pengaturan', icon: 'gear', admin: true },
@@ -31,7 +31,7 @@ export const beranda = () => (me() && MENU_LENGKAP ? 'hari-ini' : 'rekap');
 export function menuGroups() {
   // Tampilan ringkas untuk pemilik dan karyawan: Rekap, Saran, Upload. Halaman lain (Hari ini, Harian, Presensi, Gaji, dst.)
   // tidak dihapus, hanya disembunyikan dari menu; set MENU_LENGKAP = true untuk menampilkannya lagi.
-  if (!MENU_LENGKAP) return [{ label: 'Menu', ids: ['rekap', 'saran', 'sosmed'] }];
+  if (!MENU_LENGKAP) return [{ label: 'Menu', ids: ['rekap', 'saran', 'sosmed', 'karyawan'] }];
   if (me()) return [
     { label: 'Kerja saya', ids: ['hari-ini', 'harian', 'performa', 'presensi', 'pengajuan', 'gaji'] },
     { label: 'Channel', ids: ['rekap', 'saran', 'sosmed', 'tren', 'analytics', 'konten', 'identifikasi'] },
