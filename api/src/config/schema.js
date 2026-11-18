@@ -230,6 +230,24 @@ const STATEMENTS = [
   `CREATE INDEX IF NOT EXISTS posting_target_posting_idx ON posting_target (posting_id)`,
   `CREATE INDEX IF NOT EXISTS social_post_tanggal_idx ON social_post (tanggal DESC)`,
   `CREATE INDEX IF NOT EXISTS social_post_akun_idx ON social_post (platform, akun_id)`,
+  // Rekap 3 channel: angka yang tidak diberikan YouTube Analytics API (CTR, klik afiliasi) diimpor dari CSV, per channel per hari.
+  `CREATE TABLE IF NOT EXISTS channel_metrik (
+    channel_id VARCHAR(40) NOT NULL,
+    tanggal DATE NOT NULL,
+    impresi BIGINT,
+    ctr NUMERIC(6,3),
+    klik_afiliasi INTEGER,
+    updated_at TIMESTAMP DEFAULT NOW(),
+    PRIMARY KEY (channel_id, tanggal)
+  )`,
+  // Real-time: total tayangan channel dibaca tiap menit selama Rekap terbuka; selisih antar bacaan = tayangan per jam.
+  `CREATE TABLE IF NOT EXISTS channel_snap (
+    channel_id VARCHAR(40) NOT NULL,
+    waktu TIMESTAMP NOT NULL DEFAULT NOW(),
+    views BIGINT NOT NULL,
+    subs BIGINT,
+    PRIMARY KEY (channel_id, waktu)
+  )`,
 ];
 
 const CONNECTION_CODES = ['ECONNREFUSED', 'ENOTFOUND', 'ETIMEDOUT', '57P01', '53300'];
