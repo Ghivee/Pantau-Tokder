@@ -1,6 +1,6 @@
 import { agoText, lastScanAt, syncing } from '../core/data.js';
 import { AFTER, PAGES } from '../core/registry.js';
-import { ROUTES, TABS, badgeOf, bisaBuka, menuGroups, pathOf, route, routeLabel } from '../core/router.js';
+import { ROUTES, TABS, badgeOf, beranda, bisaBuka, menuGroups, pathOf, route, routeLabel } from '../core/router.js';
 import { S, me } from '../core/state.js';
 import { $, $$, esc } from '../lib/dom.js';
 import { WIB, sum } from '../lib/format.js';
@@ -26,7 +26,7 @@ export function renderNav() {
       ${S.session ? `<button data-act="lainnya" aria-label="Akun dan menu lain">${who2 ? avatar(who2, 'sm') : '<span class="ava sm" style="background:var(--ink);color:var(--paper)">P</span>'}</button>` : '<button class="btn sm primary" data-act="login" style="border-radius:9px;padding:0 14px">Masuk</button>'}`;
   const tabs = TABS();
   const moreActive = !tabs.includes(cur);
-  const sisa = sum(ROUTES.filter((r) => !tabs.includes(r.id) && bisaBuka(r)), (r) => badgeOf(r.id));
+  const sisa = sum(ROUTES.filter((r) => !tabs.includes(r.id) && bisaBuka(r) && menuGroups().some((g) => g.ids.includes(r.id))), (r) => badgeOf(r.id));
   $('#tabbar').innerHTML = !S.session ? '' : tabs.map((id) => { const r = ROUTES.find((x) => x.id === id); return `<a href="${pathOf(id)}" ${id === cur ? 'aria-current="page"' : ''}>${icon(r.icon)}<span>${r.short || routeLabel(r)}</span>${badgeOf(id) ? `<span class="count">${badgeOf(id) > 99 ? '99+' : badgeOf(id)}</span>` : ''}</a>`; }).join('') +
     `<button data-act="lainnya" ${moreActive ? 'aria-current="page"' : ''}>${icon('more')}<span>Lainnya</span>${sisa ? `<span class="count">${sisa > 99 ? '99+' : sisa}</span>` : ''}</button>`;
   $('#side-foot').innerHTML = `
@@ -49,7 +49,7 @@ export function render() {
   const r = route();
   const page = $('#page');
   // A page this person cannot open (or an unknown address) shows its fallback at the matching address.
-  const want = location.pathname.replace(/^\/+/, '').split('/')[0] || (me() ? 'hari-ini' : 'ringkasan');
+  const want = location.pathname.replace(/^\/+/, '').split('/')[0] || beranda();
   if (want !== r) history.replaceState(null, '', pathOf(r));
   if (!S.session && !S.error) {
     // Halaman depan publik: dibaca juga oleh reviewer TikTok/Meta, jadi menjelaskan apa aplikasi ini,

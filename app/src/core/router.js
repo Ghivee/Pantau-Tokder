@@ -4,13 +4,14 @@ import { render } from '../ui/layout.js';
 
 export const ROUTES = [
   { id: 'hari-ini', label: 'Hari ini', icon: 'home', karyawan: true },
+  { id: 'rekap', label: 'Rekap 3 channel', short: 'Rekap', icon: 'chart', admin: true },
   { id: 'ringkasan', label: 'Ringkasan', icon: 'home', admin: true },
   { id: 'harian', label: 'Harian', icon: 'day' },
   { id: 'performa', label: 'Performa', short: 'Performa', icon: 'target' },
   { id: 'tren', label: 'Tren channel', short: 'Tren', icon: 'trend' },
   { id: 'konten', label: 'Konten', icon: 'video' },
   { id: 'analytics', label: 'Analytics', icon: 'chart' },
-  { id: 'sosmed', label: 'Media sosial', icon: 'share', admin: true },
+  { id: 'sosmed', label: 'Upload sosmed', short: 'Upload', icon: 'share', admin: true },
   { id: 'presensi', label: 'Presensi', icon: 'pin' },
   { id: 'pengajuan', label: 'Izin & klaim', short: 'Izin', icon: 'inbox' },
   { id: 'gaji', label: 'Gaji', icon: 'wallet' },
@@ -21,6 +22,10 @@ export const ROUTES = [
   { id: 'pengaturan', label: 'Pengaturan', icon: 'gear', admin: true },
 ];
 
+export const MENU_PEMILIK_LENGKAP = false;
+
+export const beranda = () => (me() ? 'hari-ini' : 'rekap');
+
 // The menu in groups, ordered by what each role uses most. The bottom bar on phones shows the first four.
 export function menuGroups() {
   if (me()) return [
@@ -28,14 +33,17 @@ export function menuGroups() {
     { label: 'Channel', ids: ['tren', 'analytics', 'konten', 'identifikasi'] },
     { label: 'Bantuan', ids: ['panduan'] },
   ];
+  // Tampilan ringkas pemilik: hanya Rekap 3 channel dan Upload sosmed. Halaman lain tidak dihapus,
+  // hanya disembunyikan dari menu; set MENU_PEMILIK_LENGKAP = true untuk menampilkannya lagi.
+  if (!MENU_PEMILIK_LENGKAP) return [{ label: 'Pantau', ids: ['rekap', 'sosmed'] }];
   return [
-    { label: 'Pantau', ids: ['ringkasan', 'harian', 'performa', 'tren', 'konten', 'analytics', 'sosmed'] },
+    { label: 'Pantau', ids: ['rekap', 'ringkasan', 'harian', 'performa', 'tren', 'konten', 'analytics', 'sosmed'] },
     { label: 'Tim', ids: ['presensi', 'pengajuan', 'gaji', 'karyawan', 'identifikasi'] },
     { label: 'Pemilik', ids: ['monetisasi', 'pengaturan', 'panduan'] },
   ];
 }
 
-export const TABS = () => (me() ? ['hari-ini', 'presensi', 'performa', 'pengajuan'] : ['ringkasan', 'harian', 'pengajuan', 'gaji']);
+export const TABS = () => (me() ? ['hari-ini', 'presensi', 'performa', 'pengajuan'] : MENU_PEMILIK_LENGKAP ? ['rekap', 'harian', 'pengajuan', 'gaji'] : ['rekap', 'sosmed']);
 
 export const routeLabel = (r) => (me() && r.id === 'harian' ? 'Harian saya' : me() && r.id === 'performa' ? 'Performa saya' : me() && r.id === 'konten' ? 'Video channel' : r.label);
 
@@ -45,12 +53,12 @@ export const bisaBuka = (r) => (!r.admin || isAdmin()) && (!r.karyawan || !!me()
 export const badgeOf = (id) => (id === 'identifikasi' ? S.unmatched : id === 'pengajuan' ? menunggu() : 0);
 
 // Pages live at real paths (/harian, /presensi, /harian/3); "/" is the home page of each role.
-export const pathOf = (id) => (id === (me() ? 'hari-ini' : 'ringkasan') ? '/' : '/' + id);
+export const pathOf = (id) => (id === beranda() ? '/' : '/' + id);
 
 export function route() {
-  const h = location.pathname.replace(/^\/+/, '').split('/')[0] || (me() ? 'hari-ini' : 'ringkasan');
+  const h = location.pathname.replace(/^\/+/, '').split('/')[0] || beranda();
   const r = ROUTES.find((x) => x.id === h);
-  if (!r || !bisaBuka(r)) return me() ? 'hari-ini' : 'ringkasan';
+  if (!r || !bisaBuka(r)) return beranda();
   return r.id;
 }
 

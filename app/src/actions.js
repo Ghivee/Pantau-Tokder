@@ -3,10 +3,12 @@ import { exportCsv, exportGaji, exportPresensi } from './core/export.js';
 import { navigate } from './core/router.js';
 import { S, saveSession } from './core/state.js';
 import { $, esc } from './lib/dom.js';
+import { angkaUang, bacaCsv } from './lib/csv.js';
 import { addDays, idr, today } from './lib/format.js';
 import { aturGajiDialog, cetakSlip, loadGaji, slipDialog } from './pages/gaji.js';
 import { ajukanDialog, putuskanDialog } from './pages/pengajuan.js';
 import { absen, ambilLokasi } from './pages/presensi.js';
+import { imporRekapDialog, pilihMetrik } from './pages/rekap.js';
 import { bulanLabel, daftarSW, diIOS, muatUlang, pushDidukung, swReg, terpasang } from './pages/shared.js';
 import { pantauPosting, setPosting, showPostList } from './pages/sosmed.js';
 import { toast } from './ui/bits.js';
@@ -52,35 +54,6 @@ async function matikanNotif(diam = false) {
   } catch (e) { /* nothing subscribed */ }
   S.notif = { ...(S.notif || {}), aktif: false };
   if (!diam) { toast('Notifikasi dimatikan di perangkat ini'); render(); }
-}
-
-function bacaCsv(text) {
-  text = text.replace(/^﻿/, '');
-  const first = text.split(/\r?\n/, 1)[0] || '';
-  const delim = [',', ';', '\t'].map((d) => [d, first.split(d).length]).sort((a, b) => b[1] - a[1])[0][0];
-  const rows = []; let row = [], cell = '', q = false;
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i];
-    if (q) { if (c === '"') { if (text[i + 1] === '"') { cell += '"'; i++; } else q = false; } else cell += c; continue; }
-    if (c === '"') q = true;
-    else if (c === delim) { row.push(cell); cell = ''; }
-    else if (c === '\n' || c === '\r') { if (c === '\r' && text[i + 1] === '\n') i++; row.push(cell); rows.push(row); row = []; cell = ''; }
-    else cell += c;
-  }
-  if (cell || row.length) { row.push(cell); rows.push(row); }
-  return rows.filter((r) => r.some((x) => x.trim()));
-}
-
-// "Rp1.234.567", "1,234.50", "12.345,67", "1500" → number
-function angkaUang(v) {
-  let s = String(v ?? '').replace(/[^\d,.\-]/g, '');
-  if (!/\d/.test(s)) return null;
-  const lc = s.lastIndexOf(','), ld = s.lastIndexOf('.');
-  if (lc > -1 && ld > -1) s = lc > ld ? s.replace(/\./g, '').replace(',', '.') : s.replace(/,/g, '');
-  else if (lc > -1) s = /^[^,]*,\d{1,2}$/.test(s) ? s.replace(',', '.') : s.replace(/,/g, '');
-  else if (ld > -1 && !/^[^.]*\.\d{1,2}$/.test(s)) s = s.replace(/\./g, '');
-  const n = Number(s);
-  return Number.isFinite(n) ? n : null;
 }
 
 // "2026-10-21 13:00", "21/10/2026", "21-10-2026 08:00" → "2026-10" (day first, as in Indonesian reports)
@@ -323,6 +296,8 @@ document.addEventListener('click', async (ev) => {
       f.ips.value = list.join('\n');
       break;
     }
+    case 'rekap-impor': imporRekapDialog(); break;
+    case 'rekap-metrik': pilihMetrik(el.dataset.v); break;
     case 'an-periode': S.anPeriode = +el.dataset.v; render(); break;
     default: await aksiBaru(act, el, ev); break;
     case 'putus-analytics': {

@@ -13,6 +13,8 @@ import { icon } from '../ui/icons.js';
 // "Cara kerja" buttons on other pages open the matching answer (/panduan#p-gaji).
 const MENU_INFO = {
   'hari-ini': 'Halaman utama karyawan: absen, jadwal video, tugas, izin dan gaji hari ini.',
+  rekap: 'Views, CTR, retensi, real-time dan klik afiliasi tiga channel dalam satu tabel dan satu diagram pembanding. CTR dan klik afiliasi diisi lewat Impor CSV.',
+  sosmed: 'Upload satu video ke YouTube, TikTok, Instagram dan Facebook sekaligus (sebagai draf), plus hubungkan akun.',
   ringkasan: 'Gambaran tim: video tayang, views, tepat jadwal, siapa paling bagus.',
   harian: 'Kerja per hari: video, jam tayang, tugas lain, skor. Karyawan hanya melihat miliknya sendiri.',
   performa: 'Video mana yang berhasil dibanding video lain di channel, plus saran perbaikan.',
