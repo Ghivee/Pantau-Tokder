@@ -230,6 +230,20 @@ const STATEMENTS = [
   `CREATE INDEX IF NOT EXISTS posting_target_posting_idx ON posting_target (posting_id)`,
   `CREATE INDEX IF NOT EXISTS social_post_tanggal_idx ON social_post (tanggal DESC)`,
   `CREATE INDEX IF NOT EXISTS social_post_akun_idx ON social_post (platform, akun_id)`,
+  // Pelacak tautan afiliasi: /go/<kode> mencatat klik per hari lalu meneruskan ke tujuan.
+  `CREATE TABLE IF NOT EXISTS tautan (
+    kode VARCHAR(16) PRIMARY KEY,
+    channel_id VARCHAR(40) NOT NULL,
+    label VARCHAR(80) NOT NULL,
+    tujuan TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+  )`,
+  `CREATE TABLE IF NOT EXISTS tautan_klik (
+    kode VARCHAR(16) NOT NULL REFERENCES tautan(kode) ON DELETE CASCADE,
+    tanggal DATE NOT NULL,
+    jumlah INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (kode, tanggal)
+  )`,
   // Rekap 3 channel: angka yang tidak diberikan YouTube Analytics API (CTR, klik afiliasi) diimpor dari CSV, per channel per hari.
   `CREATE TABLE IF NOT EXISTS channel_metrik (
     channel_id VARCHAR(40) NOT NULL,
