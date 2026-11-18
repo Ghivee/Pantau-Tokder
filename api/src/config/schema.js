@@ -232,16 +232,6 @@ const STATEMENTS = [
   `CREATE INDEX IF NOT EXISTS posting_target_posting_idx ON posting_target (posting_id)`,
   `CREATE INDEX IF NOT EXISTS social_post_tanggal_idx ON social_post (tanggal DESC)`,
   `CREATE INDEX IF NOT EXISTS social_post_akun_idx ON social_post (platform, akun_id)`,
-  // Impresi dan CTR per video per hari (laporan reach YouTube), untuk daftar 'Perbaiki dulu'.
-  `CREATE TABLE IF NOT EXISTS video_reach (
-    video_id VARCHAR(20) NOT NULL,
-    channel_id VARCHAR(40) NOT NULL,
-    tanggal DATE NOT NULL,
-    impresi BIGINT NOT NULL DEFAULT 0,
-    ctr NUMERIC(6,3),
-    PRIMARY KEY (video_id, tanggal)
-  )`,
-  `CREATE INDEX IF NOT EXISTS video_reach_channel_idx ON video_reach (channel_id, tanggal)`,
   // Komisi afiliasi per pesanan dari laporan marketplace (diimpor); kunci = sidik jari baris supaya impor ulang tidak menggandakan.
   `CREATE TABLE IF NOT EXISTS afiliasi_komisi (
     kunci VARCHAR(64) PRIMARY KEY,
