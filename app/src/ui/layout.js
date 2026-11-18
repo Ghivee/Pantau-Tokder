@@ -11,7 +11,7 @@ export function renderNav() {
   const cur = route();
   // Sebelum masuk hanya halaman depan yang tampil: tanpa sidebar dan bilah atas.
   document.querySelector('.shell').classList.toggle('publik', !S.session);
-  $('#nav').innerHTML = S.session ? menuGroups().map((g) => `<div class="nav-label" role="presentation">${g.label}</div>` + g.ids.map((id) => ROUTES.find((x) => x.id === id)).filter(bisaBuka).map((r) =>
+  $('#nav').innerHTML = S.session ? menuGroups().map((g, _i, all) => (all.length > 1 ? `<div class="nav-label" role="presentation">${g.label}</div>` : '') + g.ids.map((id) => ROUTES.find((x) => x.id === id)).filter(bisaBuka).map((r) =>
     `<a href="${pathOf(r.id)}" ${r.id === cur ? 'aria-current="page"' : ''}>${icon(r.icon)}<span>${routeLabel(r)}</span>${badgeOf(r.id) ? `<span class="count">${badgeOf(r.id)}</span>` : ''}</a>`
   ).join('')).join('') : '';
   const who = me();
@@ -62,13 +62,13 @@ export function render() {
         <p class="muted landing-note">Hanya untuk pemilik dan karyawan Tokder. Tidak ada pendaftaran terbuka.</p>
         <div class="landing-grid">
           <div><b>Yang dilakukan</b><p>Pemilik menghubungkan akun milik tim sendiri. Aplikasi membaca nama akun, jumlah pengikut, serta daftar video beserta tayangan, suka, komentar dan bagikan, lalu menampilkannya berdampingan.</p></div>
-          <div><b>Posting sekali upload</b><p>Pemilik mengunggah satu video, lalu mengirimnya sebagai <em>draf</em> ke akun TikTok, Instagram, Facebook dan YouTube milik tim. Tidak ada yang tayang tanpa tindakan pemilik sendiri.</p></div>
+          <div><b>Posting sekali upload</b><p>Pemilik dan anggota tim yang diberi izin mengunggah satu video, lalu mengirimnya sebagai <em>draf</em> ke akun TikTok, Instagram, Facebook dan YouTube milik tim. Tidak ada yang tayang tanpa tindakan pemilik atau anggota tim yang diberi izin menayangkan.</p></div>
           <div><b>Yang tidak dilakukan</b><p>Tidak membaca pesan atau data penonton, tidak mengubah atau menghapus konten yang sudah ada, tidak menjual atau membagikan data.</p></div>
         </div>
         <nav class="landing-links" aria-label="Informasi hukum">
           <a href="/privacy.html">Kebijakan Privasi</a> · <a href="/terms.html">Syarat Layanan</a> · <a href="/data-deletion.html">Hapus data</a> · <a href="mailto:tokodeeres@gmail.com">tokodeeres@gmail.com</a>
         </nav>
-        <p class="muted landing-note" lang="en">Pantau Tokder is a private dashboard for the Tokder chili-farming video team. The owner connects the team's own TikTok, Instagram, Facebook and YouTube accounts to read the accounts' own profile and video statistics, and to send the owner's own videos to those accounts as drafts. See the Privacy Policy and Terms above.</p></section>`;
+        <p class="muted landing-note" lang="en">Pantau Tokder is a private dashboard for the Tokder chili-farming video team. The owner connects the team's own TikTok, Instagram, Facebook and YouTube accounts to read the accounts' own profile and video statistics, and to let the owner and authorised team members send the team's own videos to those accounts as drafts, which only the owner or members permitted to publish can then publish. See the Privacy Policy and Terms above.</p></section>`;
     document.title = 'Masuk · Pantau Tokder';
     return;
   }

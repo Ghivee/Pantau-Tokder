@@ -1,4 +1,5 @@
 const express = require('express');
+const { bisaLihatUang } = require('../utils/izin');
 const router = express.Router();
 const { fail, bad } = require('../utils/httpError');
 const db = require('../config/db');
@@ -32,7 +33,8 @@ router.get('/:id', async (req, res) => {
     );
     if (!r.rows.length) throw bad(404, 'Video tidak ditemukan');
     const v = r.rows[0];
-    if (!req.isAdmin) { delete v.revenue; samarkan(v, req.editor.id); }
+    if (!bisaLihatUang(req)) delete v.revenue;
+    if (!req.isAdmin) samarkan(v, req.editor.id);
     v.retensi_status = v.retention_data ? 'ada' : 'belum_ada';
     if (!v.retention_data && v.channel_id && !v.baru_dicek) {
       let token = null;

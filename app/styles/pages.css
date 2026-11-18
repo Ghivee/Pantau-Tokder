@@ -201,3 +201,25 @@
 .tl-a { grid-column: 1 / -1; display: flex; gap: 4px; margin-left: -12px; }
 @media (min-width: 640px) { .tl-row { grid-template-columns: minmax(0, 1fr) 70px auto; } .tl-a { grid-column: auto; margin: 0; } }
 @media (min-width: 640px) { .seg.scroll { max-width: 460px; } }
+
+/* Saran */
+.sr h2 { margin: 6px 0 2px; font-size: 20px; font-weight: 700; letter-spacing: -.02em; }
+.sr h3, .sr-topik h3, .sr-alur h3 { margin: 14px 0 4px; font-size: 13px; font-weight: 600; color: var(--muted); }
+.sr p { margin: 0; }
+.sr ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; }
+.sr-k { display: flex; align-items: center; gap: 10px; }
+.sr-n { width: 24px; height: 24px; border-radius: 50%; background: var(--leaf); color: var(--leaf-ink); font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; flex: none; }
+.sr-d { font-size: 12.5px; color: var(--muted); }
+.sr-p { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { display: inline-flex; align-items: center; padding: 6px 12px; border-radius: 999px; background: var(--sunken); color: var(--leaf); font-size: 14px; text-decoration: none; }
+.sr-j { display: flex; width: 100%; justify-content: space-between; align-items: center; gap: 10px; text-align: left; border: 0; background: transparent; padding: 9px 0; border-top: .5px solid var(--line); font-size: 15px; cursor: pointer; color: var(--ink); }
+.sr-j:first-of-type { border-top: 0; }
+.sr-j svg { width: 16px; height: 16px; flex: none; stroke: var(--muted); fill: none; stroke-width: 1.8; }
+.sr-lok { font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 8px; }
+.sr-stat { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.sr-stat b { display: block; font-size: 22px; font-weight: 600; letter-spacing: -.02em; }
+.sr-stat span { font-size: 12px; color: var(--muted); }
+.sr-alur ol { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; }
+@media (max-width: 480px) { .sr-stat { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; } }
+@media (min-width: 900px) { #saran-isi { max-width: 720px; } }
+.sr-c { flex: none; font-size: 14px; color: var(--leaf); }

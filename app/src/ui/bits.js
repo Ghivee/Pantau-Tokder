@@ -21,7 +21,7 @@ document.addEventListener('error', (ev) => {
   }
 }, true);
 
-export const peranLabel = (p) => (p === 'terbatas' ? 'Editor terbatas' : 'Editor');
+export const peranLabel = (p) => ({ manajer: 'Manajer', terbatas: 'Editor terbatas', penonton: 'Penonton' }[p] || 'Editor');
 
 export const thumb = (c) => (c.post_id ? `https://i.ytimg.com/vi/${encodeURIComponent(c.post_id)}/mqdefault.jpg` : '');
 

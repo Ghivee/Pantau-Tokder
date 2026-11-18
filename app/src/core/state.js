@@ -35,3 +35,11 @@ export const me = () => (S.session && S.session.type === 'karyawan' ? S.editors.
 export const canLog = () => isAdmin() || !!me();
 
 export const canAssign = () => isAdmin() || (me() && (me().peran || 'editor') === 'editor');
+
+// Hak akses seperti YouTube Studio (sama dengan api/src/utils/izin.js; server yang menegakkannya).
+const IZIN = { manajer: ['upload', 'tayang', 'hapus', 'tautan'], editor: ['upload', 'tayang', 'tautan'], terbatas: ['upload', 'tautan'], penonton: [] };
+
+export const bisa = (aksi) => isAdmin() || (!!me() && (IZIN[me().peran] || IZIN.editor).includes(aksi));
+
+// Penghasilan: pemilik, atau karyawan yang diberi tanda oleh pemilik.
+export const lihatUang = () => isAdmin() || !!(me() && me().lihat_penghasilan);

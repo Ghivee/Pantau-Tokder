@@ -2,7 +2,7 @@ import { assign, refreshAktivitas } from '../actions.js';
 import { activeEditors, api, belumDikenali, editorById, load, normalize } from '../core/data.js';
 import { ROUTES, TABS, badgeOf, bisaBuka, menuGroups, navigate, pathOf, route, routeLabel } from '../core/router.js';
 import { TUGAS, TUGAS_LAIN, slotsOf, targetOf } from '../core/rules.js';
-import { S, canAssign, isAdmin, me } from '../core/state.js';
+import { S, canAssign, isAdmin, lihatUang, me } from '../core/state.js';
 import { $, $$, esc } from '../lib/dom.js';
 import { durasi, nf, nowJam, rpOrDash, tglPanjang, today } from '../lib/format.js';
 import { avatar, editorCell, peranLabel, thumb, toast } from './bits.js';
@@ -114,7 +114,7 @@ export function editorDialog(id) {
           <label class="field"><span>Kode</span><input class="input" name="kode" value="${esc(e.kode_identifikasi)}" required maxlength="20" style="text-transform:uppercase"><small>Ditulis di deskripsi video, misal #AL</small></label>
         </div>
         <div class="row">
-          <label class="field"><span>Peran</span><select class="input" name="peran"><option value="editor" ${e.peran !== 'terbatas' ? 'selected' : ''}>Editor</option><option value="terbatas" ${e.peran === 'terbatas' ? 'selected' : ''}>Editor terbatas</option></select></label>
+          <label class="field"><span>Peran</span><select class="input" name="peran">${[['manajer', 'Manajer'], ['editor', 'Editor'], ['terbatas', 'Editor terbatas'], ['penonton', 'Penonton']].map(([v, l]) => `<option value="${v}" ${(e.peran || 'editor') === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
           <label class="field"><span>Status</span><select class="input" name="status"><option value="aktif" ${e.status !== 'nonaktif' ? 'selected' : ''}>Aktif</option><option value="nonaktif" ${e.status === 'nonaktif' ? 'selected' : ''}>Nonaktif</option></select></label>
         </div>
         <div class="row">
@@ -123,6 +123,7 @@ export function editorDialog(id) {
         </div>
         <label class="field"><span>Link foto (opsional)</span><input class="input" name="foto_url" type="url" value="${esc(e.foto_url || '')}" placeholder="https://…"><small>Kosongkan untuk memakai inisial nama</small></label>
         <label class="field"><span>${e.punya_pin ? 'PIN baru (kosongkan bila tidak diganti)' : 'PIN untuk masuk'}</span><input class="input" name="pin" type="password" inputmode="numeric" minlength="4" maxlength="12" autocomplete="new-password" placeholder="4–12 angka"></label>
+        <label style="display:flex;gap:8px;align-items:center;font-size:14px"><input type="checkbox" name="lihat_penghasilan" ${e.lihat_penghasilan ? 'checked' : ''}> Boleh melihat penghasilan</label>
         ${e.punya_pin ? '<label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" name="hapus_pin"> Hapus PIN (karyawan tidak bisa masuk)</label>' : ''}
         <div class="err" id="ed-err" role="alert"></div>
         <div class="actions"><button type="button" class="btn ghost" data-act="close-overlay">Batal</button><button class="btn primary">Simpan</button></div>
@@ -132,6 +133,7 @@ export function editorDialog(id) {
       const body = Object.fromEntries(new FormData(ev.target));
       body.kode = body.kode.toUpperCase().replace(/^#/, '');
       body.hapus_pin = !!body.hapus_pin;
+      body.lihat_penghasilan = !!body.lihat_penghasilan;
       if (body.pin && !/^\d{4,12}$/.test(body.pin)) { $('#ed-err', d).textContent = 'PIN harus 4–12 angka'; return; }
       if (!body.pin) delete body.pin;
       try {
@@ -177,7 +179,7 @@ export function videoDrawer(id) {
         <div class="drawer-top"><h2>${esc(c.judul)}</h2><button class="btn icon ghost" data-act="close-overlay" aria-label="Tutup">${icon('x')}</button></div>
         ${thumb(c) ? `<img class="hero" src="${thumb(c).replace('mqdefault', 'hqdefault')}" alt="">` : ''}
         <div class="muted">${esc(c._chNama)} · ${c.tipe_video === 'short' ? 'Shorts' : 'Video panjang'} · ${tglPanjang(c._day)} jam ${c._jam} WIB · durasi ${durasi(c.duration_secs)}</div>
-        <div class="stats"><div><span>Views</span><b>${nf.format(c.views)}</b></div><div><span>Like</span><b>${nf.format(c.likes)}</b></div><div><span>Komentar</span><b>${nf.format(c.comments)}</b></div>${isAdmin() ? `<div><span>Pendapatan</span><b>${rpOrDash(c.revenue)}</b></div>` : ''}</div>
+        <div class="stats"><div><span>Views</span><b>${nf.format(c.views)}</b></div><div><span>Like</span><b>${nf.format(c.likes)}</b></div><div><span>Komentar</span><b>${nf.format(c.comments)}</b></div>${lihatUang() ? `<div><span>Pendapatan</span><b>${rpOrDash(c.revenue)}</b></div>` : ''}</div>
         <div><div class="card-h mb-6"><h2>Pembuat</h2></div>
           ${editorCell(c)}
           ${canAssign() && (isAdmin() || belumDikenali(c)) ? `<div class="tools mt-10"><select class="input w-auto" id="dr-assign"><option value="">${e ? 'Ganti pembuat…' : 'Tetapkan pembuat…'}</option>${activeEditors().map((x) => `<option value="${x.id}">${me() ? 'Ini video saya' : esc(x.nama)}</option>`).join('')}</select></div>` : ''}
