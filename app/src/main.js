@@ -14,6 +14,7 @@ import './pages/performa.js';
 import './pages/presensi.js';
 import './pages/rekap.js';
 import './pages/ringkasan.js';
+import './pages/saran.js';
 import './pages/shared.js';
 import './pages/sosmed.js';
 import './pages/tren.js';

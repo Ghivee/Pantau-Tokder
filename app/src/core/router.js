@@ -4,14 +4,15 @@ import { render } from '../ui/layout.js';
 
 export const ROUTES = [
   { id: 'hari-ini', label: 'Hari ini', icon: 'home', karyawan: true },
-  { id: 'rekap', label: 'Rekap 3 channel', short: 'Rekap', icon: 'chart', admin: true },
+  { id: 'rekap', label: 'Rekap', icon: 'chart' },
+  { id: 'saran', label: 'Saran', icon: 'bulb' },
   { id: 'ringkasan', label: 'Ringkasan', icon: 'home', admin: true },
   { id: 'harian', label: 'Harian', icon: 'day' },
   { id: 'performa', label: 'Performa', short: 'Performa', icon: 'target' },
   { id: 'tren', label: 'Tren channel', short: 'Tren', icon: 'trend' },
   { id: 'konten', label: 'Konten', icon: 'video' },
   { id: 'analytics', label: 'Analytics', icon: 'chart' },
-  { id: 'sosmed', label: 'Upload sosmed', short: 'Upload', icon: 'share', admin: true },
+  { id: 'sosmed', label: 'Upload', icon: 'share' },
   { id: 'presensi', label: 'Presensi', icon: 'pin' },
   { id: 'pengajuan', label: 'Izin & klaim', short: 'Izin', icon: 'inbox' },
   { id: 'gaji', label: 'Gaji', icon: 'wallet' },
@@ -22,28 +23,28 @@ export const ROUTES = [
   { id: 'pengaturan', label: 'Pengaturan', icon: 'gear', admin: true },
 ];
 
-export const MENU_PEMILIK_LENGKAP = false;
+export const MENU_LENGKAP = false;
 
-export const beranda = () => (me() ? 'hari-ini' : 'rekap');
+export const beranda = () => (me() && MENU_LENGKAP ? 'hari-ini' : 'rekap');
 
 // The menu in groups, ordered by what each role uses most. The bottom bar on phones shows the first four.
 export function menuGroups() {
+  // Tampilan ringkas untuk pemilik dan karyawan: Rekap, Saran, Upload. Halaman lain (Hari ini, Harian, Presensi, Gaji, dst.)
+  // tidak dihapus, hanya disembunyikan dari menu; set MENU_LENGKAP = true untuk menampilkannya lagi.
+  if (!MENU_LENGKAP) return [{ label: 'Menu', ids: ['rekap', 'saran', 'sosmed'] }];
   if (me()) return [
     { label: 'Kerja saya', ids: ['hari-ini', 'harian', 'performa', 'presensi', 'pengajuan', 'gaji'] },
-    { label: 'Channel', ids: ['tren', 'analytics', 'konten', 'identifikasi'] },
+    { label: 'Channel', ids: ['rekap', 'saran', 'sosmed', 'tren', 'analytics', 'konten', 'identifikasi'] },
     { label: 'Bantuan', ids: ['panduan'] },
   ];
-  // Tampilan ringkas pemilik: hanya Rekap 3 channel dan Upload sosmed. Halaman lain tidak dihapus,
-  // hanya disembunyikan dari menu; set MENU_PEMILIK_LENGKAP = true untuk menampilkannya lagi.
-  if (!MENU_PEMILIK_LENGKAP) return [{ label: 'Pantau', ids: ['rekap', 'sosmed'] }];
   return [
-    { label: 'Pantau', ids: ['rekap', 'ringkasan', 'harian', 'performa', 'tren', 'konten', 'analytics', 'sosmed'] },
+    { label: 'Pantau', ids: ['rekap', 'saran', 'ringkasan', 'harian', 'performa', 'tren', 'konten', 'analytics', 'sosmed'] },
     { label: 'Tim', ids: ['presensi', 'pengajuan', 'gaji', 'karyawan', 'identifikasi'] },
     { label: 'Pemilik', ids: ['monetisasi', 'pengaturan', 'panduan'] },
   ];
 }
 
-export const TABS = () => (me() ? ['hari-ini', 'presensi', 'performa', 'pengajuan'] : MENU_PEMILIK_LENGKAP ? ['rekap', 'harian', 'pengajuan', 'gaji'] : ['rekap', 'sosmed']);
+export const TABS = () => (!MENU_LENGKAP ? ['rekap', 'saran', 'sosmed'] : me() ? ['hari-ini', 'presensi', 'performa', 'pengajuan'] : ['rekap', 'harian', 'pengajuan', 'gaji']);
 
 export const routeLabel = (r) => (me() && r.id === 'harian' ? 'Harian saya' : me() && r.id === 'performa' ? 'Performa saya' : me() && r.id === 'konten' ? 'Video channel' : r.label);
 

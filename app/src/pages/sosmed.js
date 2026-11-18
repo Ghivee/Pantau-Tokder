@@ -2,7 +2,7 @@ import { upload } from '@vercel/blob/client';
 import { api } from '../core/data.js';
 import { AFTER, PAGES } from '../core/registry.js';
 import { route } from '../core/router.js';
-import { S } from '../core/state.js';
+import { S, isAdmin } from '../core/state.js';
 import { $, $$, esc } from '../lib/dom.js';
 import { nf } from '../lib/format.js';
 import { waktuWib } from './presensi.js';
@@ -22,7 +22,7 @@ function postListHtml() {
   return list.map((p) => {
     const siap = p.targets.some((t) => t.status === 'siap');
     return `<div class="post-item"><div class="post-top"><div><b>${esc(p.judul)}</b><div class="muted">${waktuWib(p.created_at)}${p.ukuran ? ' · ' + nf.format(Math.round(p.ukuran / 1048576)) + ' MB' : ''}</div></div>
-        <div class="row-actions"><button class="btn sm ghost" data-act="post-cek" data-id="${p.id}">Cek status</button>${siap ? `<button class="btn sm primary" data-act="post-tayang" data-id="${p.id}">Tayangkan</button>` : ''}<button class="btn sm ghost danger" data-act="post-hapus" data-id="${p.id}">Hapus</button></div></div>
+        <div class="row-actions"><button class="btn sm ghost" data-act="post-cek" data-id="${p.id}">Cek status</button>${siap && isAdmin() ? `<button class="btn sm primary" data-act="post-tayang" data-id="${p.id}">Tayangkan</button>` : ''}${isAdmin() ? `<button class="btn sm ghost danger" data-act="post-hapus" data-id="${p.id}">Hapus</button>` : ''}</div></div>
         <div class="post-chips">${p.targets.map((t) => { const [lb, cl] = STATUS(t); return `<span class="pill ${cl}" title="${esc(t.galat || '')}">${esc((PLAT[t.platform] || t.platform) + ' · ' + (t.akun_nama || ''))}: ${lb}</span>${t.hasil_url ? `<a class="btn sm ghost" href="${esc(t.hasil_url)}" target="_blank" rel="noopener">Buka</a>` : ''}${t.galat ? `<span class="muted fs-125">${esc(t.galat)}</span>` : ''}`; }).join('')}</div></div>`;
   }).join('');
 }
@@ -74,12 +74,12 @@ PAGES.sosmed = function () {
     const d = S.sosmed;
     const head = `<header class="head"><h1>Upload</h1></header>`;
     if (!d) return head + '<section class="card"><div class="empty">Belum termuat</div></section>';
-    const kartu = (p) => `<section class="card"><div class="card-h"><h2>${esc(p.nama)}</h2>${p.siap ? `<a class="btn sm" href="/api/social/connect/${p.id}">${p.koneksi.length ? 'Tambah' : 'Hubungkan'}</a>` : ''}</div>
+    const kartu = (p) => `<section class="card"><div class="card-h"><h2>${esc(p.nama)}</h2>${p.siap && isAdmin() ? `<a class="btn sm" href="/api/social/connect/${p.id}">${p.koneksi.length ? 'Tambah' : 'Hubungkan'}</a>` : ''}</div>
         <div class="checklist">
           ${p.koneksi.map((k) => `<div class="ck"><span class="st ${k.status === 'aktif' && !k.galat ? 'ok' : 'bad'}">${k.status === 'aktif' && !k.galat ? '✓' : '!'}</span><div><b>${esc(k.nama || k.akun_id)}${k.handle ? ' <span class="muted">' + esc(k.handle) + '</span>' : ''}</b>
             ${k.galat ? `<div class="text-bad fs-13">${esc(k.galat)}${k.status === 'putus' ? ' Hubungkan ulang.' : ''}</div>` : ''}</div>
-            <button class="btn sm ghost danger" data-act="putus-sosmed" data-id="${k.id}">Putuskan</button></div>`).join('')}
-          ${p.siap ? '' : `<div class="ck"><span class="st bad">!</span><div><b>Isi di Vercel</b><div class="mono">${p.env.map(esc).join(' · ')}</div></div></div>`}
+            ${isAdmin() ? `<button class="btn sm ghost danger" data-act="putus-sosmed" data-id="${k.id}">Putuskan</button>` : ''}</div>`).join('')}
+          ${p.siap || !isAdmin() ? '' : `<div class="ck"><span class="st bad">!</span><div><b>Isi di Vercel</b><div class="mono">${p.env.map(esc).join(' · ')}</div></div></div>`}
         </div></section>`;
     return head + `
         ${postingCard(d)}

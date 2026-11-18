@@ -1,7 +1,7 @@
 import { analyticsChannels, api } from '../core/data.js';
 import { AFTER, PAGES } from '../core/registry.js';
 import { route } from '../core/router.js';
-import { S } from '../core/state.js';
+import { S, isAdmin } from '../core/state.js';
 import { daysBack } from '../core/stats.js';
 import { $, esc } from '../lib/dom.js';
 import { WIB, addDays, fmt, nf, signed, sum, tglPanjang, tglPendek, today } from '../lib/format.js';
@@ -158,7 +158,7 @@ function tautanKartu(chans) {
         <div class="tl-row"><div class="tl-t"><b>${esc(t.label)}</b><span class="muted mono">${esc(urlTautan(t.kode).replace(/^https?:\/\//, ''))}</span>
           <span class="muted">${esc((chans.find((c) => c.id === t.channel_id) || {}).nama || '')}</span></div>
           <div class="tl-n"><b>${nf.format(t.tujuh_hari)}</b><span class="muted">7 hari</span></div>
-          <div class="tl-a"><button class="btn sm ghost" data-act="tautan-salin" data-kode="${esc(t.kode)}">Salin</button><button class="btn sm ghost danger" data-act="tautan-hapus" data-kode="${esc(t.kode)}">Hapus</button></div></div>`).join('')}</div>` : '<div class="empty">Belum ada tautan</div>'}
+          <div class="tl-a"><button class="btn sm ghost" data-act="tautan-salin" data-kode="${esc(t.kode)}">Salin</button>${isAdmin() ? `<button class="btn sm ghost danger" data-act="tautan-hapus" data-kode="${esc(t.kode)}">Hapus</button>` : ''}</div></div>`).join('')}</div>` : '<div class="empty">Belum ada tautan</div>'}
     </section>`;
 }
 
@@ -195,11 +195,11 @@ async function muatMetrik() {
   try { R.tautan = (await api('/api/rekap/tautan')).tautan; } catch (e) { if (!R.tautan) R.tautan = []; }
 }
 
-export function tautanDialog() {
+export function tautanDialog(label = '') {
   const chans = analyticsChannels();
   openDialog(`<h2>Tautan baru</h2>
       <div class="stack">
-        <label class="field"><span>Nama</span><input class="input" id="tl-label" maxlength="80" autocomplete="off"></label>
+        <label class="field"><span>Nama</span><input class="input" id="tl-label" maxlength="80" autocomplete="off" value="${esc(label)}"></label>
         <label class="field"><span>Channel</span><select class="input" id="tl-ch">${chans.map((c) => `<option value="${esc(c.id)}">${esc(c.nama)}</option>`).join('')}</select></label>
         <label class="field"><span>Tautan afiliasi</span><input class="input" id="tl-tujuan" inputmode="url" placeholder="https://" autocomplete="off" autocapitalize="off"></label>
       </div>
