@@ -1,2 +1,3 @@
 ﻿
 node_modules/\ndist/\nbuild/\n.env\n.env.local\n.env.*.local\n.vscode/\n.idea/\n.DS_Store
+api/.env
