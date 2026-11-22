@@ -1,156 +1,131 @@
 const db = require('../config/db');
 const { fetchNewVideos, fetchVideosByIds } = require('../integrations/youtube');
-const { fetchRetentionData, fetchRevenueData, getAccessToken } = require('../integrations/analytics');
+const { getChannelIds } = require('./channelService');
+const analyticsService = require('./analyticsService');
+const social = require('./socialService');
+const { fetchRetentionData, fetchRevenueData, takeErrors } = require('../integrations/analytics');
 
 function matchEditorCode(captionText, editors) {
   if (!captionText) return null;
   const upperCaption = captionText.toUpperCase();
   for (const ed of editors) {
-    const code = (ed.kode_identifikasi || ed.kode).toUpperCase();
-    if (upperCaption.includes(code)) return ed.id;
+    const code = (ed.kode_identifikasi || ed.kode || '').toUpperCase().replace(/^#/, '');
+    if (!code) continue;
+    // The code must stand alone ("#DE" or "DE"), so "KODE" or "DESA" do not count as DE.
+    const escaped = code.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    if (new RegExp(`(^|[^A-Z0-9])#?${escaped}($|[^A-Z0-9])`).test(upperCaption)) return ed.id;
   }
   return null;
 }
 
-function generateRetentionMock(durationSecs) {
-  const points = [];
-  let currentRetention = 100;
-  // create ~10 data points
-  for (let pct = 0; pct <= 100; pct += 10) {
-    points.push({ percent_duration: pct, retention: currentRetention });
-    // Simulate drop-off: steeper at the beginning, flattening out
-    const drop = pct < 30 ? (Math.random() * 15 + 5) : (Math.random() * 5 + 1);
-    currentRetention = Math.max(10, currentRetention - drop);
-  }
-  return points;
+// Retention and revenue come only from YouTube Analytics. Without a connected channel they stay
+// empty (NULL); nothing is estimated or filled in.
+async function fetchAnalytics(videoId, accessToken) {
+  if (!accessToken) return { retention: null, revenue: null };
+  const [retention, revenue] = await Promise.all([
+    fetchRetentionData(videoId, accessToken),
+    fetchRevenueData(videoId, accessToken),
+  ]);
+  return { retention, revenue };
 }
 
-function formatAvgDuration(secs) {
-  if (!secs) return '0:00';
-  const m = Math.floor(secs / 60);
-  const s = Math.floor(secs % 60);
-  return `${m}:${s < 10 ? '0' : ''}${s}`;
+// Keep at most one stats snapshot per video per hour, so frequent syncs don't bloat the table.
+async function snapshot(contentId, vid, revenue) {
+  await db.query(
+    `INSERT INTO metrics_snapshot (content_id, views, likes, comments, revenue)
+     SELECT $1, $2, $3, $4, $5
+     WHERE NOT EXISTS (SELECT 1 FROM metrics_snapshot WHERE content_id = $1 AND timestamp > NOW() - INTERVAL '1 hour')`,
+    [contentId, vid.views || 0, vid.likes || 0, vid.comments || 0, revenue || 0]
+  );
 }
 
-async function processVideo(vid, editors, accessToken = null) {
+async function processVideo(vid, editors, accessToken, budget) {
   const existing = await db.query(
-    'SELECT id, editor_id, status_identifikasi FROM content WHERE post_id = $1 AND platform = $2',
+    'SELECT id, editor_id, status_identifikasi, revenue, retention_data IS NULL AS no_retention FROM content WHERE post_id = $1 AND platform = $2',
     [vid.post_id, vid.platform]
   );
-
   const matchedEditorId = matchEditorCode(vid.description, editors);
-  const statusIdentifikasi = matchedEditorId ? 'matched' : 'unmatched';
+  const ageDays = (Date.now() - new Date(vid.publishedAt).getTime()) / 86400000;
 
   if (existing.rows.length === 0) {
-    // New video — get real retention or generate mock
-    const avgDurationSecs = vid.durationSecs * (Math.random() * 0.3 + 0.4);
-    
-    // Try real retention data and revenue first
-    let retentionData = null;
-    let revenueData = 0;
-    if (accessToken) {
-      retentionData = await fetchRetentionData(vid.post_id, accessToken);
-      if (retentionData) console.log(`  ✅ Real retention for ${vid.post_id}: ${retentionData.length} points`);
-      
-      const rev = await fetchRevenueData(vid.post_id, accessToken);
-      if (rev !== null) {
-        revenueData = rev;
-        console.log(`  💰 Revenue for ${vid.post_id}: ${revenueData}`);
-      }
-    }
-    // Fall back to mock if no real data
-    if (!retentionData) {
-      retentionData = generateRetentionMock(vid.durationSecs);
-    }
-
+    const { retention, revenue } = await fetchAnalytics(vid.post_id, accessToken);
     const insertRes = await db.query(
-      `INSERT INTO content 
-       (post_id, platform, url, judul, tanggal_upload, editor_id, status_identifikasi, 
-        tipe_video, duration_secs, avg_view_duration, retention_data, revenue) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id`,
+      `INSERT INTO content
+       (post_id, platform, url, judul, tanggal_upload, editor_id, status_identifikasi, tipe_video, duration_secs,
+        retention_data, retention_source, revenue, channel_id, channel_nama, views, likes, comments, stats_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, NOW()) RETURNING id`,
       [
         vid.post_id, vid.platform, vid.url, vid.title, vid.publishedAt,
-        matchedEditorId, statusIdentifikasi, vid.tipe_video,
-        vid.durationSecs,
-        formatAvgDuration(avgDurationSecs),
-        JSON.stringify(retentionData),
-        revenueData
+        matchedEditorId, matchedEditorId ? 'matched' : 'unmatched', vid.tipe_video, vid.durationSecs,
+        retention ? JSON.stringify(retention) : null, retention ? 'youtube' : null, revenue,
+        vid.channelId || null, vid.channelTitle || null, vid.views || 0, vid.likes || 0, vid.comments || 0,
       ]
     );
-    const newContentId = insertRes.rows[0].id;
-    await db.query(
-      `INSERT INTO metrics_snapshot (content_id, views, likes, comments, revenue) VALUES ($1, $2, $3, $4, $5)`,
-      [newContentId, vid.views || 0, vid.likes || 0, vid.comments || 0, revenueData]
-    );
+    await snapshot(insertRes.rows[0].id, vid, revenue);
     return { isNew: true, unmatched: !matchedEditorId };
-  } else {
-    // Existing video — update metrics + duration + retention if we have OAuth
-    const contentRow = existing.rows[0];
-    const contentId = contentRow.id;
-    
-    // Update editor if previously unmatched and now we found a match
-    let finalEditorId = contentRow.editor_id;
-    let finalStatus = contentRow.status_identifikasi;
-    if (finalStatus === 'unmatched' && matchedEditorId) {
-      finalEditorId = matchedEditorId;
-      finalStatus = 'matched';
-    }
-    
-    let currentRevenue = contentRow.revenue || 0;
-    if (accessToken) {
-      const retentionData = await fetchRetentionData(vid.post_id, accessToken);
-      const rev = await fetchRevenueData(vid.post_id, accessToken);
-      if (rev !== null) currentRevenue = rev;
-
-      if (retentionData) {
-        await db.query(
-          `UPDATE content SET duration_secs = $1, retention_data = $2, editor_id = $3, status_identifikasi = $4, revenue = $5 WHERE id = $6`,
-          [vid.durationSecs, JSON.stringify(retentionData), finalEditorId, finalStatus, currentRevenue, contentId]
-        );
-      } else {
-        await db.query(
-          `UPDATE content SET duration_secs = $1, editor_id = $2, status_identifikasi = $3, revenue = $4 WHERE id = $5`, 
-          [vid.durationSecs, finalEditorId, finalStatus, currentRevenue, contentId]
-        );
-      }
-    } else {
-      await db.query(
-        `UPDATE content SET duration_secs = $1, editor_id = $2, status_identifikasi = $3 WHERE id = $4`, 
-        [vid.durationSecs, finalEditorId, finalStatus, contentId]
-      );
-    }
-    
-    await db.query(
-      `INSERT INTO metrics_snapshot (content_id, views, likes, comments, revenue) VALUES ($1, $2, $3, $4, $5)`,
-      [contentId, vid.views || 0, vid.likes || 0, vid.comments || 0, currentRevenue]
-    );
-    // If it was unmatched but now matched, we can return false for unmatched
-    return { isNew: false, unmatched: finalStatus === 'unmatched' };
   }
+
+  const row = existing.rows[0];
+  // A video found unmatched earlier gets its editor once a code appears in the description.
+  let editorId = row.editor_id;
+  let status = row.status_identifikasi;
+  if (status === 'unmatched' && matchedEditorId) {
+    editorId = matchedEditorId;
+    status = 'matched';
+  }
+
+  // Refresh analytics for recent videos, and fill in older ones that still have none (a few per sync).
+  let retention = null;
+  let revenue = row.revenue;
+  const backfill = row.no_retention && budget.backfill > 0;
+  if (accessToken && (ageDays <= 14 || backfill)) {
+    if (ageDays > 14) budget.backfill--;
+    const a = await fetchAnalytics(vid.post_id, accessToken);
+    retention = a.retention;
+    if (a.revenue !== null) revenue = a.revenue;
+  }
+
+  await db.query(
+    `UPDATE content SET judul = $1, duration_secs = $2, editor_id = $3, status_identifikasi = $4, revenue = $5,
+       channel_id = COALESCE($6, channel_id), channel_nama = COALESCE($7, channel_nama),
+       views = $8, likes = $9, comments = $10, stats_at = NOW(),
+       retention_data = COALESCE($11, retention_data),
+       retention_source = CASE WHEN $11::jsonb IS NULL THEN retention_source ELSE 'youtube' END
+     WHERE id = $12`,
+    [
+      vid.title, vid.durationSecs, editorId, status, revenue, vid.channelId || null, vid.channelTitle || null,
+      vid.views || 0, vid.likes || 0, vid.comments || 0, retention ? JSON.stringify(retention) : null, row.id,
+    ]
+  );
+  await snapshot(row.id, vid, revenue);
+  return { isNew: false, unmatched: status === 'unmatched' };
 }
 
+// Stop before the serverless function limit; the next run picks up the rest.
+const TIME_BUDGET_MS = 45000;
+
 async function runFullScan() {
+  const startedAt = Date.now();
+  takeErrors();
   console.log('=== Starting full scan (YouTube only) ===');
 
   const editorsRes = await db.query('SELECT * FROM editors WHERE status = $1', ['aktif']);
   const editors = editorsRes.rows;
   console.log(`Found ${editors.length} active editors.`);
 
-  // Check if YouTube Analytics OAuth token is available
-  let accessToken = null;
+  // One YouTube Analytics token per connected channel.
+  let tokens = {};
   try {
-    const tokenRes = await db.query(`SELECT value FROM settings WHERE key = 'google_refresh_token'`);
-    if (tokenRes.rows.length > 0 && tokenRes.rows[0].value) {
-      const refreshToken = tokenRes.rows[0].value;
-      console.log('YouTube Analytics OAuth token found — generating access token...');
-      accessToken = await getAccessToken(refreshToken);
-      console.log('✅ Access token generated.');
-    } else {
-      console.log('No OAuth token found — retention data will be simulated.');
-    }
-  } catch(e) {
-    console.warn('Could not generate OAuth access token:', e.message);
+    tokens = await analyticsService.accessTokens();
+    console.log(`Analytics connected for ${Object.keys(tokens).length} channel(s).`);
+  } catch (e) {
+    console.warn('Could not load analytics tokens:', e.message);
   }
+  const tokenFor = (vid) => tokens[vid.channelId] || null;
+  // Revenue in rupiah from now on (converts the stored US$ figures once).
+  let rupiah = { rupiah: false };
+  try { rupiah = await analyticsService.pastikanRupiah(); } catch (e) { console.warn('Konversi rupiah gagal:', e.message); }
+  const budget = { backfill: 25 };
 
   let newPosts = 0;
   let updatedPosts = 0;
@@ -159,17 +134,23 @@ async function runFullScan() {
 
   // YouTube only — no TikTok/IG/FB mock
   try {
-    console.log('Fetching YouTube videos (last 30 days)...');
-    const ytVideos = await fetchNewVideos();
+    const ids = await getChannelIds();
+    console.log(`Fetching YouTube videos (last 30 days) from ${ids.length} channel(s)...`);
+    const ytVideos = [];
+    for (const id of ids) ytVideos.push(...(await fetchNewVideos(id)));
     console.log(`Got ${ytVideos.length} YouTube videos.`);
 
     // Process videos in chunks of 10 concurrently to avoid Vercel 10s timeout
     const chunkSize = 10;
     for (let i = 0; i < ytVideos.length; i += chunkSize) {
+      if (Date.now() - startedAt > TIME_BUDGET_MS) {
+        errors.push(`Waktu habis: ${ytVideos.length - i} video akan diproses di sinkronisasi berikutnya`);
+        break;
+      }
       const chunk = ytVideos.slice(i, i + chunkSize);
       const promises = chunk.map(async (vid) => {
         try {
-          const result = await processVideo(vid, editors, accessToken);
+          const result = await processVideo(vid, editors, tokenFor(vid), budget);
           if (result.isNew) newPosts++;
           else updatedPosts++;
           if (result.unmatched) unmatched++;
@@ -191,7 +172,7 @@ async function runFullScan() {
     const unmatchedRes = await db.query("SELECT post_id FROM content WHERE status_identifikasi = 'unmatched' AND platform = 'youtube'");
     const unmatchedIds = unmatchedRes.rows.map(r => r.post_id);
     
-    if (unmatchedIds.length > 0) {
+    if (unmatchedIds.length > 0 && Date.now() - startedAt < TIME_BUDGET_MS) {
       console.log(`Found ${unmatchedIds.length} unmatched videos in DB. Fetching full details to re-match...`);
       const unmatchedVideosDetails = await fetchVideosByIds(unmatchedIds);
       
@@ -200,7 +181,7 @@ async function runFullScan() {
         const chunk = unmatchedVideosDetails.slice(i, i + chunkSize);
         const promises = chunk.map(async (vid) => {
           try {
-            const result = await processVideo(vid, editors, accessToken);
+            const result = await processVideo(vid, editors, tokenFor(vid), budget);
             if (result.isNew) newPosts++;
             else updatedPosts++;
             // We don't increment unmatched counter here to avoid double counting 
@@ -217,6 +198,36 @@ async function runFullScan() {
     console.error('Error re-evaluating unmatched videos:', e.message);
   }
 
+  // Daily channel numbers from YouTube Analytics
+  let analyticsDays = 0;
+  for (const [channelId, token] of Object.entries(tokens)) {
+    if (Date.now() - startedAt > TIME_BUDGET_MS + 8000) break;
+    try {
+      // Right after the switch to rupiah, the whole stored history is fetched again in rupiah.
+      const hari = await analyticsService.hariSinkron(channelId, rupiah.baru);
+      analyticsDays += await analyticsService.syncChannelDaily(channelId, token, hari);
+      await analyticsService.tandaiRiwayat(channelId, hari);
+    } catch (e) {
+      errors.push(`Analytics ${channelId} gagal: ${e.response?.data?.error?.message || e.message}`);
+    }
+    // CTR dari YouTube Reporting API; kegagalannya tidak boleh mengganggu angka lain.
+    try { await require('./rekapService').syncCtr(channelId, token); } catch (e) {
+      errors.push(`CTR ${channelId} gagal: ${e.response?.data?.error?.message || e.message}`);
+    }
+  }
+
+  // TikTok, Instagram and Facebook accounts the owner connected (nothing happens when none are).
+  let sosmed = null;
+  try {
+    sosmed = await social.sinkronSemua({ editors, match: matchEditorCode, deadline: startedAt + TIME_BUDGET_MS + 12000 });
+    errors.push(...sosmed.galat);
+  } catch (e) {
+    errors.push(`Sosmed gagal: ${e.message}`);
+  }
+
+  // Video files that every platform has taken are removed after a week.
+  try { await require('./postingService').rawat(); } catch (e) { console.warn('Perawatan posting gagal:', e.message); }
+
   // Log scan
   try {
     await db.query(
@@ -227,7 +238,18 @@ async function runFullScan() {
     console.error('scan_log write error:', e.message);
   }
 
-  const summary = { newPosts, updatedPosts, unmatched, errors: errors.length > 0 ? errors : undefined };
+  errors.push(...analyticsService.takeTokenErrors(), ...takeErrors());
+  const summary = { newPosts, updatedPosts, unmatched, analyticsChannels: Object.keys(tokens).length, analyticsDays, sosmed: sosmed ? { akun: sosmed.akun, posts: sosmed.posts } : undefined, errors: errors.length > 0 ? errors : undefined };
+  // Kept for the Pengaturan page, so problems are visible without opening server logs.
+  try {
+    await db.query(
+      `INSERT INTO settings (key, value, updated_at) VALUES ('last_scan_summary', $1, NOW())
+       ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = NOW()`,
+      [JSON.stringify({ ...summary, selesai: new Date().toISOString(), detik: Math.round((Date.now() - startedAt) / 1000) })]
+    );
+  } catch (e) {
+    console.error('last_scan_summary write error:', e.message);
+  }
   console.log('=== Scan complete ===', summary);
   return summary;
 }
