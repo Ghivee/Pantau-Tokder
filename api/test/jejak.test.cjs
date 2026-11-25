@@ -86,6 +86,8 @@ test('rencanakan: apa yang dicatat dari permintaan API biasa', () => {
   assert.equal(r({ editor: VIA, method: 'POST', url: '/api/auth/login' }), null, 'login dicatat terpisah');
   assert.equal(r({ editor: VIA, method: 'GET', url: '/go/abc' }), null);
   assert.equal(r({ method: 'GET', url: '/api/bootstrap' }, 200), null, 'tanpa login dan tidak ditolak: tidak dicatat');
+  assert.equal(r({ method: 'GET', url: '/api/bootstrap' }, 401), null, 'aplikasi memuat data sendiri; tanpa sesi 401 itu wajar, bukan catatan');
+  assert.ok(r({ method: 'GET', url: '/api/gaji' }, 401), 'rute lain yang ditolak tanpa login tetap dicatat');
   const post = r({ editor: VIA, method: 'POST', url: '/api/aktivitas?x=1' });
   assert.deepStrictEqual([post.jenis, post.aksi, post.hasil, post.status], ['interaksi', 'POST /api/aktivitas', 'ok', 200]);
   const del = r({ editor: VIA, method: 'DELETE', url: '/api/aktivitas/55' }, 204); assert.equal(del.aksi, 'DELETE /api/aktivitas/:id');
