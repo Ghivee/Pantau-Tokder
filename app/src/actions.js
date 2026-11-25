@@ -11,6 +11,7 @@ import { ajukanDialog, putuskanDialog } from './pages/pengajuan.js';
 import { absen, ambilLokasi } from './pages/presensi.js';
 import { muatSaran, pilihChannel, salin } from './pages/saran.js';
 import { statusSinkron } from './pages/akses.js';
+import { aksiJejak, resetJejak } from './pages/jejak.js';
 import { kirimDraf, pilihMetrik } from './pages/rekap.js';
 import { buatTautan, hapusTautan, imporAfiliasi, muatAfiliasi, salinTautan, salinTeks, tautanDialog } from './pages/tautan.js';
 import { bulanLabel, daftarSW, diIOS, muatUlang, pushDidukung, swReg, terpasang } from './pages/shared.js';
@@ -229,6 +230,7 @@ document.addEventListener('click', async (ev) => {
   if (!el) return;
   const act = el.dataset.act;
   if (act === 'close-overlay') { if (ev.target === el || el.tagName === 'BUTTON' || el.tagName === 'A') closeOverlay(); return; }
+  if (act.startsWith('jejak-')) { await aksiJejak(act, el); return; }
   switch (act) {
     case 'login': closeOverlay(); loginDialog(); break;
     case 'lainnya': moreSheet(); break;
@@ -236,7 +238,7 @@ document.addEventListener('click', async (ev) => {
       closeOverlay();
       await matikanNotif(true);
       try { await api('/api/auth/logout', { method: 'POST' }); } catch (e) { /* the cookie is cleared or already invalid */ }
-      saveSession(null);
+      saveSession(null); resetJejak();
       { const info = await ssoInfo(); if (info.aktif && keluarSemua(info.masterUrl)) break; }
       toast('Anda sudah keluar'); navigate('/'); break;
     case 'retry': S.error = null; $('#page').innerHTML = '<div class="skeleton" style="height:320px"></div>'; await load(); break;

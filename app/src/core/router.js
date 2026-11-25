@@ -23,6 +23,7 @@ export const ROUTES = [
   { id: 'panduan', label: 'Panduan', icon: 'book' },
   { id: 'monetisasi', label: 'Pendapatan', icon: 'money', admin: true },
   { id: 'akses', label: 'Akses', icon: 'team', admin: true },
+  { id: 'jejak', label: 'Jejak', icon: 'shield', admin: true },
   { id: 'akun', label: 'Akun saya', icon: 'user' },
   { id: 'pengaturan', label: 'Pengaturan', icon: 'gear', admin: true },
 ];
@@ -35,7 +36,7 @@ export const beranda = () => (me() && MENU_LENGKAP ? 'hari-ini' : 'rangkuman');
 export function menuGroups() {
   // Tampilan ringkas untuk pemilik dan karyawan: Rangkuman, Saran, Affiliate, Upload. Halaman lain (Hari ini, Harian, Presensi, Gaji, dst.)
   // tidak dihapus, hanya disembunyikan dari menu; set MENU_LENGKAP = true untuk menampilkannya lagi.
-  if (!MENU_LENGKAP) return [{ label: 'Menu', ids: ['aplikasi', 'rangkuman', 'saran', 'affiliate', 'sosmed', 'karyawan', 'akses', 'pengaturan', 'akun'] }];
+  if (!MENU_LENGKAP) return [{ label: 'Menu', ids: ['aplikasi', 'rangkuman', 'saran', 'affiliate', 'sosmed', 'karyawan', 'akses', 'jejak', 'pengaturan', 'akun'] }];
   if (me()) return [
     { label: 'Kerja saya', ids: ['hari-ini', 'harian', 'performa', 'presensi', 'pengajuan', 'gaji'] },
     { label: 'Channel', ids: ['rangkuman', 'saran', 'affiliate', 'sosmed', 'tren', 'analytics', 'konten', 'identifikasi'] },
@@ -44,7 +45,7 @@ export function menuGroups() {
   return [
     { label: 'Pantau', ids: ['rangkuman', 'saran', 'affiliate', 'ringkasan', 'harian', 'performa', 'tren', 'konten', 'analytics', 'sosmed'] },
     { label: 'Tim', ids: ['presensi', 'pengajuan', 'gaji', 'karyawan', 'identifikasi'] },
-    { label: 'Pemilik', ids: ['aplikasi', 'akses', 'akun', 'monetisasi', 'pengaturan', 'panduan'] },
+    { label: 'Pemilik', ids: ['aplikasi', 'akses', 'jejak', 'akun', 'monetisasi', 'pengaturan', 'panduan'] },
   ];
 }
 

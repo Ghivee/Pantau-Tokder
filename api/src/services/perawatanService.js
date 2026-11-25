@@ -37,7 +37,12 @@ async function rawat() {
     `DELETE FROM push_terkirim WHERE ctid IN (SELECT ctid FROM push_terkirim WHERE waktu < NOW() - INTERVAL '60 days' LIMIT $1)`, mulai);
   const ditolak = await hapusBertahap(
     `DELETE FROM presensi_ditolak WHERE ctid IN (SELECT ctid FROM presensi_ditolak WHERE waktu < NOW() - INTERVAL '365 days' LIMIT $1)`, mulai);
-  const hasil = { waktu: new Date().toISOString(), detik: Math.round((Date.now() - mulai) / 100) / 10, dihapus: { snapshot, terkirim, ditolak } };
+  // Jejak audit: kejadian biasa disimpan 180 hari, yang berisiko sedang ke atas 400 hari.
+  const jejak = await require('./jejakService').pangkas().catch(() => 0);
+  const jm = require('./jejakMasterService');
+  await jm.sinkron({ paksa: true }).catch(() => null); // simpan salinan sebelum Master memangkas catatan lamanya
+  const jejakMaster = await jm.pangkas().catch(() => 0);
+  const hasil = { waktu: new Date().toISOString(), detik: Math.round((Date.now() - mulai) / 100) / 10, dihapus: { snapshot, terkirim, ditolak, jejak, jejakMaster } };
   await db.query(
     `INSERT INTO settings (key, value, updated_at) VALUES ($1, $2, NOW()) ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = NOW()`,
     [KUNCI, JSON.stringify(hasil)]

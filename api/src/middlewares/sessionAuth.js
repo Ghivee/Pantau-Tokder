@@ -2,6 +2,8 @@ const crypto = require('crypto');
 const db = require('../config/db');
 const { bad } = require('../utils/httpError');
 const { resolve: resolveIzin } = require('../utils/izin');
+const { clientIp } = require('../utils/clientIp');
+const { infoPermintaan } = require('../utils/perangkat');
 
 const SESSION_COOKIE_NAME = 'pt_session';
 const SESSION_DAYS = 30;
@@ -67,15 +69,21 @@ function writeCookie(res, value, maxAge) {
 }
 
 // Starts a session: the browser gets a random token, the database keeps only its hash.
-async function startSession(res, { tipe, editorId = null, hari = SESSION_DAYS }) {
+// Selain itu disimpan siapa (nama, akun Master), cara masuk, IP, dan perangkat, untuk jejak audit dan daftar sesi aktif.
+// Mengembalikan { sesiId } (12 karakter pertama hash, aman dibagikan) untuk menautkan kejadian ke sesi ini.
+async function startSession(res, { tipe, editorId = null, hari = SESSION_DAYS, nama = null, akun = null, metode = null, req = null }) {
   const umur = Math.min(SESSION_DAYS, Math.max(1, Math.floor(Number(hari)) || SESSION_DAYS));
   const token = crypto.randomBytes(32).toString('base64url');
+  const hash = tokenHash(token);
+  const ip = req ? clientIp(req) : null;
+  const info = req ? infoPermintaan(req, ip) : null;
   await db.query(
-    `INSERT INTO sesi (token_hash, tipe, editor_id, expires_at) VALUES ($1, $2, $3, NOW() + INTERVAL '${umur} days')`,
-    [tokenHash(token), tipe, editorId]
+    `INSERT INTO sesi (token_hash, tipe, editor_id, expires_at, nama, akun, metode, ip, ua, sidik) VALUES ($1, $2, $3, NOW() + INTERVAL '${umur} days', $4, $5, $6, $7, $8, $9)`,
+    [hash, tipe, editorId, nama, akun, metode, ip, info ? info.ua : null, info ? info.sidik : null]
   );
   db.query(`DELETE FROM sesi WHERE expires_at < NOW()`).catch(() => {});
   writeCookie(res, token, umur * 86400);
+  return { sesiId: hash.slice(0, 12) };
 }
 
 async function endSession(req, res) {
@@ -96,11 +104,12 @@ async function identify(req, res, next) {
     const token = readToken(req);
     if (token) {
       const r = await db.query(
-        `SELECT s.tipe, e.id, e.nama, e.peran, e.status, e.lihat_penghasilan, e.izin FROM sesi s LEFT JOIN editors e ON e.id = s.editor_id
+        `SELECT s.tipe, s.nama AS sesi_nama, s.akun, s.metode, left(s.token_hash, 12) AS sesi_id, e.id, e.nama, e.peran, e.status, e.lihat_penghasilan, e.izin FROM sesi s LEFT JOIN editors e ON e.id = s.editor_id
          WHERE s.token_hash = $1 AND s.expires_at > NOW()`,
         [tokenHash(token)]
       );
       const row = r.rows[0];
+      if (row) { req.sesiId = row.sesi_id || null; req.akun = row.akun || null; req.namaAkun = row.sesi_nama || null; req.metodeMasuk = row.metode || null; }
       if (row && row.tipe === 'admin') req.isAdmin = true;
       if (row && row.tipe === 'karyawan' && row.id && row.status === 'aktif') {
         const r = resolveIzin(row);

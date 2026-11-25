@@ -23,7 +23,7 @@ try { localStorage.removeItem('pt_session'); localStorage.removeItem('adminToken
 export function saveSession(s) {
   S.session = s;
   if (!s) {
-    Object.assign(S, { editors: [], content: [], aktivitas: [], daily: [], goal: null, presensi: null, gajiCache: {}, gajiRiwayat: null, pengajuan: null, insight: null, sistem: undefined, akses: undefined, akun: undefined, warnings: [], offline: null });
+    Object.assign(S, { editors: [], content: [], aktivitas: [], daily: [], goal: null, presensi: null, gajiCache: {}, gajiRiwayat: null, pengajuan: null, insight: null, sistem: undefined, akses: undefined, akun: undefined, jejak: undefined, warnings: [], offline: null });
     simpanCache(null);
   }
 }
