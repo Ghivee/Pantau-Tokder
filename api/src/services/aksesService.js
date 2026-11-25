@@ -6,7 +6,7 @@ const am = require('./aksesMasterService');
 const aksesWeb = require('./aksesWebService');
 const { revokeEditorSessions } = require('../middlewares/sessionAuth');
 
-const AMBIL = `SELECT id, nama, peran, lihat_penghasilan, izin FROM editors WHERE status = 'aktif' ORDER BY nama`;
+const AMBIL = `SELECT id, nama, peran, lihat_penghasilan, izin, akun_master FROM editors WHERE status = 'aktif' ORDER BY nama`;
 
 async function galatSebagai(fn) { try { return { ok: true, nilai: await fn() }; } catch (e) { return { ok: false, galat: e.message }; } }
 
@@ -18,7 +18,7 @@ function lengkapi(row, { petaWeb, aktual }) {
     const web = aksesWeb.izinDari(petaWeb, row.id);
     r.izin.web_master = web.includes('master');
     r.izin.web_telprom = web.includes('telprom');
-    const k = am.kunciStaff(row.nama);
+    const k = am.kunciStaff(row);
     if (k && aktual) Object.assign(r.izin, am.dariDaftarMaster(aktual[k] || []));
   }
   return r;
@@ -36,8 +36,8 @@ async function daftar() {
     master: { terbaca: !!ctx.aktual, galat: ctx.galatMaster },
     karyawan: rows.map((row) => {
       const r = lengkapi(row, ctx);
-      const staff = am.kunciStaff(row.nama);
-      return { id: row.id, nama: row.nama, izin: r.izin, tersimpan: r.tersimpan, akunMaster: !!staff };
+      const staff = am.kunciStaff(row);
+      return { id: row.id, nama: row.nama, izin: r.izin, tersimpan: r.tersimpan, akunMaster: !!staff, akun: staff, akunPilihan: row.akun_master || null };
     }),
   };
 }
@@ -59,7 +59,7 @@ async function ubah(editorId, kunci, nilai) {
   const rows = (await db.query(AMBIL)).rows;
   const row = rows.find((r) => r.id === editorId);
   if (!row) throw Object.assign(new Error('Karyawan tidak ditemukan'), { status: 404 });
-  const staff = am.kunciStaff(row.nama);
+  const staff = am.kunciStaff(row);
   if (kunci.startsWith('master_') && !staff) throw Object.assign(new Error('Karyawan ini belum punya akun Master'), { status: 400 });
   const ctx = await konteks();
   const lama = resolve(row);
@@ -92,12 +92,31 @@ async function ubah(editorId, kunci, nilai) {
   return { izin, sinkron };
 }
 
+// Memetakan satu karyawan Pantau ke akun Master-nya ('via' | 'deni' | null). Satu akun Master hanya untuk satu orang.
+async function pilihAkunMaster(editorId, akun) {
+  const nilai = akun === '' || akun == null ? null : String(akun).toLowerCase();
+  if (nilai !== null && !am.STAFF.includes(nilai)) throw Object.assign(new Error('Akun Master tidak dikenal'), { status: 400 });
+  const rows = (await db.query(AMBIL)).rows;
+  if (!rows.find((r) => r.id === editorId)) throw Object.assign(new Error('Karyawan tidak ditemukan'), { status: 404 });
+  const dipakai = nilai && rows.find((r) => r.id !== editorId && am.kunciStaff(r) === nilai);
+  if (dipakai) throw Object.assign(new Error(`Akun Master "${nilai}" sudah dipakai ${dipakai.nama}. Lepas dulu dari orang itu.`), { status: 409 });
+  await db.query('UPDATE editors SET akun_master = $1 WHERE id = $2', [nilai, editorId]);
+  // Orang ini sudah pernah diatur izinnya: kirim ke akun Master yang baru dipilih supaya keduanya sama.
+  const row = rows.find((r) => r.id === editorId);
+  let sinkron = { ok: true };
+  if (nilai && resolve(row).tersimpan) {
+    const h = await berurutan(() => galatSebagai(() => am.tulis(nilai, am.keDaftarMaster(resolve(row).izin))));
+    sinkron = h.ok ? { ok: true } : { ok: false, galat: h.galat };
+  }
+  return { akun: nilai, sinkron };
+}
+
 // Mengirim ulang izin Master semua orang (bila sebelumnya Master tidak terjangkau).
 async function sinkronSemua() {
   const rows = (await db.query(AMBIL)).rows;
   const hasil = [];
   for (const row of rows) {
-    const staff = am.kunciStaff(row.nama);
+    const staff = am.kunciStaff(row);
     if (!staff) continue;
     const r = resolve(row);
     if (!r.tersimpan) { hasil.push({ nama: row.nama, ok: true, dilewati: true }); continue; }
@@ -107,4 +126,4 @@ async function sinkronSemua() {
   return hasil;
 }
 
-module.exports = { daftar, ubah, sinkronSemua, lengkapi };
+module.exports = { daftar, ubah, sinkronSemua, lengkapi, pilihAkunMaster };

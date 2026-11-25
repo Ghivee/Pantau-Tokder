@@ -3,7 +3,7 @@ const { hashPin } = require('../middlewares/sessionAuth');
 const { peranValid, resolve } = require('../utils/izin');
 
 // Never send the PIN hash to the browser.
-const PUBLIC_COLUMNS = `id, nama, kode_identifikasi, status, created_at, peran, lihat_penghasilan, izin, jadwal, target_harian, foto_url,
+const PUBLIC_COLUMNS = `id, nama, kode_identifikasi, status, created_at, peran, lihat_penghasilan, izin, akun_master, jadwal, target_harian, foto_url,
   (pin IS NOT NULL AND pin <> '') AS punya_pin`;
 
 // Mengganti izin mentah dengan daftar izin lengkap (izin per orang), siap dipakai tampilan.

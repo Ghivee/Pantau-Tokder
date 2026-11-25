@@ -8,6 +8,7 @@ const editors = [
   { id: 1, nama: 'Via', peran: 'editor', lihat_penghasilan: false, izin: null },
   { id: 2, nama: 'Deni', peran: 'editor', lihat_penghasilan: false, izin: { upload: true, web_master: false } },
   { id: 3, nama: 'Zed', peran: 'editor', lihat_penghasilan: false, izin: null },
+  { id: 4, nama: 'Alivia', peran: 'editor', lihat_penghasilan: false, izin: null, akun_master: null },
 ];
 let latensi = 0;
 const tunda = () => (latensi ? new Promise((r) => setTimeout(r, latensi)) : null);
@@ -18,6 +19,7 @@ require.cache[dbPath] = { id: dbPath, filename: dbPath, loaded: true, exports: {
   if (/FROM editors WHERE status = 'aktif'/.test(sql)) { const hasil = editors.map((e) => ({ ...e })); await tunda(); return { rows: hasil }; }
   if (/UPDATE editors SET izin = izin \|\| jsonb_build_object/.test(sql)) { await tunda(); const e = editors.find((x) => x.id === p[2]); if (!e || !e.izin) return { rows: [] }; e.izin = { ...e.izin, [p[0]]: p[1] }; updates.push([p[2], e.izin]); return { rows: [{ izin: e.izin }] }; }
   if (/UPDATE editors SET izin = \$1 WHERE id = \$2 AND izin IS NULL/.test(sql)) { await tunda(); const e = editors.find((x) => x.id === p[1]); if (!e || e.izin) return { rows: [] }; e.izin = JSON.parse(p[0]); updates.push([p[1], e.izin]); return { rows: [{ izin: e.izin }] }; }
+  if (/UPDATE editors SET akun_master/.test(sql)) { const e = editors.find((x) => x.id === p[1]); e.akun_master = p[0]; return { rows: [], rowCount: 1 }; }
   if (/UPDATE editors SET izin/.test(sql)) { await tunda(); const e = editors.find((x) => x.id === p[1]); e.izin = JSON.parse(p[0]); updates.push([p[1], e.izin]); return { rows: [], rowCount: 1 }; }
   if (/DELETE FROM sesi WHERE editor_id/.test(sql)) { dicabut.push(p[0]); return { rows: [], rowCount: 1 }; }
   if (/settings WHERE key/.test(sql)) return { rows: [] };
@@ -179,4 +181,40 @@ test('dua perubahan pertama bersamaan pada orang yang belum diatur: tidak ada ya
   } finally { latensi = 0; }
   assert.equal(zed.izin.upload, false);
   assert.equal(zed.izin.tayang, false);
+});
+
+test('Alivia belum dipetakan: kotak izin Master tidak aktif; sesudah dipetakan ke akun via, izin Master berjalan', async () => {
+  sesi = { tipe: 'admin' }; tulis.length = 0; masterAktif.via = ['order_lihat'];
+  let r = await (await get('/api/akses')).json();
+  let a = r.karyawan.find((k) => k.nama === 'Alivia');
+  assert.equal(a.akunMaster, false);
+  assert.equal((await put('/api/akses/4', { kunci: 'master_kas_catat', nilai: true })).status, 400, 'belum dipetakan: ditolak');
+  const pilih = (id, akun) => fetch(u + `/api/akses/${id}/akun-master`, { method: 'PUT', headers: h, body: JSON.stringify({ akun }) });
+  assert.equal((await pilih(4, 'via')).status, 409, 'akun via sudah dipakai Via (cocok nama)');
+  assert.equal((await put('/api/akses/1', { kunci: 'upload', nilai: true })).status, 200);
+  const lepasVia = editors.find((e) => e.id === 1); lepasVia.nama = 'Orang Lain'; // Via lama diganti nama: akun via bebas
+  const ok = await pilih(4, 'via');
+  assert.equal(ok.status, 200);
+  assert.equal((await ok.json()).akun, 'via');
+  r = await (await get('/api/akses')).json();
+  a = r.karyawan.find((k) => k.nama === 'Alivia');
+  assert.deepEqual([a.akunMaster, a.akun], [true, 'via']);
+  assert.equal(a.izin.master_order_lihat, true, 'izin awal mengikuti keadaan nyata akun via di Master');
+  assert.equal((await put('/api/akses/4', { kunci: 'master_kas_catat', nilai: true })).status, 200);
+  assert.deepEqual(tulis.at(-1).p_staff, 'via');
+  assert.ok(tulis.at(-1).p_izin.includes('kas_catat'));
+  lepasVia.nama = 'Via';
+  assert.equal((await pilih(4, '')).status, 200);
+  assert.equal(editors.find((e) => e.id === 4).akun_master, null, 'pemetaan bisa dilepas');
+});
+
+test('pemetaan akun Master: masukan buruk ditolak, karyawan tidak boleh, id tak ada 404', async () => {
+  sesi = { tipe: 'admin' };
+  const pilih = (id, akun) => fetch(u + `/api/akses/${id}/akun-master`, { method: 'PUT', headers: h, body: JSON.stringify({ akun }) });
+  assert.equal((await pilih(4, 'doni')).status, 400);
+  assert.equal((await pilih(4, "via'; drop table editors;--")).status, 400);
+  assert.equal((await pilih(99, 'via')).status, 404);
+  assert.equal((await pilih('abc', 'via')).status, 400);
+  sesi = { tipe: 'karyawan', row: { id: 1, nama: 'Via', peran: 'editor', lihat_penghasilan: false, izin: null } };
+  assert.equal((await pilih(4, 'via')).status, 403);
 });

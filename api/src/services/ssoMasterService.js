@@ -38,15 +38,18 @@ async function verifikasi(token) {
 
 const norm = (s) => String(s || '').trim().toLowerCase();
 
-// Murni: peran Master -> sesi Pantau. admin -> pemilik; staff -> karyawan Pantau yang namanya sama (aktif).
-// editors: [{ id, nama, status }]. Peran lain (reader) ditolak.
+// Murni: peran Master -> sesi Pantau. admin -> pemilik; staff -> karyawan Pantau aktif yang dipetakan ke akun itu:
+// pilihan pemilik (editors.akun_master == staff) lebih dulu, lalu nama yang sama. editors: [{ id, nama, status, akun_master }].
+// Peran lain (reader) ditolak.
 function petakan(profil, editors) {
   if (profil.role === 'admin') return { tipe: 'admin' };
   if (profil.role === 'staff') {
-    const cari = [norm(profil.name), norm(profil.staff)].filter(Boolean);
-    const e = editors.find((x) => x.status === 'aktif' && cari.includes(norm(x.nama)));
+    const aktif = editors.filter((x) => x.status === 'aktif');
+    const staff = norm(profil.staff);
+    const cari = [norm(profil.name), staff].filter(Boolean);
+    const e = (staff && aktif.find((x) => norm(x.akun_master) === staff)) || aktif.find((x) => !norm(x.akun_master) && cari.includes(norm(x.nama)));
     if (e) return { tipe: 'karyawan', editorId: e.id, nama: e.nama };
-    return { galat: 'Akun Master ini belum punya karyawan dengan nama yang sama di Pantau. Minta pemilik menambahkannya di menu Karyawan.', status: 403 };
+    return { galat: 'Akun Master ini belum dipetakan ke karyawan Pantau. Minta pemilik memilih "Akun Master" orang ini di menu Akses.', status: 403 };
   }
   return { galat: 'Peran akun ini tidak boleh masuk Pantau', status: 403 };
 }

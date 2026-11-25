@@ -163,7 +163,7 @@ router.post('/sso', authLimiter, async (req, res) => {
       if (err.status && err.status < 500) await recordFailure(keys);
       return res.status(err.status || 502).json({ error: err.message });
     }
-    const editors = profil.role === 'staff' ? (await db.query(`SELECT id, nama, status, peran, lihat_penghasilan, izin FROM editors`)).rows : [];
+    const editors = profil.role === 'staff' ? (await db.query(`SELECT id, nama, status, peran, lihat_penghasilan, izin, akun_master FROM editors`)).rows : [];
     const hasil = sso.petakan(profil, editors);
     if (hasil.galat) return res.status(hasil.status).json({ error: hasil.galat });
     if (hasil.tipe === 'karyawan') {

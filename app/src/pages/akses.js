@@ -23,6 +23,7 @@ export function aksesCard() {
   return `<section class="card" id="akses-karyawan">${kepala}
     ${x.master.terbaca ? '' : `<div class="notice" role="status"><span>Izin di Master belum terbaca${x.master.galat ? ': ' + esc(x.master.galat) : ''}. Mengubah izin Master untuk orang yang belum pernah diatur ditunda sampai Master terbaca.</span></div>`}
     ${x.karyawan.map((k) => `<div class="ak-orang"><div class="ak-nama"><b>${esc(k.nama)}</b><span id="ak-st-${k.id}">${statusSinkron(sk[k.id])}</span></div>
+      <div class="ak-grup"><h4>Akun Master orang ini</h4><div class="seg" role="group" aria-label="Akun Master untuk ${esc(k.nama)}">${[['', 'Tidak ada'], ['via', 'via'], ['deni', 'deni']].map(([v, l]) => `<button type="button" data-act="akses-akun" data-id="${k.id}" data-akun="${v}" aria-pressed="${(k.akun || '') === v}">${l}</button>`).join('')}</div>${k.akun ? '' : '<p class="muted">Belum dipetakan: orang ini tidak bisa masuk lewat Akun Tokder dan izin di dalam Master-nya tidak aktif.</p>'}</div>
       ${x.katalog.map((g) => `<div class="ak-grup"><h4>${esc(g.grup)}</h4><div class="ak-grid">${g.butir.map((b) => {
         const mati = b.k.startsWith('master_') && !k.akunMaster;
         return `<label class="ak-i${mati ? ' off' : ''}"><input type="checkbox" data-act="akses-izin" data-id="${k.id}" data-k="${esc(b.k)}" ${k.izin[b.k] ? 'checked' : ''} ${mati ? 'disabled' : ''}><span>${esc(b.nama)}</span></label>`;

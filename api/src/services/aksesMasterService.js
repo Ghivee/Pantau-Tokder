@@ -9,8 +9,15 @@ const { MASTER } = require('../utils/izin');
 const STAFF = ['via', 'deni']; // karyawan yang punya akun di Master
 const norm = (s) => String(s || '').trim().toLowerCase();
 
-// Kunci karyawan di Master dari namanya (Via -> 'via'), atau null bila tidak punya akun Master.
-const kunciStaff = (nama) => (STAFF.includes(norm(nama)) ? norm(nama) : null);
+// Akun Master milik satu karyawan Pantau: pilihan pemilik (editors.akun_master) lebih dulu, bila belum dipilih baru
+// dicocokkan dari namanya (Via -> 'via'). Mengembalikan 'via' | 'deni' | null (tidak punya akun Master).
+// row: { nama, akun_master }. Nama lain (mis. "Alivia" untuk akun 'via') dipilih pemilik di menu Akses.
+function kunciStaff(row) {
+  const pilih = norm(row && row.akun_master);
+  if (STAFF.includes(pilih)) return pilih;
+  const nama = norm(row && row.nama);
+  return STAFF.includes(nama) ? nama : null;
+}
 
 // Murni: izin Pantau (kunci master_*) -> daftar nama izin di Master.
 const keDaftarMaster = (izin) => Object.entries(MASTER).filter(([k]) => izin[k] === true).map(([, v]) => v);
