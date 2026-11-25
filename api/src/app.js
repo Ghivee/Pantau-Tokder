@@ -27,7 +27,7 @@ app.set('trust proxy', false);
 
 // The app and its API share one origin, so browsers never need CORS for normal use.
 // Only the production address, an extra one from ALLOWED_ORIGIN and local development are allowed.
-const ALLOWED = new Set(['https://pantautokder.vercel.app', process.env.ALLOWED_ORIGIN].filter(Boolean));
+const ALLOWED = new Set(['https://tokder.vercel.app', process.env.ALLOWED_ORIGIN].filter(Boolean));
 const isAllowedOrigin = (origin) => ALLOWED.has(origin) || /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
 
 app.use(cors({

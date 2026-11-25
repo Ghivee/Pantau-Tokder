@@ -114,3 +114,14 @@ test('akses Pantau dicabut: sesi yang sudah ada langsung ditolak, dan pulih bila
   sesi.row.izin = { web_pantau: true };
   assert.equal((await fetch(u + '/api/akun', { headers: cookie })).status, 200);
 });
+
+test('CORS dan anti-CSRF: hanya alamat produksi yang sebenarnya dipercaya; alamat lama yang tak terpakai tidak', async () => {
+  const kirim = (origin) => fetch(u + '/api/auth/logout', { method: 'POST', headers: { Origin: origin, 'Content-Type': 'application/json' } });
+  assert.notEqual((await kirim('https://tokder.vercel.app')).status, 403, 'alamat produksi diterima');
+  assert.equal((await kirim('https://pantautokder.vercel.app')).status, 403, 'alamat lama yang bisa dipesan orang lain ditolak');
+  assert.equal((await kirim('https://jahat.example')).status, 403);
+  const cors = await fetch(u + '/api/auth/me', { headers: { Origin: 'https://pantautokder.vercel.app' } });
+  assert.equal(cors.headers.get('access-control-allow-origin'), null, 'tidak ada izin CORS untuk alamat lama');
+  const ok = await fetch(u + '/api/auth/me', { headers: { Origin: 'https://tokder.vercel.app' } });
+  assert.equal(ok.headers.get('access-control-allow-origin'), 'https://tokder.vercel.app');
+});
