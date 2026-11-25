@@ -1,6 +1,7 @@
 import { analyticsChannels, api, editorById, load, normalize, optional, refresh } from './core/data.js';
 import { exportCsv, exportGaji, exportPresensi } from './core/export.js';
 import { navigate } from './core/router.js';
+import { masukDenganMaster } from './core/sso.js';
 import { S, saveSession } from './core/state.js';
 import { $, esc } from './lib/dom.js';
 import { angkaUang, bacaCsv } from './lib/csv.js';
@@ -312,6 +313,7 @@ document.addEventListener('click', async (ev) => {
     case 'tautan-hapus': hapusTautan(el.dataset.kode); break;
     case 'rekap-metrik': pilihMetrik(el.dataset.v); break;
     case 'draf-kirim': await kirimDraf(); break;
+    case 'sso-master': masukDenganMaster(el.dataset.url); break;
     case 'an-periode': S.anPeriode = +el.dataset.v; render(); break;
     default: await aksiBaru(act, el, ev); break;
     case 'putus-analytics': {
