@@ -77,7 +77,7 @@ test('SSO: karyawan dengan web_pantau mati ditolak 403 dan tidak dibuatkan sesi'
   editors = [{ id: 1, nama: 'Via', status: 'aktif', peran: 'editor', lihat_penghasilan: false, izin: { web_pantau: false } }];
   const r = await postSso();
   assert.equal(r.status, 403);
-  assert.match((await r.json()).error, /tidak diizinkan membuka Pantau/);
+  assert.match((await r.json()).error, /tidak diizinkan membuka Tokder/);
   assert.equal(sesiBaru.length, 0);
 });
 

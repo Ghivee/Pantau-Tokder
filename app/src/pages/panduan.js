@@ -12,7 +12,7 @@ import { icon } from '../ui/icons.js';
 // Short and task-based: first steps, routines, what each menu is for, and short answers.
 // "Cara kerja" buttons on other pages open the matching answer (/panduan#p-gaji).
 const MENU_INFO = {
-  aplikasi: 'Pilih web yang ingin dibuka: Pantau Tokder, Master (order, kas, tim), atau Telprom (naskah dan rekam).',
+  aplikasi: 'Pilih web yang ingin dibuka: Tokder, Master (order, kas, tim), atau Telprom (naskah dan rekam).',
   'hari-ini': 'Halaman utama karyawan: absen, jadwal video, tugas, izin dan gaji hari ini.',
   rangkuman: 'Views, CTR, retensi, real-time dan klik afiliasi tiga channel dalam satu tabel dan satu diagram pembanding. CTR dan klik afiliasi diisi lewat Impor CSV.',
   affiliate: 'Semua kebutuhan affiliate: produk affiliate terlaris, produk dicari, dan tautan pelacak (buat, salin, lihat klik).',
@@ -45,7 +45,7 @@ const FAQ = [
   { id: 'pengajuan', q: 'Apa pengaruh izin, cuti dan klaim ke gaji?', a: '<ul><li><b>Sakit</b> dan <b>cuti</b> yang disetujui tidak dipotong.</li><li><b>Izin</b> dipotong hanya bila pemilik mengaturnya.</li><li><b>Klaim</b> yang disetujui ditambahkan ke gaji bulan itu.</li><li>Tidak absen tanpa izin = tidak hadir.</li></ul>' },
   { id: 'gaji', q: 'Bagaimana gaji dihitung?', a: '<p><b>Ditambah:</b> gaji pokok, tunjangan, lembur (pulang ≥ 30 menit setelah jam pulang hari itu, atau seluruh jam kerja di hari libur), bonus video di atas target, bonus views, klaim, bonus dari pemilik.</p><p><b>Dikurangi:</b> hari tidak hadir, izin (bila diatur), telat, potongan tetap seperti BPJS.</p><p>Nominal tiap komponen diatur pemilik di Gaji → Atur gaji.</p>' },
   { id: 'status-gaji', q: 'Apa beda Perkiraan, Final dan Dibayar?', a: '<ul><li><b>Perkiraan</b>: bulan masih berjalan, angka masih bisa berubah.</li><li><b>Final</b>: dikunci pemilik, angka tidak berubah lagi.</li><li><b>Dibayar</b>: pemilik sudah mentransfer.</li></ul>' },
-  { id: 'notifikasi', q: 'Cara menyalakan notifikasi di HP', a: '<p><b>Android / laptop:</b> buka menu Pengaturan (pemilik) atau Izin & klaim (karyawan), lalu tekan <b>Aktifkan notifikasi</b>.</p><p><b>iPhone:</b> buka di Safari → <b>Bagikan</b> → <b>Tambah ke Layar Utama</b>. Buka Pantau Tokder dari ikon itu, lalu tekan Aktifkan notifikasi.</p>' },
+  { id: 'notifikasi', q: 'Cara menyalakan notifikasi di HP', a: '<p><b>Android / laptop:</b> buka menu Pengaturan (pemilik) atau Izin & klaim (karyawan), lalu tekan <b>Aktifkan notifikasi</b>.</p><p><b>iPhone:</b> buka di Safari → <b>Bagikan</b> → <b>Tambah ke Layar Utama</b>. Buka Tokder dari ikon itu, lalu tekan Aktifkan notifikasi.</p>' },
   { id: 'pendapatan', q: 'Apakah angka pendapatan asli?', a: '<p>Ya. Pendapatan iklan diambil dari YouTube Analytics dalam <b>rupiah</b> (YouTube mengonversinya dengan kurs harian), sama dengan di YouTube Studio bila mata uangnya rupiah. Pembayaran AdSense bisa sedikit beda karena kurs saat transfer. Channel yang belum tersambung tampil “—”. Omzet afiliasi dari file CSV yang diimpor atau diisi manual.</p>', owner: true },
   { id: 'afiliasi', q: 'Cara memasukkan omzet afiliasi', a: '<p>Unduh laporan komisi (CSV) dari dashboard afiliasi, lalu di menu Pendapatan tekan <b>Impor CSV</b>, pilih file, cek total per bulan, dan Simpan.</p>', owner: true },
   { id: 'data', q: 'Dari mana semua angka berasal?', a: '<ul><li>Video, views, like: YouTube, diperbarui tiap jam.</li><li>Retensi, jam tonton, pendapatan: YouTube Analytics, terlambat 2–3 hari.</li><li>Absen, aktivitas, izin: dicatat di aplikasi ini.</li></ul><p>Tidak ada angka contoh. Data yang belum ada ditulis “—”.</p>' },
@@ -83,7 +83,7 @@ PAGES.panduan = function () {
   const menu = ROUTES.filter((r) => r.id !== 'panduan' && MENU_INFO[r.id] && (!r.admin || untukPemilik) && (!r.karyawan || !untukPemilik));
   const faq = FAQ.filter((f) => !f.owner || untukPemilik);
   return `
-      <header class="head"><div><h1>Panduan</h1><p>Semua yang perlu diketahui untuk memakai Pantau Tokder, singkat.</p></div>
+      <header class="head"><div><h1>Panduan</h1><p>Semua yang perlu diketahui untuk memakai Tokder, singkat.</p></div>
         <div class="tools">${owner ? `<div class="seg" role="group" aria-label="Panduan untuk"><button data-act="panduan-untuk" data-v="pemilik" aria-pressed="${untukPemilik}">Untuk pemilik</button><button data-act="panduan-untuk" data-v="karyawan" aria-pressed="${!untukPemilik}">Untuk karyawan</button></div>` : ''}</div></header>
       <label class="search guide-search">${icon('search')}<input class="input" type="search" id="pd-cari" placeholder="Cari: gaji, absen ditolak, PIN, notifikasi…" aria-label="Cari di panduan"></label>
       <p class="muted m-0" id="pd-kosong" hidden>Tidak ada yang cocok. Coba kata lain, misalnya “gaji” atau “absen”.</p>

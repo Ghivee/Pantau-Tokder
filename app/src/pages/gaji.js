@@ -74,7 +74,7 @@ export function cetakSlip(editorId) {
   if (!r) return;
   let box = $('#print');
   if (!box) { box = document.createElement('div'); box.id = 'print'; document.body.append(box); }
-  box.innerHTML = `<div class="print-brand"><img src="/logo.svg" alt=""><b>Pantau Tokder</b></div>${slipHtml(r)}`;
+  box.innerHTML = `<div class="print-brand"><img src="/logo.svg" alt=""><b>Tokder</b></div>${slipHtml(r)}`;
   window.print();
 }
 

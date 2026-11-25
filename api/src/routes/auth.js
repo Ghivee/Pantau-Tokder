@@ -138,7 +138,7 @@ router.post('/editor-login', editorLoginLimiter, async (req, res) => {
       await recordFailure(keys);
       return res.status(401).json({ error: 'PIN salah' });
     }
-    if (resolveIzin(row).izin.web_pantau === false) return res.status(403).json({ error: 'Akun ini tidak diizinkan membuka Pantau Tokder.' });
+    if (resolveIzin(row).izin.web_pantau === false) return res.status(403).json({ error: 'Akun ini tidak diizinkan membuka Tokder.' });
     await clearFailures(keys);
     await startSession(res, { tipe: 'karyawan', editorId: row.id });
     res.json({ id: row.id, nama: row.nama, peran: row.peran || 'editor', foto_url: row.foto_url });
@@ -168,7 +168,7 @@ router.post('/sso', authLimiter, async (req, res) => {
     if (hasil.galat) return res.status(hasil.status).json({ error: hasil.galat });
     if (hasil.tipe === 'karyawan') {
       const e = editors.find((x) => x.id === hasil.editorId);
-      if (e && resolveIzin(e).izin.web_pantau === false) return res.status(403).json({ error: 'Akun ini tidak diizinkan membuka Pantau Tokder. Minta pemilik mengaktifkannya di menu Akses.' });
+      if (e && resolveIzin(e).izin.web_pantau === false) return res.status(403).json({ error: 'Akun ini tidak diizinkan membuka Tokder. Minta pemilik mengaktifkannya di menu Akses.' });
     }
     await clearFailures(keys);
     await startSession(res, hasil.tipe === 'admin' ? { tipe: 'admin', hari: SSO_HARI } : { tipe: 'karyawan', editorId: hasil.editorId, hari: SSO_HARI });

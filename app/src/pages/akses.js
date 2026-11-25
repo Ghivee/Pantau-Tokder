@@ -28,7 +28,7 @@ export function aksesCard() {
         return `<label class="ak-i${mati ? ' off' : ''}"><input type="checkbox" data-act="akses-izin" data-id="${k.id}" data-k="${esc(b.k)}" ${k.izin[b.k] ? 'checked' : ''} ${mati ? 'disabled' : ''}><span>${esc(b.nama)}</span></label>`;
       }).join('')}</div>${g.grup === 'Di dalam Master' && !k.akunMaster ? '<p class="muted">Nama ini belum punya akun Master (saat ini hanya Via dan Deni).</p>' : ''}</div>`).join('')}
     </div>`).join('')}
-    <p class="muted" style="margin-top:10px">Izin "Di dalam Master" dikirim ke Master dan ditegakkan di sana. Izin lain ditegakkan di Pantau. Pemilik selalu boleh semuanya.</p></section>`;
+    <p class="muted" style="margin-top:10px">Izin "Di dalam Master" dikirim ke Master dan ditegakkan di sana. Izin lain ditegakkan di Tokder. Pemilik selalu boleh semuanya.</p></section>`;
 }
 
 PAGES.akses = function () {

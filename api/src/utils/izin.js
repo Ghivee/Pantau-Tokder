@@ -3,7 +3,7 @@
 // Karyawan yang belum pernah diatur memakai nilai awal dari aturan lama (kolom peran dan lihat_penghasilan) supaya
 // tidak ada yang kehilangan akses mendadak; begitu pemilik mengubah satu izin, seluruh daftarnya disimpan.
 const KATALOG = [
-  { grup: 'Pantau Tokder', butir: [
+  { grup: 'Tokder', butir: [
     { k: 'upload', nama: 'Mengunggah draf sosmed' },
     { k: 'tayang', nama: 'Menayangkan posting' },
     { k: 'hapus', nama: 'Menghapus posting dan tautan' },
@@ -12,7 +12,7 @@ const KATALOG = [
     { k: 'uang', nama: 'Melihat penghasilan' },
   ] },
   { grup: 'Web yang boleh dibuka', butir: [
-    { k: 'web_pantau', nama: 'Pantau Tokder' },
+    { k: 'web_pantau', nama: 'Tokder' },
     { k: 'web_master', nama: 'Master' },
     { k: 'web_telprom', nama: 'Telprom' },
   ] },
