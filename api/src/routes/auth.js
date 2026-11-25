@@ -15,6 +15,7 @@ const { tooManyFailures, recordFailure, clearFailures, WINDOW_MIN } = require('.
 const { createAuditMiddleware } = require('../utils/auditLog');
 const { clientIp } = require('../utils/clientIp');
 const { escapeHtml } = require('../utils/html');
+const sso = require('../services/ssoMasterService');
 
 const OAUTH_COOKIE = 'pt_oauth';
 const secure = () => (process.env.VERCEL || process.env.NODE_ENV === 'production' ? '; Secure' : '');
@@ -140,6 +141,33 @@ router.post('/editor-login', editorLoginLimiter, async (req, res) => {
     res.json({ id: row.id, nama: row.nama, peran: row.peran || 'editor', foto_url: row.foto_url });
   } catch (err) {
     fail(res, err, 'Gagal memverifikasi PIN');
+  }
+});
+
+// GET /api/auth/sso-info — apakah tombol "Masuk dengan Master" boleh tampil, dan ke mana mengarah
+router.get('/sso-info', (req, res) => {
+  const url = sso.masterUrl();
+  res.json({ aktif: sso.aktif() && !!url, masterUrl: url });
+});
+
+// POST /api/auth/sso — masuk dengan token dari Master. Token diverifikasi ke Supabase; sesi Pantau dibuat sendiri.
+router.post('/sso', authLimiter, async (req, res) => {
+  const keys = ['sso:ip:' + clientIp(req)];
+  try {
+    if (await tooManyFailures(keys, 10)) return res.status(429).json({ error: TOO_MANY });
+    let profil;
+    try { profil = await sso.verifikasi((req.body || {}).token); } catch (err) {
+      if (err.status && err.status < 500) await recordFailure(keys);
+      return res.status(err.status || 502).json({ error: err.message });
+    }
+    const editors = profil.role === 'staff' ? (await db.query(`SELECT id, nama, status FROM editors`)).rows : [];
+    const hasil = sso.petakan(profil, editors);
+    if (hasil.galat) return res.status(hasil.status).json({ error: hasil.galat });
+    await clearFailures(keys);
+    await startSession(res, hasil.tipe === 'admin' ? { tipe: 'admin' } : { tipe: 'karyawan', editorId: hasil.editorId });
+    res.json({ success: true, role: hasil.tipe });
+  } catch (err) {
+    fail(res, err, 'Gagal masuk dengan Master');
   }
 });
 

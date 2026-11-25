@@ -3,6 +3,7 @@ import { activeEditors, api, belumDikenali, editorById, load, normalize } from '
 import { ROUTES, TABS, badgeOf, bisaBuka, menuGroups, navigate, pathOf, route, routeLabel } from '../core/router.js';
 import { TUGAS, TUGAS_LAIN, slotsOf, targetOf } from '../core/rules.js';
 import { S, canAssign, isAdmin, lihatUang, me } from '../core/state.js';
+import { ssoInfo } from '../core/sso.js';
 import { $, $$, esc } from '../lib/dom.js';
 import { durasi, nf, nowJam, rpOrDash, tglPanjang, today } from '../lib/format.js';
 import { avatar, editorCell, peranLabel, thumb, toast } from './bits.js';
@@ -33,8 +34,10 @@ export async function loginDialog(tab = 'karyawan') {
   if (tab === 'karyawan') {
     try { eds = await api('/api/auth/karyawan'); } catch (e) { toast(e.message, true); }
   }
+  const sso = await ssoInfo();
   openDialog(`
       <h2>Masuk</h2>
+      ${sso.aktif ? '<button type="button" class="btn primary" data-act="sso-master" data-url="' + esc(sso.masterUrl) + '" style="width:100%;margin-bottom:12px">Masuk dengan Master</button><p class="muted" style="text-align:center;margin:0 0 12px">atau pakai PIN / password Pantau</p>' : ''}
       <div class="seg" role="group" aria-label="Masuk sebagai"><button data-tab="karyawan" aria-pressed="${tab === 'karyawan'}">Karyawan</button><button data-tab="admin" aria-pressed="${tab === 'admin'}">Pemilik</button></div>
       <form id="login-form" class="dialog-form stack">
         ${tab === 'karyawan' ? `
@@ -58,6 +61,7 @@ export async function loginDialog(tab = 'karyawan') {
         closeOverlay();
         toast('Berhasil masuk');
         await load();
+        navigate('/aplikasi');
       } catch (e) { $('#login-err', d).textContent = e.message; }
     });
   });

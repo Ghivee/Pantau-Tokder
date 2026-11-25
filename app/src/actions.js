@@ -1,6 +1,7 @@
 import { analyticsChannels, api, editorById, load, normalize, optional, refresh } from './core/data.js';
 import { exportCsv, exportGaji, exportPresensi } from './core/export.js';
 import { navigate } from './core/router.js';
+import { masukDenganMaster } from './core/sso.js';
 import { S, saveSession } from './core/state.js';
 import { $, esc } from './lib/dom.js';
 import { angkaUang, bacaCsv } from './lib/csv.js';
@@ -9,7 +10,7 @@ import { aturGajiDialog, cetakSlip, loadGaji, slipDialog } from './pages/gaji.js
 import { ajukanDialog, putuskanDialog } from './pages/pengajuan.js';
 import { absen, ambilLokasi } from './pages/presensi.js';
 import { muatSaran, pilihChannel, salin } from './pages/saran.js';
-import { pilihMetrik } from './pages/rekap.js';
+import { kirimDraf, pilihMetrik } from './pages/rekap.js';
 import { buatTautan, hapusTautan, imporAfiliasi, muatAfiliasi, salinTautan, salinTeks, tautanDialog } from './pages/tautan.js';
 import { bulanLabel, daftarSW, diIOS, muatUlang, pushDidukung, swReg, terpasang } from './pages/shared.js';
 import { pantauPosting, setPosting, showPostList, susunDeskripsi } from './pages/sosmed.js';
@@ -311,6 +312,19 @@ document.addEventListener('click', async (ev) => {
     case 'tautan-salin': salinTautan(el.dataset.kode); break;
     case 'tautan-hapus': hapusTautan(el.dataset.kode); break;
     case 'rekap-metrik': pilihMetrik(el.dataset.v); break;
+    case 'draf-kirim': await kirimDraf(); break;
+    case 'sso-master': masukDenganMaster(el.dataset.url); break;
+    case 'akses-web': {
+      const id = +el.dataset.editor, nilai = el.checked;
+      try {
+        const r = await api('/api/aplikasi/akses', { method: 'PUT', body: { editor_id: id, web: el.dataset.web, nilai } });
+        const k = S.aksesWeb && S.aksesWeb.karyawan.find((x) => x.id === id);
+        if (k) k.web = r.web;
+        S.aplikasi = null;
+        toast('Akses web diubah');
+      } catch (e) { el.checked = !nilai; toast(e.message, true); }
+      break;
+    }
     case 'an-periode': S.anPeriode = +el.dataset.v; render(); break;
     default: await aksiBaru(act, el, ev); break;
     case 'putus-analytics': {
