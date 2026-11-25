@@ -16,6 +16,21 @@ test('peta peran: admin jadi pemilik, staff cocok nama karyawan aktif, sisanya d
   assert.strictEqual(sso.petakan({ role: 'reader' }, eds).status, 403);
 });
 
+test('peta peran: nama Pantau beda dengan akun Master (Alivia untuk akun via) lewat pilihan pemilik', () => {
+  const eds = [{ id: 11, nama: 'Alivia', status: 'aktif', akun_master: 'via' }, { id: 9, nama: 'Deni', status: 'aktif', akun_master: null }];
+  assert.deepStrictEqual(sso.petakan({ role: 'staff', staff: 'via', name: 'Via' }, eds), { tipe: 'karyawan', editorId: 11, nama: 'Alivia' });
+  assert.deepStrictEqual(sso.petakan({ role: 'staff', staff: 'deni', name: 'Deni' }, eds), { tipe: 'karyawan', editorId: 9, nama: 'Deni' }, 'tanpa pilihan: cocokkan nama');
+  const belum = sso.petakan({ role: 'staff', staff: 'via', name: 'Via' }, [{ id: 11, nama: 'Alivia', status: 'aktif', akun_master: null }]);
+  assert.equal(belum.status, 403);
+  assert.match(belum.galat, /dipetakan/);
+  // pilihan pemilik menang atas kecocokan nama: orang bernama "Via" yang dipetakan ke 'deni' tidak jadi akun 'via'
+  const silang = [{ id: 1, nama: 'Via', status: 'aktif', akun_master: 'deni' }, { id: 2, nama: 'Alivia', status: 'aktif', akun_master: 'via' }];
+  assert.equal(sso.petakan({ role: 'staff', staff: 'via', name: 'Via' }, silang).editorId, 2);
+  assert.equal(sso.petakan({ role: 'staff', staff: 'deni', name: 'Deni' }, silang).editorId, 1);
+  // karyawan nonaktif yang dipetakan tidak bisa masuk
+  assert.equal(sso.petakan({ role: 'staff', staff: 'via', name: 'Via' }, [{ id: 2, nama: 'Alivia', status: 'nonaktif', akun_master: 'via' }]).status, 403);
+});
+
 test('url Master hanya https dan dinormalkan', () => {
   pasang(ENV); assert.strictEqual(sso.masterUrl(), 'https://master.example.app');
   pasang({ ...ENV, MASTER_APP_URL: 'http://master.example.app' }); assert.strictEqual(sso.masterUrl(), '');

@@ -332,6 +332,14 @@ document.addEventListener('click', async (ev) => {
       } catch (e) { el.checked = !nilai; toast(e.message, true); }
       break;
     }
+    case 'akses-akun': {
+      try {
+        const r = await api('/api/akses/' + el.dataset.id + '/akun-master', { method: 'PUT', body: { akun: el.dataset.akun }, timeout: 30000 });
+        toast(r.sinkron && !r.sinkron.ok ? 'Tersimpan, tapi izin belum sampai ke Master' : el.dataset.akun ? 'Akun Master dipetakan' : 'Pemetaan akun Master dilepas', !!(r.sinkron && !r.sinkron.ok));
+        S.akses = undefined; render();
+      } catch (e) { toast(e.message, true); }
+      break;
+    }
     case 'akses-sinkron': {
       try {
         const r = await api('/api/akses/sinkron', { method: 'POST', timeout: 30000 });
