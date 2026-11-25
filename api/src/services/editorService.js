@@ -1,10 +1,17 @@
 const db = require('../config/db');
 const { hashPin } = require('../middlewares/sessionAuth');
-const { peranValid } = require('../utils/izin');
+const { peranValid, resolve } = require('../utils/izin');
 
 // Never send the PIN hash to the browser.
-const PUBLIC_COLUMNS = `id, nama, kode_identifikasi, status, created_at, peran, lihat_penghasilan, jadwal, target_harian, foto_url,
+const PUBLIC_COLUMNS = `id, nama, kode_identifikasi, status, created_at, peran, lihat_penghasilan, izin, jadwal, target_harian, foto_url,
   (pin IS NOT NULL AND pin <> '') AS punya_pin`;
+
+// Mengganti izin mentah dengan daftar izin lengkap (izin per orang), siap dipakai tampilan.
+function tampil(row) {
+  if (!row) return row;
+  const r = resolve(row);
+  return { ...row, izin: r.izin, izin_tersimpan: r.tersimpan };
+}
 
 function cleanJadwal(jadwal) {
   if (jadwal == null) return null;
@@ -19,7 +26,7 @@ function cleanJadwal(jadwal) {
 
 async function getAllEditors() {
   const result = await db.query(`SELECT ${PUBLIC_COLUMNS} FROM editors ORDER BY id ASC`);
-  return result.rows;
+  return result.rows.map(tampil);
 }
 
 async function addEditor(nama, kode, extra = {}) {
@@ -36,7 +43,7 @@ async function addEditor(nama, kode, extra = {}) {
       extra.lihat_penghasilan === true,
     ]
   );
-  return result.rows[0];
+  return tampil(result.rows[0]);
 }
 
 async function updateEditor(id, nama, kode, extra = {}) {
@@ -56,7 +63,7 @@ async function updateEditor(id, nama, kode, extra = {}) {
     `UPDATE editors SET ${sets.join(', ')} WHERE id = $${params.length} RETURNING ${PUBLIC_COLUMNS}`,
     params
   );
-  return result.rows[0];
+  return tampil(result.rows[0]);
 }
 
 async function deleteEditor(id) {

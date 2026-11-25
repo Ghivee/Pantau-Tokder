@@ -7,6 +7,7 @@ const STATEMENTS = [
   `ALTER TABLE editors ADD COLUMN IF NOT EXISTS peran VARCHAR(20) DEFAULT 'editor'`,
   // Karyawan yang boleh melihat penghasilan (diatur pemilik); selain itu angka penghasilan tidak pernah dikirim.
   `ALTER TABLE editors ADD COLUMN IF NOT EXISTS lihat_penghasilan BOOLEAN DEFAULT FALSE`,
+  `ALTER TABLE editors ADD COLUMN IF NOT EXISTS izin JSONB`,
   `ALTER TABLE editors ADD COLUMN IF NOT EXISTS pin VARCHAR(200)`,
   `ALTER TABLE editors ADD COLUMN IF NOT EXISTS jadwal VARCHAR(200) DEFAULT ''`,
   `ALTER TABLE editors ADD COLUMN IF NOT EXISTS target_harian INTEGER DEFAULT 3`,

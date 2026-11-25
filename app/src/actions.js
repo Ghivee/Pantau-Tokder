@@ -10,6 +10,7 @@ import { aturGajiDialog, cetakSlip, loadGaji, slipDialog } from './pages/gaji.js
 import { ajukanDialog, putuskanDialog } from './pages/pengajuan.js';
 import { absen, ambilLokasi } from './pages/presensi.js';
 import { muatSaran, pilihChannel, salin } from './pages/saran.js';
+import { statusSinkron } from './pages/pengaturan.js';
 import { kirimDraf, pilihMetrik } from './pages/rekap.js';
 import { buatTautan, hapusTautan, imporAfiliasi, muatAfiliasi, salinTautan, salinTeks, tautanDialog } from './pages/tautan.js';
 import { bulanLabel, daftarSW, diIOS, muatUlang, pushDidukung, swReg, terpasang } from './pages/shared.js';
@@ -314,15 +315,27 @@ document.addEventListener('click', async (ev) => {
     case 'rekap-metrik': pilihMetrik(el.dataset.v); break;
     case 'draf-kirim': await kirimDraf(); break;
     case 'sso-master': masukDenganMaster(el.dataset.url); break;
-    case 'akses-web': {
-      const id = +el.dataset.editor, nilai = el.checked;
+    case 'akses-izin': {
+      const id = +el.dataset.id, nilai = el.checked;
       try {
-        const r = await api('/api/aplikasi/akses', { method: 'PUT', body: { editor_id: id, web: el.dataset.web, nilai } });
-        const k = S.aksesWeb && S.aksesWeb.karyawan.find((x) => x.id === id);
-        if (k) k.web = r.web;
+        const r = await api('/api/akses/' + id, { method: 'PUT', body: { kunci: el.dataset.k, nilai }, timeout: 30000 });
+        const orang = S.akses && S.akses.karyawan.find((x) => x.id === id);
+        if (orang) { orang.izin = r.izin; orang.tersimpan = true; }
+        if (S.akses) S.akses.sinkron = { ...(S.akses.sinkron || {}), [id]: r.sinkron };
+        const e = S.editors.find((x) => x.id === id); if (e) { e.izin = r.izin; e.izin_tersimpan = true; }
         S.aplikasi = null;
-        toast('Akses web diubah');
+        const st = $('#ak-st-' + id); if (st) st.innerHTML = statusSinkron(r.sinkron);
+        toast(r.sinkron.ok ? 'Akses diubah' : 'Tersimpan di Pantau, tapi belum sampai ke Master', !r.sinkron.ok);
       } catch (e) { el.checked = !nilai; toast(e.message, true); }
+      break;
+    }
+    case 'akses-sinkron': {
+      try {
+        const r = await api('/api/akses/sinkron', { method: 'POST', timeout: 30000 });
+        const gagal = r.hasil.filter((h) => !h.ok);
+        toast(gagal.length ? 'Masih gagal untuk ' + gagal.map((h) => h.nama).join(', ') : 'Semua izin Master tersinkron', gagal.length > 0);
+        S.akses = undefined; render();
+      } catch (e) { toast(e.message, true); }
       break;
     }
     case 'an-periode': S.anPeriode = +el.dataset.v; render(); break;

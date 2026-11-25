@@ -23,7 +23,7 @@ try { localStorage.removeItem('pt_session'); localStorage.removeItem('adminToken
 export function saveSession(s) {
   S.session = s;
   if (!s) {
-    Object.assign(S, { editors: [], content: [], aktivitas: [], daily: [], goal: null, presensi: null, gajiCache: {}, gajiRiwayat: null, pengajuan: null, insight: null, sistem: undefined, warnings: [], offline: null });
+    Object.assign(S, { editors: [], content: [], aktivitas: [], daily: [], goal: null, presensi: null, gajiCache: {}, gajiRiwayat: null, pengajuan: null, insight: null, sistem: undefined, akses: undefined, warnings: [], offline: null });
     simpanCache(null);
   }
 }
@@ -34,12 +34,10 @@ export const me = () => (S.session && S.session.type === 'karyawan' ? S.editors.
 
 export const canLog = () => isAdmin() || !!me();
 
-export const canAssign = () => isAdmin() || (me() && (me().peran || 'editor') === 'editor');
+export const canAssign = () => bisa('tetapkan');
 
-// Hak akses seperti YouTube Studio (sama dengan api/src/utils/izin.js; server yang menegakkannya).
-const IZIN = { manajer: ['upload', 'tayang', 'hapus', 'tautan'], editor: ['upload', 'tayang', 'tautan'], terbatas: ['upload', 'tautan'], penonton: [] };
+// Hak akses per orang, diatur pemilik di Pengaturan > Akses karyawan (server yang menegakkannya; ini hanya untuk tampilan).
+export const bisa = (aksi) => isAdmin() || !!(me() && me().izin && me().izin[aksi] === true);
 
-export const bisa = (aksi) => isAdmin() || (!!me() && (IZIN[me().peran] || IZIN.editor).includes(aksi));
-
-// Penghasilan: pemilik, atau karyawan yang diberi tanda oleh pemilik.
-export const lihatUang = () => isAdmin() || !!(me() && me().lihat_penghasilan);
+// Penghasilan: pemilik, atau karyawan yang diizinkan pemilik.
+export const lihatUang = () => isAdmin() || !!(me() && me().izin && me().izin.uang === true);

@@ -143,6 +143,7 @@ app.use('/api/komentar', require('./routes/komentar'));
 app.use('/api/afiliasi', require('./routes/afiliasi'));
 app.use('/api/konten-master', require('./routes/kontenMaster'));
 app.use('/api/aplikasi', require('./routes/aplikasi'));
+app.use('/api/akses', require('./routes/akses'));
 app.use('/api/draf-pendapatan', require('./routes/drafPendapatan'));
 app.use('/api', cspReportRouter);
 

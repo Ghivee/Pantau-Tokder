@@ -22,11 +22,11 @@ PAGES.karyawan = function () {
               <dt>Kode</dt><dd><span class="slot">#${esc(e.kode_identifikasi)}</span></dd>
               <dt>Jadwal</dt><dd>${slotsOf(e).map((s) => `<span class="slot">${s}</span>`).join('') || '<span class="muted">Belum diatur</span>'}</dd>
               <dt>Target</dt><dd>${targetOf(e)} video per hari</dd>
-              <dt>Penghasilan</dt><dd>${e.lihat_penghasilan ? '<span class="pill ok">Boleh lihat</span>' : '<span class="muted">Tidak</span>'}</dd>
+              <dt>Penghasilan</dt><dd>${e.izin && e.izin.uang ? '<span class="pill ok">Boleh lihat</span>' : '<span class="muted">Tidak</span>'}</dd>
               <dt>PIN</dt><dd>${e.punya_pin ? '<span class="pill ok">Sudah diatur</span>' : '<span class="pill warn">Belum diatur</span>'}</dd>
               <dt>7 hari</dt><dd>${st.n} video · tepat ${pct(st.tepat)} · ${fmt(st.views)} views</dd>
             </dl>
-            ${isAdmin() ? `<div class="member-actions"><button class="btn sm" data-act="editor-form" data-id="${e.id}">Ubah</button><button class="btn sm ghost danger" data-act="editor-hapus" data-id="${e.id}">Hapus</button></div>` : ''}
+            ${isAdmin() ? `<div class="member-actions"><button class="btn sm" data-act="editor-form" data-id="${e.id}">Ubah</button><a class="btn sm ghost" href="/pengaturan">Atur akses</a><button class="btn sm ghost danger" data-act="editor-hapus" data-id="${e.id}">Hapus</button></div>` : ''}
           </section>`;
         }).join('') || '<div class="card empty"><b>Belum ada karyawan</b>Masuk sebagai pemilik untuk menambahkan.</div>'}</div>
         <section class="card">
