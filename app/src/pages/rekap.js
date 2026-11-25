@@ -1,18 +1,18 @@
 import { analyticsChannels, api } from '../core/data.js';
 import { AFTER, PAGES } from '../core/registry.js';
 import { route } from '../core/router.js';
-import { S, lihatUang } from '../core/state.js';
+import { S, isAdmin, lihatUang } from '../core/state.js';
 import { daysBack } from '../core/stats.js';
 import { $, esc } from '../lib/dom.js';
 import { WIB, addDays, fmt, nf, signed, sum, tglPanjang, tglPendek, today } from '../lib/format.js';
-import { thumb } from '../ui/bits.js';
+import { thumb, toast } from '../ui/bits.js';
 import { drawLines } from '../ui/charts.js';
 
 // Rekap 3 channel, sepenuhnya otomatis: views dan retensi dari YouTube Analytics, CTR dari YouTube Reporting API,
 // real-time dari bacaan total tayangan tiap menit, klik dari pelacak tautan.
 
 
-const R = (S.rekap = { metrik: null, klikTautan: [], klikVideo: [], snap: [], galatMetrik: null, galatRt: null, metrikPilih: 'views', konten: {} });
+const R = (S.rekap = { metrik: null, klikTautan: [], klikVideo: [], snap: [], galatMetrik: null, galatRt: null, metrikPilih: 'views', konten: {}, draf: null });
 const persen = (v) => (v == null ? '—' : nf.format(Math.round(v * 10) / 10) + '%');
 // Warna mengikuti channel (urutan tetap), bukan peringkat nilainya; tiga warna ini sudah divalidasi (lihat pages.css).
 const chColor = (id) => { const i = analyticsChannels().findIndex((c) => c.id === id); return i >= 0 && i < 3 ? `var(--ch-${i + 1})` : 'var(--muted)'; };
@@ -136,6 +136,32 @@ function videoTeratas(chans) {
   return `<section class="card"><div class="card-h"><h2>Video teratas</h2><span class="muted">dirilis ${n} hari terakhir</span></div><div class="tv">${bagian.join('')}</div></section>`;
 }
 
+// Draf pendapatan bulanan ke antrean persetujuan kas di Master. Hanya pemilik; angka tidak pernah dikirim ke peran lain.
+const STATUS_DRAF = { diajukan: 'Menunggu persetujuan', disetujui: 'Disetujui', ditolak: 'Ditolak' };
+function kartuDraf() {
+  if (!isAdmin() || !R.draf) return '';
+  const d = R.draf;
+  const isi = d.galat ? `<p class="muted">${esc(d.galat)}</p>`
+    : !d.terhubung ? '<p class="muted">Belum tersambung ke Master (butuh pengaturan MASTER_* di Vercel).</p>'
+    : d.rupiah === false ? '<p class="muted">Pendapatan belum dalam rupiah; tunggu sinkron YouTube berikutnya.</p>'
+    : d.bulan.map((b) => `<div class="mrow"><span class="nm">${esc(b.label)}</span><span class="vl">${b.draf.length ? b.draf.map((x) => `<span>${x.platform === 'youtube' ? 'YouTube' : 'Afiliasi'} Rp ${nf.format(x.jumlah)} <small class="muted">${x.di_master ? esc(STATUS_DRAF[x.di_master] || x.di_master) : 'belum dikirim'}</small></span>`).join('<br>') : '<span class="muted">tidak ada pendapatan</span>'}</span></div>`).join('');
+  const ada = d.terhubung && d.rupiah !== false && !d.galat && d.bulan.some((b) => b.draf.some((x) => !x.di_master));
+  return `<section class="card"><div class="card-h"><h2>Draf pendapatan ke Master</h2><span class="muted">estimasi bulan yang sudah selesai</span></div>${isi}
+    ${ada ? '<button class="btn primary" data-act="draf-kirim"' + (R.drafKirim ? ' disabled' : '') + '>Kirim draf ke Master</button><p class="muted">Draf masuk ke antrean Kas di Master. Anda atau istri menyesuaikan dengan pembayaran di bank sebelum menyetujui.</p>' : ''}</section>`;
+}
+
+export async function muatDraf() {
+  try { R.draf = await api('/api/draf-pendapatan'); } catch (e) { R.draf = { galat: e.message, bulan: [] }; }
+  segarkanRekap();
+}
+
+export async function kirimDraf() {
+  R.drafKirim = true; segarkanRekap();
+  try { const r = await api('/api/draf-pendapatan', { method: 'POST', timeout: 30000 }); toast(r.dibuat ? `${r.dibuat} draf dikirim ke Master` : 'Semua draf sudah ada di Master'); } catch (e) { toast(e.message, true); }
+  R.drafKirim = false;
+  await muatDraf();
+}
+
 function isi() {
   const chans = analyticsChannels();
   const p = periode();
@@ -151,6 +177,7 @@ function isi() {
     ${belum.length ? `<div class="notice" role="status"><span>${belum.map((c) => esc(c.nama)).join(', ')} belum tersambung.</span></div>` : ''}
     ${R.galatRt ? `<div class="notice" role="status"><span>Real-time: ${esc(R.galatRt)}</span></div>` : ''}
     ${videoTeratas(chans)}
+    ${kartuDraf()}
     <div class="met-grid">
       ${kartuAngka('Views', baris, (b) => b.v, fmt, { delta })}
       ${lihatUang() ? kartuAngka('Penghasilan', baris, (b) => b.uang, (v) => 'Rp ' + fmt(v)) : ''}
@@ -213,6 +240,7 @@ function mulaiRealtime() {
 AFTER.rangkuman = function () {
   gambar();
   if (R.metrik == null) muatMetrik().then(segarkanRekap);
+  if (isAdmin() && !R.drafDimuat) { R.drafDimuat = true; muatDraf(); }
   if (!R.kontenDimuat) { R.kontenDimuat = true; muatKontenMaster().then(segarkanRekap); }
   if (!timer) mulaiRealtime();
 };
