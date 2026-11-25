@@ -285,10 +285,12 @@ a.app-card:hover { border-color: var(--ink); }
 .app-go { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-size: 14px; }
 .app-go svg { width: 16px; height: 16px; }
 
-/* Pengaturan: akses web karyawan */
-.akses-web { display: grid; gap: 2px; }
-.aw-row { display: grid; grid-template-columns: minmax(120px, 1fr) repeat(2, 84px); align-items: center; padding: 10px 4px; border-top: 1px solid var(--line); }
-.aw-row.aw-h { border-top: 0; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; padding-bottom: 4px; }
-.aw-c { display: grid; place-items: center; min-height: 44px; cursor: pointer; }
-.aw-c input { width: 22px; height: 22px; }
-.aw-h span:not(:first-child) { text-align: center; }
+/* Pengaturan: akses karyawan per orang */
+.ak-orang { border-top: 1px solid var(--line); padding: 14px 0 6px; }
+.ak-orang:first-of-type { border-top: 0; }
+.ak-nama { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 8px; font-size: 16px; }
+.ak-grup h4 { margin: 10px 0 4px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; font-weight: 600; }
+.ak-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 2px 14px; }
+.ak-i { display: flex; align-items: center; gap: 10px; min-height: 44px; cursor: pointer; font-size: 14px; }
+.ak-i input { width: 22px; height: 22px; flex: none; }
+.ak-i.off { opacity: .5; cursor: not-allowed; }

@@ -40,11 +40,11 @@ async function daftar() {
 }
 
 // Panggilan REST umum ke Master dengan akun yang sama. Mengembalikan { status, json }.
-async function rest(method, path, body) {
+async function rest(method, path, body, prefer = 'return=minimal') {
   if (!siap()) throw new Error('Sambungan Master belum diatur');
   const panggil = async () => fetch(URL_ENV() + '/rest/v1/' + path, {
     method,
-    headers: { 'Content-Type': 'application/json', apikey: KEY_ENV(), Authorization: 'Bearer ' + (await masuk()), Prefer: 'return=minimal' },
+    headers: { 'Content-Type': 'application/json', apikey: KEY_ENV(), Authorization: 'Bearer ' + (await masuk()), ...(prefer ? { Prefer: prefer } : {}) },
     body: body ? JSON.stringify(body) : undefined,
   });
   let r = await panggil();

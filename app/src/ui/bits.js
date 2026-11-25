@@ -21,7 +21,8 @@ document.addEventListener('error', (ev) => {
   }
 }, true);
 
-export const peranLabel = (p) => ({ manajer: 'Manajer', terbatas: 'Editor terbatas', penonton: 'Penonton' }[p] || 'Editor');
+// Tidak ada lagi jabatan: hak akses diatur per orang.
+export const peranLabel = () => 'Karyawan';
 
 export const thumb = (c) => (c.post_id ? `https://i.ytimg.com/vi/${encodeURIComponent(c.post_id)}/mqdefault.jpg` : '');
 

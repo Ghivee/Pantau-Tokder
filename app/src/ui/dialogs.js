@@ -109,16 +109,16 @@ export function catatDialog(editorId) {
 }
 
 export function editorDialog(id) {
-  const e = id ? editorById(id) : { nama: '', kode_identifikasi: '', peran: 'editor', jadwal: '', target_harian: 3, foto_url: '', status: 'aktif' };
+  const e = id ? editorById(id) : { nama: '', kode_identifikasi: '', jadwal: '', target_harian: 3, foto_url: '', status: 'aktif' };
   openDialog(`
       <h2>${id ? 'Ubah ' + esc(e.nama) : 'Tambah karyawan'}</h2>
+      <p class="muted" style="margin:0">Hak akses diatur per orang di Pengaturan, Akses karyawan.</p>
       <form id="ed-form" class="stack">
         <div class="row">
           <label class="field"><span>Nama</span><input class="input" name="nama" value="${esc(e.nama)}" required maxlength="100"></label>
           <label class="field"><span>Kode</span><input class="input" name="kode" value="${esc(e.kode_identifikasi)}" required maxlength="20" style="text-transform:uppercase"><small>Ditulis di deskripsi video, misal #AL</small></label>
         </div>
         <div class="row">
-          <label class="field"><span>Peran</span><select class="input" name="peran">${[['manajer', 'Manajer'], ['editor', 'Editor'], ['terbatas', 'Editor terbatas'], ['penonton', 'Penonton']].map(([v, l]) => `<option value="${v}" ${(e.peran || 'editor') === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
           <label class="field"><span>Status</span><select class="input" name="status"><option value="aktif" ${e.status !== 'nonaktif' ? 'selected' : ''}>Aktif</option><option value="nonaktif" ${e.status === 'nonaktif' ? 'selected' : ''}>Nonaktif</option></select></label>
         </div>
         <div class="row">
@@ -127,7 +127,6 @@ export function editorDialog(id) {
         </div>
         <label class="field"><span>Link foto (opsional)</span><input class="input" name="foto_url" type="url" value="${esc(e.foto_url || '')}" placeholder="https://…"><small>Kosongkan untuk memakai inisial nama</small></label>
         <label class="field"><span>${e.punya_pin ? 'PIN baru (kosongkan bila tidak diganti)' : 'PIN untuk masuk'}</span><input class="input" name="pin" type="password" inputmode="numeric" minlength="4" maxlength="12" autocomplete="new-password" placeholder="4–12 angka"></label>
-        <label style="display:flex;gap:8px;align-items:center;font-size:14px"><input type="checkbox" name="lihat_penghasilan" ${e.lihat_penghasilan ? 'checked' : ''}> Boleh melihat penghasilan</label>
         ${e.punya_pin ? '<label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" name="hapus_pin"> Hapus PIN (karyawan tidak bisa masuk)</label>' : ''}
         <div class="err" id="ed-err" role="alert"></div>
         <div class="actions"><button type="button" class="btn ghost" data-act="close-overlay">Batal</button><button class="btn primary">Simpan</button></div>
@@ -137,7 +136,6 @@ export function editorDialog(id) {
       const body = Object.fromEntries(new FormData(ev.target));
       body.kode = body.kode.toUpperCase().replace(/^#/, '');
       body.hapus_pin = !!body.hapus_pin;
-      body.lihat_penghasilan = !!body.lihat_penghasilan;
       if (body.pin && !/^\d{4,12}$/.test(body.pin)) { $('#ed-err', d).textContent = 'PIN harus 4–12 angka'; return; }
       if (!body.pin) delete body.pin;
       try {

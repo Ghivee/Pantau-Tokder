@@ -5,7 +5,8 @@ const { fail, bad } = require('../utils/httpError');
 const db = require('../config/db');
 const analyticsService = require('../services/analyticsService');
 const { retentionCurve } = require('../integrations/analytics');
-const { requireAnyAuth, requireRole } = require('../middlewares/sessionAuth');
+const { requireAnyAuth } = require('../middlewares/sessionAuth');
+const { requireIzin } = require('../utils/izin');
 const { createAuditMiddleware } = require('../utils/auditLog');
 const { checkIdempotency } = require('../middlewares/rateLimit');
 
@@ -67,7 +68,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-router.post('/:id/assign', requireRole('editor'), checkIdempotency, createAuditMiddleware('content', 'assign', (req) => req.params.id, (req) => ({ editor_id: req.body?.editor_id }), (req, body) => ({ editor_id: body?.editor_id })), async (req, res) => {
+router.post('/:id/assign', requireIzin('tetapkan'), checkIdempotency, createAuditMiddleware('content', 'assign', (req) => req.params.id, (req) => ({ editor_id: req.body?.editor_id }), (req, body) => ({ editor_id: body?.editor_id })), async (req, res) => {
   try {
     const { id } = req.params;
     const editorId = Number((req.body || {}).editor_id);
@@ -86,7 +87,7 @@ router.post('/:id/assign', requireRole('editor'), checkIdempotency, createAuditM
 });
 
 // POST /api/content/bulk-assign — Assign multiple videos to an editor (with hardening)
-router.post('/bulk-assign', requireRole('editor'), checkIdempotency, async (req, res) => {
+router.post('/bulk-assign', requireIzin('tetapkan'), checkIdempotency, async (req, res) => {
   try {
     const { video_ids, editor_id } = req.body || {};
     if (!Array.isArray(video_ids) || video_ids.length === 0) {
