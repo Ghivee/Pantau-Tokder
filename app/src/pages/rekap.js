@@ -12,7 +12,7 @@ import { drawLines } from '../ui/charts.js';
 // real-time dari bacaan total tayangan tiap menit, klik dari pelacak tautan.
 
 
-const R = (S.rekap = { metrik: null, klikTautan: [], klikVideo: [], snap: [], galatMetrik: null, galatRt: null, metrikPilih: 'views' });
+const R = (S.rekap = { metrik: null, klikTautan: [], klikVideo: [], snap: [], galatMetrik: null, galatRt: null, metrikPilih: 'views', konten: {} });
 const persen = (v) => (v == null ? '—' : nf.format(Math.round(v * 10) / 10) + '%');
 // Warna mengikuti channel (urutan tetap), bukan peringkat nilainya; tiga warna ini sudah divalidasi (lihat pages.css).
 const chColor = (id) => { const i = analyticsChannels().findIndex((c) => c.id === id); return i >= 0 && i < 3 ? `var(--ch-${i + 1})` : 'var(--muted)'; };
@@ -121,6 +121,8 @@ function kartuAngka(judul, baris, val, f, { max, delta } = {}) {
 
 // Dua video teratas tiap channel yang dirilis dalam periode terpilih (7/28/90 hari terakhir), urut menurut views.
 // Bila video punya tautan pelacak, jumlah klik tautannya dalam periode ikut ditampilkan.
+const PETUGAS = { via: 'Via', deni: 'Deni' };
+
 function videoTeratas(chans) {
   const n = S.anPeriode, sejak = addDays(today(), -(n - 1));
   const klik = (id) => sum(R.klikVideo.filter((k) => k.video_id === id && k.tanggal >= sejak), (k) => k.jumlah);
@@ -128,7 +130,7 @@ function videoTeratas(chans) {
     const top = S.content.filter((v) => v._ch === c.id && v._age <= n).sort((a, b) => b.views - a.views).slice(0, 2);
     return `<div class="tv-ch"><h3>${dot(c.id)}${esc(c.nama)}</h3>${top.length ? top.map((v) => { const k = klik(v.post_id); return `
       <a class="tv-row" href="${esc(v.url || 'https://www.youtube.com/watch?v=' + encodeURIComponent(v.post_id))}" target="_blank" rel="noopener">
-        <img src="${esc(thumb(v))}" alt="" loading="lazy"><span class="tv-t">${esc(v.judul)}</span>
+        <img src="${esc(thumb(v))}" alt="" loading="lazy"><span class="tv-t">${esc(v.judul)}${R.konten[v.post_id] && R.konten[v.post_id].petugas ? `<small class="tv-p muted"> · ${esc(PETUGAS[R.konten[v.post_id].petugas] || '')}</small>` : ''}</span>
         <span class="tv-n"><b>${fmt(v.views)}</b><span class="muted">views</span>${k ? `<span class="tv-k">${nf.format(k)} klik</span>` : ''}</span></a>`; }).join('') : '<p class="muted">Belum ada video di periode ini</p>'}</div>`;
   });
   return `<section class="card"><div class="card-h"><h2>Video teratas</h2><span class="muted">dirilis ${n} hari terakhir</span></div><div class="tv">${bagian.join('')}</div></section>`;
@@ -185,6 +187,11 @@ export function segarkanRekap() {
 
 let timer = null;
 
+// Konten dari Master (siapa yang memegang tiap video). Gagal atau belum tersambung = tidak ada keterangan.
+async function muatKontenMaster() {
+  try { const r = await api('/api/konten-master'); R.konten = r.daftar || {}; } catch (e) { R.konten = {}; }
+}
+
 async function muatMetrik() {
   try { const r = await api('/api/rekap?hari=366'); R.metrik = r.metrik; R.klikTautan = r.klik_tautan || []; R.klikVideo = r.klik_video || []; R.galatMetrik = null; } catch (e) { R.galatMetrik = e.message; if (!R.metrik) R.metrik = []; }
 }
@@ -206,6 +213,7 @@ function mulaiRealtime() {
 AFTER.rangkuman = function () {
   gambar();
   if (R.metrik == null) muatMetrik().then(segarkanRekap);
+  if (!R.kontenDimuat) { R.kontenDimuat = true; muatKontenMaster().then(segarkanRekap); }
   if (!timer) mulaiRealtime();
 };
 
