@@ -28,7 +28,7 @@ const perangkatLabel = () => { const u = navigator.userAgent; return (/Android/.
 
 async function aktifkanNotif() {
   if (!pushDidukung()) {
-    toast(diIOS && !terpasang() ? 'Di iPhone: ketuk Bagikan → Tambah ke Layar Utama, buka Pantau Tokder dari ikon itu, lalu aktifkan notifikasi.' : 'Browser ini tidak mendukung notifikasi. Pakai Chrome, Edge, Firefox atau Safari terbaru.', true);
+    toast(diIOS && !terpasang() ? 'Di iPhone: ketuk Bagikan → Tambah ke Layar Utama, buka Tokder dari ikon itu, lalu aktifkan notifikasi.' : 'Browser ini tidak mendukung notifikasi. Pakai Chrome, Edge, Firefox atau Safari terbaru.', true);
     return;
   }
   const btn = $('[data-act="notif-aktif"]');
@@ -328,7 +328,7 @@ document.addEventListener('click', async (ev) => {
         const e = S.editors.find((x) => x.id === id); if (e) { e.izin = r.izin; e.izin_tersimpan = true; }
         S.aplikasi = null;
         const st = $('#ak-st-' + id); if (st) st.innerHTML = statusSinkron(r.sinkron);
-        toast(r.sinkron.ok ? 'Akses diubah' : 'Tersimpan di Pantau, tapi belum sampai ke Master', !r.sinkron.ok);
+        toast(r.sinkron.ok ? 'Akses diubah' : 'Tersimpan di Tokder, tapi belum sampai ke Master', !r.sinkron.ok);
       } catch (e) { el.checked = !nilai; toast(e.message, true); }
       break;
     }
@@ -353,7 +353,7 @@ document.addEventListener('click', async (ev) => {
     case 'putus-sosmed': {
       const k = ((S.sosmed && S.sosmed.platforms) || []).flatMap((p) => p.koneksi).find((x) => String(x.id) === el.dataset.id);
       if (!k) break;
-      confirmDialog('Putuskan ' + (k.nama || 'akun') + '?', 'Token dihapus dan semua posting akun ini yang tersimpan di Pantau Tokder ikut dihapus. Akun aslinya tidak berubah.', 'Putuskan', async () => {
+      confirmDialog('Putuskan ' + (k.nama || 'akun') + '?', 'Token dihapus dan semua posting akun ini yang tersimpan di Tokder ikut dihapus. Akun aslinya tidak berubah.', 'Putuskan', async () => {
         try { await api('/api/social/koneksi/' + encodeURIComponent(k.id), { method: 'DELETE' }); await refresh(); toast((k.nama || 'Akun') + ' diputuskan'); } catch (e) { toast(e.message, true); }
       });
       break;
@@ -370,7 +370,7 @@ document.addEventListener('click', async (ev) => {
       break;
     }
     case 'post-hapus': {
-      confirmDialog('Hapus posting ini?', 'Catatan dan berkas videonya di Pantau Tokder dihapus. Video yang sudah tayang di platform tidak ikut terhapus.', 'Hapus', async () => {
+      confirmDialog('Hapus posting ini?', 'Catatan dan berkas videonya di Tokder dihapus. Video yang sudah tayang di platform tidak ikut terhapus.', 'Hapus', async () => {
         try { await api('/api/posting/' + el.dataset.id, { method: 'DELETE' }); S.sosmed.posting = S.sosmed.posting.filter((x) => String(x.id) !== el.dataset.id); showPostList(); toast('Posting dihapus'); } catch (e) { toast(e.message, true); }
       });
       break;

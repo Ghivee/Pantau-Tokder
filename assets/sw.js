@@ -51,8 +51,8 @@ self.addEventListener('fetch', (e) => {
 
 self.addEventListener('push', (e) => {
   let d = {};
-  try { d = e.data ? e.data.json() : {}; } catch (err) { d = { title: 'Pantau Tokder', body: e.data && e.data.text() }; }
-  e.waitUntil(self.registration.showNotification(d.title || 'Pantau Tokder', {
+  try { d = e.data ? e.data.json() : {}; } catch (err) { d = { title: 'Tokder', body: e.data && e.data.text() }; }
+  e.waitUntil(self.registration.showNotification(d.title || 'Tokder', {
     body: d.body || '', icon: '/icon-192.png', badge: '/icon-192.png', tag: d.tag, data: { url: d.url || '/' },
   }));
 });

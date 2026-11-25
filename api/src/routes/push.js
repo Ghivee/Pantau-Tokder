@@ -35,7 +35,7 @@ router.delete('/langganan', async (req, res) => {
 // A test message to this person's own devices.
 router.post('/coba', userMutationLimiter, async (req, res) => {
   try {
-    const n = await push.kirim(req.isAdmin ? { admin: true } : { editorId: req.editor.id }, { title: 'Notifikasi Pantau Tokder aktif', body: 'Contoh pesan: notifikasi di perangkat ini sudah berjalan.', url: '/' });
+    const n = await push.kirim(req.isAdmin ? { admin: true } : { editorId: req.editor.id }, { title: 'Notifikasi Tokder aktif', body: 'Contoh pesan: notifikasi di perangkat ini sudah berjalan.', url: '/' });
     res.json({ terkirim: n });
   } catch (err) {
     fail(res, err);

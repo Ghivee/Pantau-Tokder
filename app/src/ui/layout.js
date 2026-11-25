@@ -22,7 +22,7 @@ export function renderNav() {
   const who2 = me();
   $('#appbar').innerHTML = `
       <img class="logo" src="/logo.svg" alt="">
-      <div class="ttl"><b>Pantau Tokder</b><small>${last || syncing ? '<span class="dot"></span>' : ''}${freshText}</small></div>
+      <div class="ttl"><b>Tokder</b><small>${last || syncing ? '<span class="dot"></span>' : ''}${freshText}</small></div>
       ${S.session ? `<button data-act="lainnya" aria-label="Akun dan menu lain">${who2 ? avatar(who2, 'sm') : '<span class="ava sm" style="background:var(--ink);color:var(--paper)">P</span>'}</button>` : '<button class="btn sm primary" data-act="login" style="border-radius:9px;padding:0 14px">Masuk</button>'}`;
   const tabs = TABS();
   const moreActive = !tabs.includes(cur);
@@ -55,8 +55,8 @@ export function render() {
     // Halaman depan publik: dibaca juga oleh reviewer TikTok/Meta, jadi menjelaskan apa aplikasi ini,
     // data apa yang dibaca dari tiap platform, dan menaut ke kebijakan privasi, syarat, dan hapus data.
     page.innerHTML = `<section class="card landing">
-        <img src="/logo.svg" alt="Logo Pantau Tokder" class="landing-logo">
-        <h1>Pantau Tokder</h1>
+        <img src="/logo.svg" alt="Logo Tokder" class="landing-logo">
+        <h1>Tokder</h1>
         <p class="landing-lead">Dasbor internal tim konten Tokder (channel budidaya cabai) untuk memantau hasil kerja harian dan performa video di YouTube, TikTok, Instagram dan Facebook.</p>
         <button class="btn primary" data-act="login">${icon('out')}Masuk</button>
         <p class="muted landing-note">Hanya untuk pemilik dan karyawan Tokder. Tidak ada pendaftaran terbuka.</p>
@@ -68,8 +68,8 @@ export function render() {
         <nav class="landing-links" aria-label="Informasi hukum">
           <a href="/privacy.html">Kebijakan Privasi</a> · <a href="/terms.html">Syarat Layanan</a> · <a href="/data-deletion.html">Hapus data</a> · <a href="mailto:tokodeeres@gmail.com">tokodeeres@gmail.com</a>
         </nav>
-        <p class="muted landing-note" lang="en">Pantau Tokder is a private dashboard for the Tokder chili-farming video team. The owner connects the team's own TikTok, Instagram, Facebook and YouTube accounts to read the accounts' own profile and video statistics, and to let the owner and authorised team members send the team's own videos to those accounts as drafts, which only the owner or members permitted to publish can then publish. See the Privacy Policy and Terms above.</p></section>`;
-    document.title = 'Masuk · Pantau Tokder';
+        <p class="muted landing-note" lang="en">Tokder is a private dashboard for the Tokder chili-farming video team. The owner connects the team's own TikTok, Instagram, Facebook and YouTube accounts to read the accounts' own profile and video statistics, and to let the owner and authorised team members send the team's own videos to those accounts as drafts, which only the owner or members permitted to publish can then publish. See the Privacy Policy and Terms above.</p></section>`;
+    document.title = 'Masuk · Tokder';
     return;
   }
   if (S.error) {
@@ -81,6 +81,6 @@ export function render() {
   // Penjelasan dipangkas satu baris lewat CSS; teks lengkapnya tetap bisa dibaca dengan mengarahkan kursor.
   $$('.head p, .card-h p, .kpi .d', page).forEach((el) => { el.title = el.textContent.trim(); });
   (AFTER[r] || (() => {}))();
-  document.title = routeLabel(ROUTES.find((x) => x.id === r) || {}) + ' · Pantau Tokder';
+  document.title = routeLabel(ROUTES.find((x) => x.id === r) || {}) + ' · Tokder';
 }
 

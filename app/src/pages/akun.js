@@ -15,7 +15,7 @@ PAGES.akun = function () {
     : a.akses.map((g) => `<div class="ak-grup"><h4>${esc(g.grup)}</h4><ul class="akun-daftar">${g.butir.map((b) => `<li class="${b.boleh ? 'ya' : 'tidak'}"><span aria-hidden="true">${b.boleh ? '✓' : '–'}</span> ${esc(b.nama)}<span class="muted"> · ${b.boleh ? 'boleh' : 'tidak'}</span></li>`).join('')}</ul></div>`).join('');
   return `<header class="head"><div><h1>Akun saya</h1><p>${a && !a.error ? esc(a.nama) + ' · ' + esc(a.jenis) : 'Akun Tokder'}</p></div></header>
     <section class="card"><div class="card-h"><h2>Akses saya</h2><p>Yang diatur pemilik untuk akun ini.</p></div>${isi}</section>
-    <section class="card"><div class="card-h"><h2>Keamanan</h2><p>Satu akun Tokder dipakai untuk Pantau, Master, dan Telprom.</p></div>
+    <section class="card"><div class="card-h"><h2>Keamanan</h2><p>Satu Akun Tokder dipakai untuk Tokder, Master, dan Telprom.</p></div>
       <div class="tools"><button class="btn" data-act="ganti-sandi">Ganti kata sandi</button><button class="btn ghost" data-act="logout">Keluar dari semua web</button></div>
       <p class="muted" style="margin-top:8px">Kata sandi diganti di Master, lalu Anda dikembalikan ke sini.</p></section>`;
 };

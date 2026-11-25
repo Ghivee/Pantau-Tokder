@@ -11,7 +11,7 @@ router.get('/', async (req, res) => {
     // Telprom dibuka lewat Master (penyedia identitas) supaya otomatis masuk; tanpa alamat Master, tautan biasa.
     const lompatTelprom = master && telprom ? `${master}/?sso=telprom&kembali=${encodeURIComponent(telprom)}` : telprom;
     const semua = [
-      { id: 'pantau', nama: 'Pantau Tokder', ket: 'Performa channel, saran, affiliate, dan upload sosmed', url: '', sekarang: true },
+      { id: 'pantau', nama: 'Tokder', ket: 'Performa channel, saran, affiliate, dan upload sosmed', url: '', sekarang: true },
       { id: 'master', nama: 'Master', ket: 'Order, kas harian, konten, tim, dan absen', url: master, env: 'MASTER_APP_URL' },
       { id: 'telprom', nama: 'Telprom', ket: 'Ide, naskah, dan rekam video', url: lompatTelprom, env: 'TELPROM_APP_URL' },
     ];

@@ -37,7 +37,7 @@ function susunDraf({ ym, adsense, nama, afiliasi }) {
   if (Math.round(+afiliasi || 0) > 0) {
     draf.push({
       kunci: 'afiliasi:' + ym, platform: 'afiliasi', jumlah: Math.round(+afiliasi), tanggal: akhirBulan(ym),
-      catatan: `Komisi afiliasi ${labelBulan(ym)} dari laporan konversi yang diimpor di Pantau. Sesuaikan dengan pencairan yang masuk.`,
+      catatan: `Komisi afiliasi ${labelBulan(ym)} dari laporan konversi yang diimpor di Tokder. Sesuaikan dengan pencairan yang masuk.`,
     });
   }
   return draf;
