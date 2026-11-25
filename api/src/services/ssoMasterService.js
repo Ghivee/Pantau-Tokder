@@ -13,6 +13,12 @@ function masterUrl() {
   try { const p = new URL(u); return p.protocol === 'https:' ? p.origin : ''; } catch (e) { return ''; }
 }
 
+// Alamat https dari variabel lingkungan (hanya origin), atau '' bila kosong atau bukan https.
+function urlDariEnv(nama) {
+  const u = String(process.env[nama] || '').trim();
+  try { const p = new URL(u); return p.protocol === 'https:' ? p.origin : ''; } catch (e) { return ''; }
+}
+
 // Memverifikasi token ke Supabase. Mengembalikan { id, email, role, staff, name } atau melempar galat berstatus.
 async function verifikasi(token) {
   if (!aktif()) throw Object.assign(new Error('Masuk dengan Master belum diatur'), { status: 503 });
@@ -45,4 +51,4 @@ function petakan(profil, editors) {
   return { galat: 'Peran akun ini tidak boleh masuk Pantau', status: 403 };
 }
 
-module.exports = { aktif, masterUrl, verifikasi, petakan };
+module.exports = { aktif, masterUrl, urlDariEnv, verifikasi, petakan };

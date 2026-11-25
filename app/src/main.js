@@ -1,5 +1,6 @@
 import '../styles/index.css';
 import './pages/analytics.js';
+import './pages/aplikasi.js';
 import './pages/gaji.js';
 import './pages/hari-ini.js';
 import './pages/harian.js';
@@ -27,6 +28,7 @@ import { toast } from './ui/bits.js';
 import { $ } from './lib/dom.js';
 import { closeOverlay, trapTab } from './ui/dialog.js';
 import { render, renderNav } from './ui/layout.js';
+import { navigate } from './core/router.js';
 
 document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && $('#overlay').innerHTML) closeOverlay(); else trapTab(ev); });
 
@@ -45,4 +47,8 @@ window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() =
 
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => renderNav());
 
-tangkapTokenSso().then((galat) => { load(); if (galat) setTimeout(() => toast(galat, true), 600); });
+tangkapTokenSso().then(async (r) => {
+  await load();
+  if (r.galat) setTimeout(() => toast(r.galat, true), 600);
+  else if (r.ada) navigate('/aplikasi');
+});

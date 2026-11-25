@@ -14,10 +14,10 @@ export function masukDenganMaster(masterUrl) {
   location.href = masterUrl + '/?sso=pantau&kembali=' + encodeURIComponent(location.origin);
 }
 
-// Dipanggil sekali saat aplikasi dibuka. Mengembalikan pesan galat bila gagal, atau null.
+// Dipanggil sekali saat aplikasi dibuka. Mengembalikan { ada, galat }: ada = alamat membawa token, galat = pesan bila gagal.
 export async function tangkapTokenSso() {
   const m = /^#sso=([A-Za-z0-9._-]+)$/.exec(location.hash);
-  if (!m) return null;
+  if (!m) return { ada: false, galat: null };
   history.replaceState(null, '', location.pathname + location.search);
-  try { await api('/api/auth/sso', { method: 'POST', body: { token: m[1] } }); return null; } catch (e) { return e.message; }
+  try { await api('/api/auth/sso', { method: 'POST', body: { token: m[1] } }); return { ada: true, galat: null }; } catch (e) { return { ada: true, galat: e.message }; }
 }

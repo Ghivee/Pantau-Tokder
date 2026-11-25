@@ -314,6 +314,17 @@ document.addEventListener('click', async (ev) => {
     case 'rekap-metrik': pilihMetrik(el.dataset.v); break;
     case 'draf-kirim': await kirimDraf(); break;
     case 'sso-master': masukDenganMaster(el.dataset.url); break;
+    case 'akses-web': {
+      const id = +el.dataset.editor, nilai = el.checked;
+      try {
+        const r = await api('/api/aplikasi/akses', { method: 'PUT', body: { editor_id: id, web: el.dataset.web, nilai } });
+        const k = S.aksesWeb && S.aksesWeb.karyawan.find((x) => x.id === id);
+        if (k) k.web = r.web;
+        S.aplikasi = null;
+        toast('Akses web diubah');
+      } catch (e) { el.checked = !nilai; toast(e.message, true); }
+      break;
+    }
     case 'an-periode': S.anPeriode = +el.dataset.v; render(); break;
     default: await aksiBaru(act, el, ev); break;
     case 'putus-analytics': {
