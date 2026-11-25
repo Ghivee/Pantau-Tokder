@@ -3,6 +3,7 @@ import { activeEditors, api, belumDikenali, editorById, load, normalize } from '
 import { ROUTES, TABS, badgeOf, bisaBuka, menuGroups, navigate, pathOf, route, routeLabel } from '../core/router.js';
 import { TUGAS, TUGAS_LAIN, slotsOf, targetOf } from '../core/rules.js';
 import { S, canAssign, isAdmin, lihatUang, me } from '../core/state.js';
+import { aplikasiLain } from '../lib/aplikasi.js';
 import { $, $$, esc } from '../lib/dom.js';
 import { durasi, nf, nowJam, rpOrDash, tglPanjang, today } from '../lib/format.js';
 import { avatar, editorCell, peranLabel, thumb, toast } from './bits.js';
@@ -22,6 +23,7 @@ export function moreSheet() {
       ${S.session ? `<div class="who">${who ? avatar(who, 'sm') : '<span class="ava sm" style="background:var(--ink);color:var(--paper)">P</span>'}<div class="t"><b>${who ? esc(who.nama) : 'Pemilik'}</b><small>${who ? peranLabel(who.peran) : 'Akses penuh'}</small></div></div>` : '<h2>Menu</h2>'}
       <div class="sheet-list">
         ${groups.map((g) => `<div class="sheet-label">${g.label}</div>` + g.list.map((r) => `<a href="${pathOf(r.id)}">${icon(r.icon)}${routeLabel(r)}${badgeOf(r.id) ? `<span class="count">${badgeOf(r.id)}</span>` : ''}</a>`).join('')).join('')}
+        ${aplikasiLain().length ? `<div class="sheet-label">Aplikasi lain</div>` + aplikasiLain().map((a) => `<a href="${esc(a.url)}" target="_blank" rel="noopener">${icon('link')}${esc(a.nama)}</a>`).join('') : ''}
         <div class="sheet-label">Akun</div>
         <button data-act="theme">${icon(dark ? 'sun' : 'moon')}${dark ? 'Mode terang' : 'Mode gelap'}</button>
         ${S.session ? `<button data-act="logout">${icon('out')}Keluar</button>` : `<button data-act="login">${icon('out')}Masuk</button>`}
