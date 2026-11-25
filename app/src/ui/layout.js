@@ -6,6 +6,7 @@ import { $, $$, esc } from '../lib/dom.js';
 import { WIB, sum } from '../lib/format.js';
 import { avatar, peranLabel } from './bits.js';
 import { icon } from './icons.js';
+import { pingHalaman } from '../core/jejak.js';
 
 export function renderNav() {
   const cur = route();
@@ -82,5 +83,6 @@ export function render() {
   $$('.head p, .card-h p, .kpi .d', page).forEach((el) => { el.title = el.textContent.trim(); });
   (AFTER[r] || (() => {}))();
   document.title = routeLabel(ROUTES.find((x) => x.id === r) || {}) + ' · Tokder';
+  pingHalaman();
 }
 

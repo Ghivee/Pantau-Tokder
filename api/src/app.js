@@ -63,6 +63,7 @@ app.use(async (req, res, next) => {
 });
 
 app.use(identify);
+app.use(require('./services/jejakService').middleware); // jejak audit: mencatat sebelum respons selesai
 
 // Data differs per signed-in person: browsers must not share or reuse it across accounts.
 app.use('/api', (req, res, next) => {
@@ -146,6 +147,7 @@ app.use('/api/konten-master', require('./routes/kontenMaster'));
 app.use('/api/aplikasi', require('./routes/aplikasi'));
 app.use('/api/akses', require('./routes/akses'));
 app.use('/api/akun', require('./routes/akun'));
+app.use('/api/jejak', require('./routes/jejak'));
 app.use('/api/draf-pendapatan', require('./routes/drafPendapatan'));
 app.use('/api', cspReportRouter);
 

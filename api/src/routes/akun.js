@@ -1,19 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const { KATALOG, resolve } = require('../utils/izin');
 
-// Halaman "Akun saya": siapa yang masuk dan apa saja aksesnya. Hanya data pemanggil sendiri.
+// Halaman "Akun saya": hanya siapa yang masuk. Daftar akses sengaja TIDAK dikirim ke karyawan.
 router.get('/', (req, res) => {
-  if (req.isAdmin) {
-    return res.json({ nama: 'Pemilik', jenis: 'Pemilik', semua: true, akses: [] });
-  }
-  const izin = req.editor.izin || resolve({}).izin;
-  res.json({
-    nama: req.editor.nama,
-    jenis: 'Karyawan',
-    semua: false,
-    akses: KATALOG.map((g) => ({ grup: g.grup, butir: g.butir.map((b) => ({ nama: b.nama, boleh: izin[b.k] === true })) })),
-  });
+  if (req.isAdmin) return res.json({ nama: req.namaAkun || 'Pemilik', jenis: 'Pemilik' });
+  res.json({ nama: req.editor.nama, jenis: 'Karyawan' });
 });
 
 module.exports = router;

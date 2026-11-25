@@ -56,19 +56,15 @@ test('keluar-sso: tanpa login pun menghapus cookie lalu kembali ke halaman depan
   assert.match(r.headers.get('set-cookie') || '', /pt_session=;.*Max-Age=0/);
 });
 
-test('/api/akun: pemilik semua; karyawan hanya data dirinya dengan penanda boleh/tidak; tanpa login 401', async () => {
+test('/api/akun: hanya nama dan jenis; karyawan TIDAK diberi tahu daftar aksesnya; tanpa login 401', async () => {
   assert.equal((await fetch(u + '/api/akun')).status, 401);
   sesi = { tipe: 'admin' };
-  assert.equal((await (await fetch(u + '/api/akun', { headers: cookie })).json()).semua, true);
+  assert.deepStrictEqual(await (await fetch(u + '/api/akun', { headers: cookie })).json(), { nama: 'Pemilik', jenis: 'Pemilik' });
   sesi = { tipe: 'karyawan', row: { id: 1, nama: 'Via', peran: 'editor', lihat_penghasilan: false, izin: { upload: true, hapus: false, web_telprom: false } } };
   const b = await (await fetch(u + '/api/akun', { headers: cookie })).json();
-  assert.equal(b.nama, 'Via');
-  assert.equal(b.jenis, 'Karyawan');
-  const semua = b.akses.flatMap((g) => g.butir);
-  assert.equal(semua.find((x) => x.nama === 'Mengunggah draf sosmed').boleh, true);
-  assert.equal(semua.find((x) => x.nama === 'Menghapus posting dan tautan').boleh, false);
-  assert.equal(semua.find((x) => x.nama === 'Telprom').boleh, false);
-  assert.ok(!JSON.stringify(b).includes('pin'), 'tidak membocorkan data lain');
+  assert.deepStrictEqual(b, { nama: 'Via', jenis: 'Karyawan' });
+  const mentah = JSON.stringify(b);
+  for (const kata of ['akses', 'izin', 'upload', 'hapus', 'web_', 'boleh', 'Telprom', 'pin']) assert.ok(!mentah.includes(kata), 'bocor: ' + kata);
 });
 
 test('SSO: karyawan dengan web_pantau mati ditolak 403 dan tidak dibuatkan sesi', async () => {

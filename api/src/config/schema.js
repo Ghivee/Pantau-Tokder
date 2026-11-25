@@ -60,6 +60,46 @@ const STATEMENTS = [
     expires_at TIMESTAMP NOT NULL
   )`,
   `CREATE INDEX IF NOT EXISTS sesi_editor_idx ON sesi (editor_id)`,
+  // Identitas sesi untuk jejak audit: siapa (termasuk akun Master untuk SSO), dengan cara apa, dari mana, dan dengan perangkat apa.
+  `ALTER TABLE sesi ADD COLUMN IF NOT EXISTS nama VARCHAR(120)`,
+  `ALTER TABLE sesi ADD COLUMN IF NOT EXISTS akun VARCHAR(120)`,
+  `ALTER TABLE sesi ADD COLUMN IF NOT EXISTS metode VARCHAR(12)`,
+  `ALTER TABLE sesi ADD COLUMN IF NOT EXISTS ip VARCHAR(64)`,
+  `ALTER TABLE sesi ADD COLUMN IF NOT EXISTS ua TEXT`,
+  `ALTER TABLE sesi ADD COLUMN IF NOT EXISTS sidik VARCHAR(16)`,
+  // Jejak audit: satu baris per kejadian (masuk, gagal, keluar, halaman dibuka, aksi, data sensitif dibaca, perubahan di Master).
+  `CREATE TABLE IF NOT EXISTS jejak (
+    id BIGSERIAL PRIMARY KEY,
+    waktu TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    sumber VARCHAR(8) NOT NULL DEFAULT 'tokder',
+    jenis VARCHAR(12) NOT NULL,
+    aksi VARCHAR(80) NOT NULL,
+    hasil VARCHAR(8) NOT NULL DEFAULT 'ok',
+    kunci VARCHAR(140),
+    pengguna_tipe VARCHAR(10),
+    pengguna_id INTEGER,
+    pengguna_nama VARCHAR(120),
+    akun VARCHAR(120),
+    metode VARCHAR(12),
+    sesi VARCHAR(12),
+    ip VARCHAR(64),
+    jaringan VARCHAR(48),
+    kantor BOOLEAN,
+    negara VARCHAR(2), wilayah VARCHAR(80), kota VARCHAR(80), zona VARCHAR(60), lintang REAL, bujur REAL,
+    ua TEXT, browser VARCHAR(60), os VARCHAR(40), perangkat VARCHAR(12), model VARCHAR(40), bahasa VARCHAR(60), sidik VARCHAR(16),
+    metode_http VARCHAR(8), rute VARCHAR(160), status INTEGER, durasi_ms INTEGER,
+    detail JSONB,
+    risiko SMALLINT NOT NULL DEFAULT 0,
+    tanda TEXT[] NOT NULL DEFAULT '{}',
+    ditinjau_oleh VARCHAR(120),
+    ditinjau_pada TIMESTAMPTZ
+  )`,
+  `CREATE INDEX IF NOT EXISTS jejak_waktu_idx ON jejak (waktu DESC)`,
+  `CREATE INDEX IF NOT EXISTS jejak_kunci_idx ON jejak (kunci, waktu DESC)`,
+  `CREATE INDEX IF NOT EXISTS jejak_ip_idx ON jejak (ip, waktu DESC)`,
+  `CREATE INDEX IF NOT EXISTS jejak_risiko_idx ON jejak (risiko, waktu DESC) WHERE risiko >= 30`,
+  `CREATE INDEX IF NOT EXISTS jejak_sesi_idx ON jejak (sesi) WHERE sesi IS NOT NULL`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS jejak_master_id_uq ON jejak ((detail->>'master_id')) WHERE sumber = 'master'`,
   // Failed sign-ins counted in the database, so the limit holds across serverless instances.
   `CREATE TABLE IF NOT EXISTS login_gagal (
     kunci VARCHAR(120) NOT NULL,
@@ -342,4 +382,4 @@ function ensureSchema() {
   return ready;
 }
 
-module.exports = { ensureSchema };
+module.exports = { ensureSchema, STATEMENTS };

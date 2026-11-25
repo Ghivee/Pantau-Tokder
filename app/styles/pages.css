@@ -302,3 +302,40 @@ a.app-card:hover { border-color: var(--ink); }
 .akun-daftar { list-style: none; margin: 0 0 6px; padding: 0; }
 .akun-daftar li { padding: 6px 0; font-size: 14px; }
 .akun-daftar li.tidak { opacity: .55; }
+
+/* Jejak audit */
+.jj-chip-baris { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 4px; }
+.jj-peringatan { border-left: 4px solid var(--line-2); }
+.jj-peringatan.tinggi { border-left-color: var(--bad); }
+.jj-peringatan.sedang { border-left-color: var(--warn); }
+.jj-alasan { margin: 6px 0 8px; padding-left: 18px; font-size: 14px; }
+.jj-alasan li { margin: 3px 0; }
+.jj-detail dd { overflow-wrap: anywhere; }
+.jj-ua { font-size: 12px; }
+.jj-filter .jj-grid { display: grid; gap: 10px 14px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-bottom: 12px; }
+.jj-filter .jj-q { grid-column: 1 / -1; }
+.jj-daftar { padding: 4px 0; }
+.jj-baris { border-top: 1px solid var(--line); }
+.jj-baris:first-child { border-top: 0; }
+.jj-baris.gagal .jj-ringkas { background: var(--bad-soft); }
+.jj-ringkas { display: grid; grid-template-columns: 96px minmax(110px, 1fr) minmax(130px, 1.2fr) minmax(170px, 1.6fr) auto; gap: 4px 12px; align-items: center; width: 100%; text-align: left; background: transparent; border: 0; padding: 10px 14px; cursor: pointer; font: inherit; color: inherit; min-height: 48px; }
+.jj-ringkas:hover { background: var(--sunken); }
+.jj-ringkas small { display: block; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.jj-t { font-size: 13px; color: var(--ink-2); }
+.jj-isi { padding: 6px 14px 14px; }
+.jj-akhir { text-align: center; margin: 10px 0 4px; }
+.jj-sesi { display: grid; grid-template-columns: minmax(150px, 1.2fr) minmax(150px, 1fr) minmax(130px, 1fr) auto; gap: 8px 14px; align-items: center; padding: 12px 0; border-top: 1px solid var(--line); }
+.jj-sesi:first-of-type { border-top: 0; }
+.jj-h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 16px 0 6px; font-weight: 600; }
+.jj-tabel > div { display: flex; flex-direction: column; gap: 2px; padding: 7px 0; border-top: 1px solid var(--line); font-size: 14px; }
+.jj-tabel > div:first-child { border-top: 0; }
+.jj-jam { display: flex; align-items: flex-end; gap: 3px; height: 60px; }
+.jj-jam span { flex: 1; background: var(--leaf); border-radius: 3px 3px 0 0; min-height: 2px; }
+.jj-jam-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 2px; }
+@media (max-width: 760px) {
+  .jj-ringkas { grid-template-columns: 1fr auto; }
+  .jj-ringkas .jj-t { grid-column: 1; font-size: 12px; }
+  .jj-ringkas .jj-r { grid-column: 2; grid-row: 1; }
+  .jj-ringkas .jj-n, .jj-ringkas .jj-a, .jj-ringkas .jj-w { grid-column: 1 / -1; }
+  .jj-sesi { grid-template-columns: 1fr; }
+}

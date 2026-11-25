@@ -38,6 +38,7 @@ export async function loginDialog(tab = 'karyawan', buka = false) {
   openDialog(`
       <h2>Masuk</h2>
       ${sso.aktif ? '<button type="button" class="btn primary" data-act="sso-master" data-url="' + esc(sso.masterUrl) + '" style="width:100%">Masuk dengan Akun Tokder</button><p class="muted" style="text-align:center;margin:8px 0 14px">Satu akun untuk Tokder, Master, dan Telprom.</p>' : ''}
+      <p class="muted" style="text-align:center;margin:0 0 10px;font-size:12px">Waktu masuk dan perangkat dicatat demi keamanan.</p>
       ${sso.aktif ? `<details class="login-cadangan"${buka ? ' open' : ''}><summary>Masuk cadangan (PIN atau password Tokder)</summary>` : ''}
       <div class="seg" role="group" aria-label="Masuk sebagai"><button data-tab="karyawan" aria-pressed="${tab === 'karyawan'}">Karyawan</button><button data-tab="admin" aria-pressed="${tab === 'admin'}">Pemilik</button></div>
       <form id="login-form" class="dialog-form stack">

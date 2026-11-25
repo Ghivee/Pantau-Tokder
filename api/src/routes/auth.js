@@ -16,6 +16,7 @@ const { createAuditMiddleware } = require('../utils/auditLog');
 const { clientIp } = require('../utils/clientIp');
 const { escapeHtml } = require('../utils/html');
 const sso = require('../services/ssoMasterService');
+const jejak = require('../services/jejakService');
 const { resolve: resolveIzin } = require('../utils/izin');
 const SSO_HARI = 7; // sesi hasil SSO lebih pendek: akun Master yang dicabut tidak bisa dipakai sebulan
 
@@ -102,6 +103,10 @@ router.delete('/google/:channelId', requireAdmin, createAuditMiddleware('auth', 
   }
 });
 
+// Pencatatan jejak untuk titik keputusan login. Tidak pernah melempar galat dan tidak pernah memuat sandi, PIN, atau token.
+const tamu = (nama, kunci, metode) => ({ tipe: 'tamu', id: null, nama: nama || null, akun: null, kunci, metode });
+const gagalMasuk = (req, aksi, status, p, detail) => jejak.catat(req, { jenis: 'gagal', aksi, hasil: 'gagal', status, pengguna: p, detail });
+
 const TOO_MANY = `Terlalu banyak percobaan yang salah. Coba lagi dalam ${WINDOW_MIN} menit.`;
 
 // POST /api/auth/login — owner sign-in
@@ -110,13 +115,15 @@ router.post('/login', authLimiter, async (req, res) => {
   if (!password) return res.status(400).json({ error: 'Password wajib diisi' });
   const keys = ['admin', 'ip:' + clientIp(req)];
   try {
-    if (await tooManyFailures(keys, 8)) return res.status(429).json({ error: TOO_MANY });
+    if (await tooManyFailures(keys, 8)) { await gagalMasuk(req, 'terkunci', 429, tamu('Pemilik (password)', 'x:pemilik-password', 'password')); return res.status(429).json({ error: TOO_MANY }); }
     if (!(await verifyAdminPassword(password))) {
       await recordFailure(keys);
+      await gagalMasuk(req, 'gagal_password', 401, tamu('Pemilik (password)', 'x:pemilik-password', 'password'));
       return res.status(401).json({ error: 'Password salah' });
     }
     await clearFailures(keys);
-    await startSession(res, { tipe: 'admin' });
+    const { sesiId } = await startSession(res, { tipe: 'admin', nama: 'Pemilik', metode: 'password', req });
+    await jejak.catat(req, { jenis: 'masuk', aksi: 'login_password', metode: 'password', pengguna: { tipe: 'admin', id: null, nama: 'Pemilik', akun: null, kunci: 'a:pemilik', metode: 'password', sesi: sesiId } });
     res.json({ success: true, role: 'admin' });
   } catch (err) {
     fail(res, err, 'Gagal memverifikasi password');
@@ -130,17 +137,21 @@ router.post('/editor-login', editorLoginLimiter, async (req, res) => {
   if (!/^\d+$/.test(String(editor_id))) return res.status(400).json({ error: 'Karyawan tidak dikenal' });
   const keys = ['editor:' + editor_id, 'ip:' + clientIp(req)];
   try {
-    if (await tooManyFailures(keys, 6)) return res.status(429).json({ error: TOO_MANY });
+    const target = await db.query(`SELECT nama FROM editors WHERE id = $1`, [editor_id]);
+    const sasaran = tamu(target.rows[0] && target.rows[0].nama, 'x:editor-' + editor_id, 'pin');
+    if (await tooManyFailures(keys, 6)) { await gagalMasuk(req, 'terkunci', 429, sasaran); return res.status(429).json({ error: TOO_MANY }); }
     const result = await db.query(`SELECT id, nama, peran, pin, foto_url, izin, lihat_penghasilan FROM editors WHERE id = $1 AND status = 'aktif'`, [editor_id]);
     const row = result.rows[0];
-    if (!row || !row.pin) return res.status(401).json({ error: 'PIN belum diatur untuk karyawan ini. Minta pemilik mengaturnya.' });
+    if (!row || !row.pin) { await gagalMasuk(req, 'gagal_pin', 401, sasaran, { alasan_singkat: 'PIN belum diatur atau karyawan tidak aktif' }); return res.status(401).json({ error: 'PIN belum diatur untuk karyawan ini. Minta pemilik mengaturnya.' }); }
     if (!verifyPin(pin, row.pin)) {
       await recordFailure(keys);
+      await gagalMasuk(req, 'gagal_pin', 401, sasaran);
       return res.status(401).json({ error: 'PIN salah' });
     }
-    if (resolveIzin(row).izin.web_pantau === false) return res.status(403).json({ error: 'Akun ini tidak diizinkan membuka Tokder.' });
+    if (resolveIzin(row).izin.web_pantau === false) { await gagalMasuk(req, 'ditolak_akses', 403, sasaran, { alasan_singkat: 'Akses ke Tokder dimatikan pemilik' }); return res.status(403).json({ error: 'Akun ini tidak diizinkan membuka Tokder.' }); }
     await clearFailures(keys);
-    await startSession(res, { tipe: 'karyawan', editorId: row.id });
+    const { sesiId } = await startSession(res, { tipe: 'karyawan', editorId: row.id, nama: row.nama, metode: 'pin', req });
+    await jejak.catat(req, { jenis: 'masuk', aksi: 'login_pin', metode: 'pin', pengguna: { tipe: 'karyawan', id: row.id, nama: row.nama, akun: null, kunci: 'k:' + row.id, metode: 'pin', sesi: sesiId } });
     res.json({ id: row.id, nama: row.nama, peran: row.peran || 'editor', foto_url: row.foto_url });
   } catch (err) {
     fail(res, err, 'Gagal memverifikasi PIN');
@@ -157,30 +168,40 @@ router.get('/sso-info', (req, res) => {
 router.post('/sso', authLimiter, async (req, res) => {
   const keys = ['sso:ip:' + clientIp(req)];
   try {
-    if (await tooManyFailures(keys, 10)) return res.status(429).json({ error: TOO_MANY });
+    if (await tooManyFailures(keys, 10)) { await gagalMasuk(req, 'terkunci', 429, tamu(null, 'x:sso', 'sso')); return res.status(429).json({ error: TOO_MANY }); }
     let profil;
     try { profil = await sso.verifikasi((req.body || {}).token); } catch (err) {
       if (err.status && err.status < 500) await recordFailure(keys);
+      await gagalMasuk(req, 'gagal_sso', err.status || 502, tamu(null, 'x:sso', 'sso'), { alasan_singkat: String(err.message).slice(0, 120) });
       return res.status(err.status || 502).json({ error: err.message });
     }
+    const dikenal = tamu(profil.name, 'x:' + String(profil.email).toLowerCase(), 'sso'); dikenal.akun = profil.email;
     const editors = profil.role === 'staff' ? (await db.query(`SELECT id, nama, status, peran, lihat_penghasilan, izin, akun_master FROM editors`)).rows : [];
     const hasil = sso.petakan(profil, editors);
-    if (hasil.galat) return res.status(hasil.status).json({ error: hasil.galat });
+    if (hasil.galat) { await gagalMasuk(req, 'gagal_sso', hasil.status, dikenal, { alasan_singkat: hasil.galat.slice(0, 120) }); return res.status(hasil.status).json({ error: hasil.galat }); }
     if (hasil.tipe === 'karyawan') {
       const e = editors.find((x) => x.id === hasil.editorId);
-      if (e && resolveIzin(e).izin.web_pantau === false) return res.status(403).json({ error: 'Akun ini tidak diizinkan membuka Tokder. Minta pemilik mengaktifkannya di menu Akses.' });
+      if (e && resolveIzin(e).izin.web_pantau === false) { await gagalMasuk(req, 'ditolak_akses', 403, dikenal, { alasan_singkat: 'Akses ke Tokder dimatikan pemilik' }); return res.status(403).json({ error: 'Akun ini tidak diizinkan membuka Tokder. Minta pemilik mengaktifkannya di menu Akses.' }); }
     }
     await clearFailures(keys);
-    await startSession(res, hasil.tipe === 'admin' ? { tipe: 'admin', hari: SSO_HARI } : { tipe: 'karyawan', editorId: hasil.editorId, hari: SSO_HARI });
+    const nama = hasil.tipe === 'admin' ? (profil.name || 'Pemilik') : hasil.nama;
+    const { sesiId } = await startSession(res, hasil.tipe === 'admin'
+      ? { tipe: 'admin', hari: SSO_HARI, nama, akun: profil.email, metode: 'sso', req }
+      : { tipe: 'karyawan', editorId: hasil.editorId, hari: SSO_HARI, nama, akun: profil.email, metode: 'sso', req });
+    await jejak.catat(req, { jenis: 'masuk', aksi: 'login_sso', metode: 'sso', pengguna: hasil.tipe === 'admin'
+      ? { tipe: 'admin', id: null, nama, akun: profil.email, kunci: 'a:' + String(profil.email).toLowerCase(), metode: 'sso', sesi: sesiId }
+      : { tipe: 'karyawan', id: hasil.editorId, nama, akun: profil.email, kunci: 'k:' + hasil.editorId, metode: 'sso', sesi: sesiId } });
     res.json({ success: true, role: hasil.tipe });
   } catch (err) {
     fail(res, err, 'Gagal masuk dengan Master');
   }
 });
 
+
 // GET /api/auth/keluar-sso — ujung rantai "keluar sekali, keluar semua": Master sudah mengeluarkan akun,
 // di sini cookie Pantau dihapus lalu pengguna dikembalikan ke halaman depan.
 router.get('/keluar-sso', async (req, res) => {
+  if (req.isAdmin || req.editor) await jejak.catat(req, { jenis: 'keluar', aksi: 'logout_semua' });
   try { await endSession(req, res); } catch (e) { /* cookie tetap dihapus di bawah */ }
   res.redirect(302, '/');
 });
@@ -188,6 +209,7 @@ router.get('/keluar-sso', async (req, res) => {
 // POST /api/auth/logout — ends this session on the server too
 router.post('/logout', async (req, res) => {
   try {
+    if (req.isAdmin || req.editor) await jejak.catat(req, { jenis: 'keluar', aksi: 'logout' });
     await endSession(req, res);
     res.json({ success: true });
   } catch (err) {
@@ -210,7 +232,7 @@ router.post('/password', requireAdmin, createAuditMiddleware('auth', 'password_c
   try {
     await saveAdminPassword(baru);
     await revokeAdminSessions();
-    await startSession(res, { tipe: 'admin' });
+    await startSession(res, { tipe: 'admin', nama: 'Pemilik', metode: 'password', req });
     res.json({ success: true });
   } catch (err) {
     fail(res, err, 'Gagal menyimpan password');
