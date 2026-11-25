@@ -1,5 +1,7 @@
 import '../styles/index.css';
 import './pages/analytics.js';
+import './pages/akses.js';
+import './pages/akun.js';
 import './pages/aplikasi.js';
 import './pages/gaji.js';
 import './pages/hari-ini.js';
@@ -30,12 +32,16 @@ import { closeOverlay, trapTab } from './ui/dialog.js';
 import { render, renderNav } from './ui/layout.js';
 import { navigate } from './core/router.js';
 
+// Token SSO dari Master harus ditangkap lebih dulu (sinkron, sebelum fromHash di bawah): kalau tidak, #sso=... dianggap
+// rute lama dan dipindah ke path, sehingga SSO gagal dan tokennya ikut tertulis di alamat.
+const ssoMasuk = tangkapTokenSso();
+
 document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && $('#overlay').innerHTML) closeOverlay(); else trapTab(ev); });
 
 window.addEventListener('popstate', () => { closeOverlay(); render(); });
 
 // Old links used #route (/#presensi, /#harian/3): move them to the real path.
-const fromHash = () => { if (location.pathname === '/' && /^#[a-z]/.test(location.hash)) { history.replaceState(null, '', '/' + location.hash.slice(1)); return true; } return false; };
+const fromHash = () => { if (location.pathname === '/' && /^#(?!sso=)[a-z]/.test(location.hash)) { history.replaceState(null, '', '/' + location.hash.slice(1)); return true; } return false; };
 
 window.addEventListener('hashchange', () => { if (fromHash()) { closeOverlay(); render(); } });
 
@@ -47,7 +53,7 @@ window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() =
 
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => renderNav());
 
-tangkapTokenSso().then(async (r) => {
+ssoMasuk.then(async (r) => {
   await load();
   if (r.galat) setTimeout(() => toast(r.galat, true), 600);
   else if (r.ada) navigate('/aplikasi');

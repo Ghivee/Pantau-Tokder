@@ -1,7 +1,7 @@
 import { analyticsChannels, api, editorById, load, normalize, optional, refresh } from './core/data.js';
 import { exportCsv, exportGaji, exportPresensi } from './core/export.js';
 import { navigate } from './core/router.js';
-import { masukDenganMaster } from './core/sso.js';
+import { gantiSandi, keluarSemua, masukDenganMaster, ssoInfo } from './core/sso.js';
 import { S, saveSession } from './core/state.js';
 import { $, esc } from './lib/dom.js';
 import { angkaUang, bacaCsv } from './lib/csv.js';
@@ -10,7 +10,7 @@ import { aturGajiDialog, cetakSlip, loadGaji, slipDialog } from './pages/gaji.js
 import { ajukanDialog, putuskanDialog } from './pages/pengajuan.js';
 import { absen, ambilLokasi } from './pages/presensi.js';
 import { muatSaran, pilihChannel, salin } from './pages/saran.js';
-import { statusSinkron } from './pages/pengaturan.js';
+import { statusSinkron } from './pages/akses.js';
 import { kirimDraf, pilihMetrik } from './pages/rekap.js';
 import { buatTautan, hapusTautan, imporAfiliasi, muatAfiliasi, salinTautan, salinTeks, tautanDialog } from './pages/tautan.js';
 import { bulanLabel, daftarSW, diIOS, muatUlang, pushDidukung, swReg, terpasang } from './pages/shared.js';
@@ -236,7 +236,9 @@ document.addEventListener('click', async (ev) => {
       closeOverlay();
       await matikanNotif(true);
       try { await api('/api/auth/logout', { method: 'POST' }); } catch (e) { /* the cookie is cleared or already invalid */ }
-      saveSession(null); toast('Anda sudah keluar'); navigate('/'); break;
+      saveSession(null);
+      { const info = await ssoInfo(); if (info.aktif && keluarSemua(info.masterUrl)) break; }
+      toast('Anda sudah keluar'); navigate('/'); break;
     case 'retry': S.error = null; $('#page').innerHTML = '<div class="skeleton" style="height:320px"></div>'; await load(); break;
     case 'theme': {
       closeOverlay();
@@ -315,6 +317,7 @@ document.addEventListener('click', async (ev) => {
     case 'rekap-metrik': pilihMetrik(el.dataset.v); break;
     case 'draf-kirim': await kirimDraf(); break;
     case 'sso-master': masukDenganMaster(el.dataset.url); break;
+    case 'ganti-sandi': gantiSandi((await ssoInfo()).masterUrl); break;
     case 'akses-izin': {
       const id = +el.dataset.id, nilai = el.checked;
       try {

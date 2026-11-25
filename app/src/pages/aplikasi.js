@@ -17,7 +17,7 @@ function kartu(a) {
 }
 
 PAGES.aplikasi = function () {
-  return `<header class="head"><h1>Aplikasi</h1><p class="muted">Pilih web yang ingin dibuka.</p></header>
+  return `<header class="head"><div><h1>Aplikasi</h1><p class="muted">Pilih web yang ingin dibuka. Anda tidak perlu login lagi.</p></div>${isAdmin() ? '<div class="tools"><a class="btn sm" href="/akses">Atur akses</a></div>' : ''}</header>
     <div class="apps">${S.aplikasi ? S.aplikasi.map(kartu).join('') : '<p class="muted">Memuat…</p>'}</div>`;
 };
 

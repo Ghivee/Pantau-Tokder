@@ -29,7 +29,7 @@ export function moreSheet() {
       </div>`);
 }
 
-export async function loginDialog(tab = 'karyawan') {
+export async function loginDialog(tab = 'karyawan', buka = false) {
   let eds = [];
   if (tab === 'karyawan') {
     try { eds = await api('/api/auth/karyawan'); } catch (e) { toast(e.message, true); }
@@ -37,7 +37,8 @@ export async function loginDialog(tab = 'karyawan') {
   const sso = await ssoInfo();
   openDialog(`
       <h2>Masuk</h2>
-      ${sso.aktif ? '<button type="button" class="btn primary" data-act="sso-master" data-url="' + esc(sso.masterUrl) + '" style="width:100%;margin-bottom:12px">Masuk dengan Master</button><p class="muted" style="text-align:center;margin:0 0 12px">atau pakai PIN / password Pantau</p>' : ''}
+      ${sso.aktif ? '<button type="button" class="btn primary" data-act="sso-master" data-url="' + esc(sso.masterUrl) + '" style="width:100%">Masuk dengan Akun Tokder</button><p class="muted" style="text-align:center;margin:8px 0 14px">Satu akun untuk Pantau, Master, dan Telprom.</p>' : ''}
+      ${sso.aktif ? `<details class="login-cadangan"${buka ? ' open' : ''}><summary>Masuk cadangan (PIN atau password Pantau)</summary>` : ''}
       <div class="seg" role="group" aria-label="Masuk sebagai"><button data-tab="karyawan" aria-pressed="${tab === 'karyawan'}">Karyawan</button><button data-tab="admin" aria-pressed="${tab === 'admin'}">Pemilik</button></div>
       <form id="login-form" class="dialog-form stack">
         ${tab === 'karyawan' ? `
@@ -46,13 +47,13 @@ export async function loginDialog(tab = 'karyawan') {
         : `<label class="field"><span>Password pemilik</span><input class="input" name="password" type="password" autocomplete="current-password" required></label>`}
         <div class="err" id="login-err" role="alert"></div>
         <div class="actions"><button type="button" class="btn ghost" data-act="close-overlay">Batal</button><button class="btn primary">Masuk</button></div>
-      </form>`, (d) => {
-    $$('[data-tab]', d).forEach((b) => b.addEventListener('click', () => loginDialog(b.dataset.tab)));
+      </form>${sso.aktif ? '</details>' : ''}`, (d) => {
+    $$('[data-tab]', d).forEach((b) => b.addEventListener('click', () => loginDialog(b.dataset.tab, true)));
     $('#login-form', d).addEventListener('submit', async (ev) => {
       ev.preventDefault();
       const f = new FormData(ev.target);
       try {
-        const btn = $('button.primary', d);
+        const btn = $('#login-form button.primary', d);
         btn.disabled = true;
         try {
           if (tab === 'admin') await api('/api/auth/login', { method: 'POST', body: { password: f.get('password') } });

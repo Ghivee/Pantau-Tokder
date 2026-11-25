@@ -9,11 +9,17 @@ const editors = [
   { id: 2, nama: 'Deni', peran: 'editor', lihat_penghasilan: false, izin: { upload: true, web_master: false } },
   { id: 3, nama: 'Zed', peran: 'editor', lihat_penghasilan: false, izin: null },
 ];
+let latensi = 0;
+const tunda = () => (latensi ? new Promise((r) => setTimeout(r, latensi)) : null);
 const updates = [];
+const dicabut = [];
 require.cache[dbPath] = { id: dbPath, filename: dbPath, loaded: true, exports: { query: async (sql, p) => {
   if (/FROM sesi s/.test(sql)) return { rows: [sesi.tipe === 'admin' ? { tipe: 'admin', id: null } : { tipe: 'karyawan', status: 'aktif', ...sesi.row }] };
-  if (/FROM editors WHERE status = 'aktif'/.test(sql)) return { rows: editors.map((e) => ({ ...e })) };
-  if (/UPDATE editors SET izin/.test(sql)) { const e = editors.find((x) => x.id === p[1]); e.izin = JSON.parse(p[0]); updates.push([p[1], e.izin]); return { rows: [], rowCount: 1 }; }
+  if (/FROM editors WHERE status = 'aktif'/.test(sql)) { const hasil = editors.map((e) => ({ ...e })); await tunda(); return { rows: hasil }; }
+  if (/UPDATE editors SET izin = izin \|\| jsonb_build_object/.test(sql)) { await tunda(); const e = editors.find((x) => x.id === p[2]); if (!e || !e.izin) return { rows: [] }; e.izin = { ...e.izin, [p[0]]: p[1] }; updates.push([p[2], e.izin]); return { rows: [{ izin: e.izin }] }; }
+  if (/UPDATE editors SET izin = \$1 WHERE id = \$2 AND izin IS NULL/.test(sql)) { await tunda(); const e = editors.find((x) => x.id === p[1]); if (!e || e.izin) return { rows: [] }; e.izin = JSON.parse(p[0]); updates.push([p[1], e.izin]); return { rows: [{ izin: e.izin }] }; }
+  if (/UPDATE editors SET izin/.test(sql)) { await tunda(); const e = editors.find((x) => x.id === p[1]); e.izin = JSON.parse(p[0]); updates.push([p[1], e.izin]); return { rows: [], rowCount: 1 }; }
+  if (/DELETE FROM sesi WHERE editor_id/.test(sql)) { dicabut.push(p[0]); return { rows: [], rowCount: 1 }; }
   if (/settings WHERE key/.test(sql)) return { rows: [] };
   return { rows: [], rowCount: 0 };
 } } };
@@ -133,4 +139,44 @@ test('sesi karyawan membawa izin per orang ke server (upload diizinkan satu per 
   assert.equal(b.izin.upload, true);
   assert.equal(b.izin.tayang, false);
   assert.equal(b.peran, 'penonton', 'jabatan lama tidak lagi menentukan izin');
+});
+
+test('mematikan web_pantau mengeluarkan orang itu dari semua perangkat; izin lain tidak', async () => {
+  sesi = { tipe: 'admin' }; dicabut.length = 0;
+  assert.equal((await put('/api/akses/3', { kunci: 'upload', nilai: false })).status, 200);
+  assert.deepEqual(dicabut, []);
+  assert.equal((await put('/api/akses/3', { kunci: 'web_pantau', nilai: true })).status, 200);
+  assert.deepEqual(dicabut, [], 'mengaktifkan tidak mencabut');
+  assert.equal((await put('/api/akses/3', { kunci: 'web_pantau', nilai: false })).status, 200);
+  assert.deepEqual(dicabut, [3]);
+});
+
+test('dua perubahan bersamaan pada orang yang sama tidak saling menimpa', async () => {
+  sesi = { tipe: 'admin' };
+  const deni = editors.find((e) => e.id === 2); deni.izin = { upload: true };
+  latensi = 15;
+  try {
+    const [a, b, c] = await Promise.all([
+      put('/api/akses/2', { kunci: 'tayang', nilai: false }),
+      put('/api/akses/2', { kunci: 'hapus', nilai: true }),
+      put('/api/akses/2', { kunci: 'tautan', nilai: false }),
+    ]);
+    assert.deepEqual([a.status, b.status, c.status], [200, 200, 200]);
+  } finally { latensi = 0; }
+  assert.equal(deni.izin.tayang, false, 'perubahan pertama tidak hilang');
+  assert.equal(deni.izin.hapus, true, 'perubahan kedua tidak hilang');
+  assert.equal(deni.izin.tautan, false, 'perubahan ketiga tidak hilang');
+  assert.equal(deni.izin.upload, true, 'isi lama tetap');
+});
+
+test('dua perubahan pertama bersamaan pada orang yang belum diatur: tidak ada yang hilang', async () => {
+  sesi = { tipe: 'admin' };
+  const zed = editors.find((e) => e.id === 3); zed.izin = null;
+  latensi = 15;
+  try {
+    const [a, b] = await Promise.all([put('/api/akses/3', { kunci: 'upload', nilai: false }), put('/api/akses/3', { kunci: 'tayang', nilai: false })]);
+    assert.deepEqual([a.status, b.status], [200, 200]);
+  } finally { latensi = 0; }
+  assert.equal(zed.izin.upload, false);
+  assert.equal(zed.izin.tayang, false);
 });
