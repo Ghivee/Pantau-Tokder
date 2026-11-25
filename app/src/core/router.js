@@ -3,6 +3,7 @@ import { closeOverlay } from '../ui/dialog.js';
 import { render } from '../ui/layout.js';
 
 export const ROUTES = [
+  { id: 'aplikasi', label: 'Aplikasi', icon: 'grid' },
   { id: 'hari-ini', label: 'Hari ini', icon: 'home', karyawan: true },
   { id: 'rangkuman', label: 'Rangkuman', icon: 'rangkuman' },
   { id: 'saran', label: 'Saran', icon: 'video' },
@@ -32,16 +33,16 @@ export const beranda = () => (me() && MENU_LENGKAP ? 'hari-ini' : 'rangkuman');
 export function menuGroups() {
   // Tampilan ringkas untuk pemilik dan karyawan: Rangkuman, Saran, Affiliate, Upload. Halaman lain (Hari ini, Harian, Presensi, Gaji, dst.)
   // tidak dihapus, hanya disembunyikan dari menu; set MENU_LENGKAP = true untuk menampilkannya lagi.
-  if (!MENU_LENGKAP) return [{ label: 'Menu', ids: ['rangkuman', 'saran', 'affiliate', 'sosmed', 'karyawan'] }];
+  if (!MENU_LENGKAP) return [{ label: 'Menu', ids: ['aplikasi', 'rangkuman', 'saran', 'affiliate', 'sosmed', 'karyawan'] }];
   if (me()) return [
     { label: 'Kerja saya', ids: ['hari-ini', 'harian', 'performa', 'presensi', 'pengajuan', 'gaji'] },
     { label: 'Channel', ids: ['rangkuman', 'saran', 'affiliate', 'sosmed', 'tren', 'analytics', 'konten', 'identifikasi'] },
-    { label: 'Bantuan', ids: ['panduan'] },
+    { label: 'Bantuan', ids: ['aplikasi', 'panduan'] },
   ];
   return [
     { label: 'Pantau', ids: ['rangkuman', 'saran', 'affiliate', 'ringkasan', 'harian', 'performa', 'tren', 'konten', 'analytics', 'sosmed'] },
     { label: 'Tim', ids: ['presensi', 'pengajuan', 'gaji', 'karyawan', 'identifikasi'] },
-    { label: 'Pemilik', ids: ['monetisasi', 'pengaturan', 'panduan'] },
+    { label: 'Pemilik', ids: ['aplikasi', 'monetisasi', 'pengaturan', 'panduan'] },
   ];
 }
 

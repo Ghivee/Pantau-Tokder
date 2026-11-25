@@ -12,6 +12,7 @@ import { icon } from '../ui/icons.js';
 // Short and task-based: first steps, routines, what each menu is for, and short answers.
 // "Cara kerja" buttons on other pages open the matching answer (/panduan#p-gaji).
 const MENU_INFO = {
+  aplikasi: 'Pilih web yang ingin dibuka: Pantau Tokder, Master (order, kas, tim), atau Telprom (naskah dan rekam).',
   'hari-ini': 'Halaman utama karyawan: absen, jadwal video, tugas, izin dan gaji hari ini.',
   rangkuman: 'Views, CTR, retensi, real-time dan klik afiliasi tiga channel dalam satu tabel dan satu diagram pembanding. CTR dan klik afiliasi diisi lewat Impor CSV.',
   affiliate: 'Semua kebutuhan affiliate: produk affiliate terlaris, produk dicari, dan tautan pelacak (buat, salin, lihat klik).',

@@ -40,8 +40,28 @@ PAGES.pengaturan = function () {
           <section class="card"><div class="card-h"><h2>Password pemilik</h2><p>Dipakai untuk masuk sebagai pemilik. Mengganti password mengeluarkan pemilik dari perangkat lain.</p></div>
             <div class="tools"><input class="input" type="password" id="pw-baru" placeholder="Password baru, minimal 8 karakter" autocomplete="new-password" style="max-width:300px"><button class="btn" data-act="ganti-pw">Simpan</button></div></section>
         </div>
+        ${aksesWebCard()}
         ${sistemCard()}`;
   };
+
+// Pemilik memilih web mana yang boleh dibuka tiap karyawan dari halaman Aplikasi (dimuat saat Pengaturan dibuka).
+function aksesWebCard() {
+  const x = S.aksesWeb;
+  if (x === undefined) {
+    S.aksesWeb = null;
+    api('/api/aplikasi/akses').then((r) => { S.aksesWeb = r; }).catch((e) => { S.aksesWeb = { error: e.message }; }).then(() => { if (route() === 'pengaturan') render(); });
+  }
+  const kepala = '<div class="card-h"><h2>Akses web karyawan</h2><p>Pilih web yang tampil di halaman Aplikasi tiap karyawan. Pantau selalu terbuka bagi yang sudah masuk.</p></div>';
+  if (!x) return `<section class="card">${kepala}<p class="muted">Memuat…</p></section>`;
+  if (x.error) return `<section class="card">${kepala}<p class="muted">${esc(x.error)}</p></section>`;
+  if (!x.karyawan.length) return `<section class="card">${kepala}<p class="muted">Belum ada karyawan aktif.</p></section>`;
+  return `<section class="card">${kepala}
+    <div class="akses-web" role="table">
+      <div class="aw-row aw-h" role="row"><span role="columnheader">Karyawan</span>${x.web.map((w) => `<span role="columnheader">${esc(w.nama)}</span>`).join('')}</div>
+      ${x.karyawan.map((k) => `<div class="aw-row" role="row"><b role="cell">${esc(k.nama)}</b>${x.web.map((w) => `<label role="cell" class="aw-c"><input type="checkbox" data-act="akses-web" data-editor="${k.id}" data-web="${esc(w.id)}" ${k.web[w.id] ? 'checked' : ''} aria-label="${esc(k.nama)} boleh membuka ${esc(w.nama)}"></label>`).join('')}</div>`).join('')}
+    </div>
+    <p class="muted" style="margin-top:10px">Ini mengatur apa yang tampil di Pantau. Izin di dalam web itu sendiri tetap diatur di web tersebut (di Master: Pengaturan, Akses Via/Deni).</p></section>`;
+}
 
 // Database size, the nightly clean-up and the last sync, loaded when Pengaturan opens.
 function sistemCard() {
