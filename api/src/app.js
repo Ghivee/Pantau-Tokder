@@ -140,6 +140,7 @@ app.use('/api/saran', require('./routes/saran'));
 app.use('/api/komentar', require('./routes/komentar'));
 app.use('/api/afiliasi', require('./routes/afiliasi'));
 app.use('/api/konten-master', require('./routes/kontenMaster'));
+app.use('/api/draf-pendapatan', require('./routes/drafPendapatan'));
 app.use('/api', cspReportRouter);
 
 app.use('/api', (req, res) => res.status(404).json({ error: 'Alamat API tidak ditemukan' }));

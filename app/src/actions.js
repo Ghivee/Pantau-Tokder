@@ -9,7 +9,7 @@ import { aturGajiDialog, cetakSlip, loadGaji, slipDialog } from './pages/gaji.js
 import { ajukanDialog, putuskanDialog } from './pages/pengajuan.js';
 import { absen, ambilLokasi } from './pages/presensi.js';
 import { muatSaran, pilihChannel, salin } from './pages/saran.js';
-import { pilihMetrik } from './pages/rekap.js';
+import { kirimDraf, pilihMetrik } from './pages/rekap.js';
 import { buatTautan, hapusTautan, imporAfiliasi, muatAfiliasi, salinTautan, salinTeks, tautanDialog } from './pages/tautan.js';
 import { bulanLabel, daftarSW, diIOS, muatUlang, pushDidukung, swReg, terpasang } from './pages/shared.js';
 import { pantauPosting, setPosting, showPostList, susunDeskripsi } from './pages/sosmed.js';
@@ -311,6 +311,7 @@ document.addEventListener('click', async (ev) => {
     case 'tautan-salin': salinTautan(el.dataset.kode); break;
     case 'tautan-hapus': hapusTautan(el.dataset.kode); break;
     case 'rekap-metrik': pilihMetrik(el.dataset.v); break;
+    case 'draf-kirim': await kirimDraf(); break;
     case 'an-periode': S.anPeriode = +el.dataset.v; render(); break;
     default: await aksiBaru(act, el, ev); break;
     case 'putus-analytics': {
