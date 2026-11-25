@@ -39,6 +39,21 @@ async function daftar() {
   return { terhubung: true, daftar: out };
 }
 
+// Panggilan REST umum ke Master dengan akun yang sama. Mengembalikan { status, json }.
+async function rest(method, path, body) {
+  if (!siap()) throw new Error('Sambungan Master belum diatur');
+  const panggil = async () => fetch(URL_ENV() + '/rest/v1/' + path, {
+    method,
+    headers: { 'Content-Type': 'application/json', apikey: KEY_ENV(), Authorization: 'Bearer ' + (await masuk()), Prefer: 'return=minimal' },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  let r = await panggil();
+  if (r.status === 401) { sesi = null; r = await panggil(); }
+  let json = null;
+  try { json = await r.json(); } catch (e) { /* jawaban kosong */ }
+  return { status: r.status, json };
+}
+
 const reset = () => { sesi = null; cache = null; };
 
-module.exports = { daftar, siap, reset };
+module.exports = { daftar, siap, rest, reset };
