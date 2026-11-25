@@ -80,6 +80,8 @@ const PUBLIC = [
   ['POST', '/api/auth/logout'],
   ['GET', '/api/auth/me'],
   ['GET', '/api/auth/karyawan'],
+  ['GET', '/api/auth/sso-info'],
+  ['POST', '/api/auth/sso'],
   ['GET', '/api/auth/callback'],
   ['GET', '/api/social/callback'],
   ['POST', '/api/posting/blob'],

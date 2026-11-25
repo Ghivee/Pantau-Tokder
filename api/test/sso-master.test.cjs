@@ -60,3 +60,22 @@ test('verifikasi: token kedaluwarsa 401, bukan akun master 403, tanpa peran 403,
     await coba(async () => j(500, {}), 502);
   } finally { global.fetch = asli; }
 });
+
+test('lewat HTTP: sso-info dan sso bisa diakses tanpa login (bukan 401), rute lain tetap terkunci', async () => {
+  const dbPath = require.resolve('../src/config/db');
+  require.cache[dbPath] = { id: dbPath, filename: dbPath, loaded: true, exports: { query: async () => ({ rows: [], rowCount: 0 }) } };
+  pasang({}); // tanpa env: SSO mati
+  const app = require('../src/app');
+  const srv = app.listen(0);
+  const u = `http://127.0.0.1:${srv.address().port}`;
+  const post = (p, body) => fetch(u + p, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  try {
+    const info = await fetch(u + '/api/auth/sso-info');
+    assert.equal(info.status, 200);
+    assert.deepEqual(await info.json(), { aktif: false, masterUrl: '' });
+    assert.equal((await post('/api/auth/sso', { token: TOKEN })).status, 503); // diproses (bukan 401 dari penjaga login)
+    assert.equal((await post('/api/auth/sso', { token: 'x' })).status, 503);
+    assert.equal((await fetch(u + '/api/bootstrap')).status, 401);
+    assert.equal((await fetch(u + '/api/konten-master')).status, 401);
+  } finally { srv.close(); }
+});
