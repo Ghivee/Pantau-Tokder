@@ -82,6 +82,7 @@ const PUBLIC = [
   ['GET', '/api/auth/karyawan'],
   ['GET', '/api/auth/sso-info'],
   ['POST', '/api/auth/sso'],
+  ['GET', '/api/auth/keluar-sso'],
   ['GET', '/api/auth/callback'],
   ['GET', '/api/social/callback'],
   ['POST', '/api/posting/blob'],
@@ -144,6 +145,7 @@ app.use('/api/afiliasi', require('./routes/afiliasi'));
 app.use('/api/konten-master', require('./routes/kontenMaster'));
 app.use('/api/aplikasi', require('./routes/aplikasi'));
 app.use('/api/akses', require('./routes/akses'));
+app.use('/api/akun', require('./routes/akun'));
 app.use('/api/draf-pendapatan', require('./routes/drafPendapatan'));
 app.use('/api', cspReportRouter);
 

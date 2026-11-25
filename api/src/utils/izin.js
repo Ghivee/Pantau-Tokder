@@ -11,7 +11,8 @@ const KATALOG = [
     { k: 'tetapkan', nama: 'Menetapkan pembuat video' },
     { k: 'uang', nama: 'Melihat penghasilan' },
   ] },
-  { grup: 'Web yang tampil di halaman Aplikasi', butir: [
+  { grup: 'Web yang boleh dibuka', butir: [
+    { k: 'web_pantau', nama: 'Pantau Tokder' },
     { k: 'web_master', nama: 'Master' },
     { k: 'web_telprom', nama: 'Telprom' },
   ] },
@@ -52,6 +53,7 @@ function awal(peran, lihatUang) {
   for (const k of lama) o[k] = true;
   o.tetapkan = (peran || 'editor') === 'editor';
   o.uang = lihatUang === true;
+  o.web_pantau = true;
   o.web_master = true;
   o.web_telprom = true;
   for (const k of Object.keys(MASTER)) o[k] = k !== 'master_kas_catat';

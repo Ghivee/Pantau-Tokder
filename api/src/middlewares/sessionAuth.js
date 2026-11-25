@@ -67,14 +67,15 @@ function writeCookie(res, value, maxAge) {
 }
 
 // Starts a session: the browser gets a random token, the database keeps only its hash.
-async function startSession(res, { tipe, editorId = null }) {
+async function startSession(res, { tipe, editorId = null, hari = SESSION_DAYS }) {
+  const umur = Math.min(SESSION_DAYS, Math.max(1, Math.floor(Number(hari)) || SESSION_DAYS));
   const token = crypto.randomBytes(32).toString('base64url');
   await db.query(
-    `INSERT INTO sesi (token_hash, tipe, editor_id, expires_at) VALUES ($1, $2, $3, NOW() + INTERVAL '${SESSION_DAYS} days')`,
+    `INSERT INTO sesi (token_hash, tipe, editor_id, expires_at) VALUES ($1, $2, $3, NOW() + INTERVAL '${umur} days')`,
     [tokenHash(token), tipe, editorId]
   );
   db.query(`DELETE FROM sesi WHERE expires_at < NOW()`).catch(() => {});
-  writeCookie(res, token, SESSION_DAYS * 86400);
+  writeCookie(res, token, umur * 86400);
 }
 
 async function endSession(req, res) {

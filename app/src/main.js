@@ -1,5 +1,7 @@
 import '../styles/index.css';
 import './pages/analytics.js';
+import './pages/akses.js';
+import './pages/akun.js';
 import './pages/aplikasi.js';
 import './pages/gaji.js';
 import './pages/hari-ini.js';

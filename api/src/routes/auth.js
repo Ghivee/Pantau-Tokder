@@ -16,6 +16,8 @@ const { createAuditMiddleware } = require('../utils/auditLog');
 const { clientIp } = require('../utils/clientIp');
 const { escapeHtml } = require('../utils/html');
 const sso = require('../services/ssoMasterService');
+const { resolve: resolveIzin } = require('../utils/izin');
+const SSO_HARI = 7; // sesi hasil SSO lebih pendek: akun Master yang dicabut tidak bisa dipakai sebulan
 
 const OAUTH_COOKIE = 'pt_oauth';
 const secure = () => (process.env.VERCEL || process.env.NODE_ENV === 'production' ? '; Secure' : '');
@@ -129,13 +131,14 @@ router.post('/editor-login', editorLoginLimiter, async (req, res) => {
   const keys = ['editor:' + editor_id, 'ip:' + clientIp(req)];
   try {
     if (await tooManyFailures(keys, 6)) return res.status(429).json({ error: TOO_MANY });
-    const result = await db.query(`SELECT id, nama, peran, pin, foto_url FROM editors WHERE id = $1 AND status = 'aktif'`, [editor_id]);
+    const result = await db.query(`SELECT id, nama, peran, pin, foto_url, izin, lihat_penghasilan FROM editors WHERE id = $1 AND status = 'aktif'`, [editor_id]);
     const row = result.rows[0];
     if (!row || !row.pin) return res.status(401).json({ error: 'PIN belum diatur untuk karyawan ini. Minta pemilik mengaturnya.' });
     if (!verifyPin(pin, row.pin)) {
       await recordFailure(keys);
       return res.status(401).json({ error: 'PIN salah' });
     }
+    if (resolveIzin(row).izin.web_pantau === false) return res.status(403).json({ error: 'Akun ini tidak diizinkan membuka Pantau Tokder.' });
     await clearFailures(keys);
     await startSession(res, { tipe: 'karyawan', editorId: row.id });
     res.json({ id: row.id, nama: row.nama, peran: row.peran || 'editor', foto_url: row.foto_url });
@@ -160,15 +163,26 @@ router.post('/sso', authLimiter, async (req, res) => {
       if (err.status && err.status < 500) await recordFailure(keys);
       return res.status(err.status || 502).json({ error: err.message });
     }
-    const editors = profil.role === 'staff' ? (await db.query(`SELECT id, nama, status FROM editors`)).rows : [];
+    const editors = profil.role === 'staff' ? (await db.query(`SELECT id, nama, status, peran, lihat_penghasilan, izin FROM editors`)).rows : [];
     const hasil = sso.petakan(profil, editors);
     if (hasil.galat) return res.status(hasil.status).json({ error: hasil.galat });
+    if (hasil.tipe === 'karyawan') {
+      const e = editors.find((x) => x.id === hasil.editorId);
+      if (e && resolveIzin(e).izin.web_pantau === false) return res.status(403).json({ error: 'Akun ini tidak diizinkan membuka Pantau Tokder. Minta pemilik mengaktifkannya di menu Akses.' });
+    }
     await clearFailures(keys);
-    await startSession(res, hasil.tipe === 'admin' ? { tipe: 'admin' } : { tipe: 'karyawan', editorId: hasil.editorId });
+    await startSession(res, hasil.tipe === 'admin' ? { tipe: 'admin', hari: SSO_HARI } : { tipe: 'karyawan', editorId: hasil.editorId, hari: SSO_HARI });
     res.json({ success: true, role: hasil.tipe });
   } catch (err) {
     fail(res, err, 'Gagal masuk dengan Master');
   }
+});
+
+// GET /api/auth/keluar-sso — ujung rantai "keluar sekali, keluar semua": Master sudah mengeluarkan akun,
+// di sini cookie Pantau dihapus lalu pengguna dikembalikan ke halaman depan.
+router.get('/keluar-sso', async (req, res) => {
+  try { await endSession(req, res); } catch (e) { /* cookie tetap dihapus di bawah */ }
+  res.redirect(302, '/');
 });
 
 // POST /api/auth/logout — ends this session on the server too
