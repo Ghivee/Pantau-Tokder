@@ -104,6 +104,8 @@ async function identify(req, res, next) {
       if (row && row.tipe === 'admin') req.isAdmin = true;
       if (row && row.tipe === 'karyawan' && row.id && row.status === 'aktif') {
         const r = resolveIzin(row);
+        // Pemilik mematikan akses ke Pantau: sesi yang sudah ada langsung tidak berlaku (dianggap belum masuk).
+        if (r.izin.web_pantau === false) return next();
         req.editor = { id: row.id, nama: row.nama, peran: row.peran || 'editor', izin: r.izin, izinTersimpan: r.tersimpan, uang: r.izin.uang === true };
       }
     }

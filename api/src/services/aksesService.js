@@ -4,6 +4,7 @@ const db = require('../config/db');
 const { KUNCI, KATALOG, resolve } = require('../utils/izin');
 const am = require('./aksesMasterService');
 const aksesWeb = require('./aksesWebService');
+const { revokeEditorSessions } = require('../middlewares/sessionAuth');
 
 const AMBIL = `SELECT id, nama, peran, lihat_penghasilan, izin FROM editors WHERE status = 'aktif' ORDER BY nama`;
 
@@ -41,8 +42,17 @@ async function daftar() {
   };
 }
 
-// Mengubah satu izin satu orang. Daftar lengkap orang itu disimpan (supaya keadaan awalnya ikut tercatat),
-// lalu bagian Master diselaraskan. Penyimpanan di Pantau tetap berhasil walau Master gagal; hasilnya dilaporkan.
+// Perubahan satu izin selalu satu pernyataan SQL atomik, supaya dua perubahan bersamaan (dua admin, atau klik cepat)
+// tidak saling menimpa. Pertama kali (belum pernah diatur) seluruh daftar ditulis, dan hanya bila masih kosong.
+const MERGE = 'UPDATE editors SET izin = izin || jsonb_build_object($1::text, $2::boolean) WHERE id = $3 AND izin IS NOT NULL RETURNING izin';
+const AWAL = 'UPDATE editors SET izin = $1 WHERE id = $2 AND izin IS NULL RETURNING izin';
+
+// Penulisan ke Master diantre satu per satu (dalam proses ini) dan selalu memakai keadaan terbaru dari database.
+let antrean = Promise.resolve();
+const berurutan = (fn) => { const hasil = antrean.then(fn); antrean = hasil.catch(() => {}); return hasil; };
+
+// Mengubah satu izin satu orang, lalu menyelaraskan bagian Master. Penyimpanan di Pantau tetap berhasil walau Master gagal;
+// hasilnya dilaporkan.
 async function ubah(editorId, kunci, nilai) {
   if (!KUNCI.includes(kunci)) throw Object.assign(new Error('Izin tidak dikenal'), { status: 400 });
   if (typeof nilai !== 'boolean') throw Object.assign(new Error('Nilai harus benar atau salah'), { status: 400 });
@@ -52,19 +62,34 @@ async function ubah(editorId, kunci, nilai) {
   const staff = am.kunciStaff(row.nama);
   if (kunci.startsWith('master_') && !staff) throw Object.assign(new Error('Karyawan ini belum punya akun Master'), { status: 400 });
   const ctx = await konteks();
+  const lama = resolve(row);
   // Orang ini belum pernah diatur dan izin Master-nya tidak terbaca: jangan menulis tebakan ke Master.
-  if (staff && !resolve(row).tersimpan && !ctx.aktual) {
+  if (staff && !lama.tersimpan && !ctx.aktual) {
     throw Object.assign(new Error('Izin di Master belum terbaca (' + ctx.galatMaster + '). Coba lagi sebentar lagi.'), { status: 503 });
   }
-  const r = lengkapi(row, ctx);
-  r.izin[kunci] = nilai;
-  await db.query('UPDATE editors SET izin = $1 WHERE id = $2', [JSON.stringify(r.izin), editorId]);
+  const gabung = async () => {
+    const m = await db.query(MERGE, [kunci, nilai, editorId]);
+    return m.rows[0] ? resolve({ ...row, izin: m.rows[0].izin }).izin : null;
+  };
+  let izin = lama.tersimpan ? await gabung() : null;
+  if (!izin) {
+    const penuh = lengkapi(row, ctx);
+    penuh.izin[kunci] = nilai;
+    const w = await db.query(AWAL, [JSON.stringify(penuh.izin), editorId]);
+    izin = w.rows[0] ? penuh.izin : await gabung(); // bila orang lain menyimpan lebih dulu, gabungkan ke datanya
+  }
+  if (!izin) throw Object.assign(new Error('Karyawan tidak ditemukan'), { status: 404 });
+  // Akses ke Pantau dicabut: keluarkan dari semua perangkat sekarang juga.
+  if (kunci === 'web_pantau' && nilai === false) await revokeEditorSessions(editorId);
   let sinkron = { ok: true };
-  if (staff && (kunci.startsWith('master_') || !r.tersimpan)) {
-    const h = await galatSebagai(() => am.tulis(staff, am.keDaftarMaster(r.izin)));
+  if (staff && (kunci.startsWith('master_') || !lama.tersimpan)) {
+    const h = await berurutan(async () => {
+      const terbaru = (await db.query(AMBIL)).rows.find((x) => x.id === editorId);
+      return galatSebagai(() => am.tulis(staff, am.keDaftarMaster(terbaru ? resolve(terbaru).izin : izin)));
+    });
     sinkron = h.ok ? { ok: true } : { ok: false, galat: h.galat };
   }
-  return { izin: r.izin, sinkron };
+  return { izin, sinkron };
 }
 
 // Mengirim ulang izin Master semua orang (bila sebelumnya Master tidak terjangkau).
@@ -76,7 +101,7 @@ async function sinkronSemua() {
     if (!staff) continue;
     const r = resolve(row);
     if (!r.tersimpan) { hasil.push({ nama: row.nama, ok: true, dilewati: true }); continue; }
-    const h = await galatSebagai(() => am.tulis(staff, am.keDaftarMaster(r.izin)));
+    const h = await berurutan(() => galatSebagai(() => am.tulis(staff, am.keDaftarMaster(r.izin))));
     hasil.push({ nama: row.nama, ok: h.ok, galat: h.galat });
   }
   return hasil;

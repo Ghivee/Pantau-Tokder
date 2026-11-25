@@ -106,3 +106,11 @@ test('login PIN cadangan: web_pantau mati ditolak; yang diizinkan tetap bisa (se
   assert.equal(r.status, 200);
   assert.match(sesiBaru[0], /INTERVAL '30 days'/);
 });
+
+test('akses Pantau dicabut: sesi yang sudah ada langsung ditolak, dan pulih bila diaktifkan lagi', async () => {
+  sesi = { tipe: 'karyawan', row: { id: 1, nama: 'Via', peran: 'editor', lihat_penghasilan: false, izin: { web_pantau: false } } };
+  assert.equal((await fetch(u + '/api/akun', { headers: cookie })).status, 401);
+  assert.equal((await fetch(u + '/api/aplikasi', { headers: cookie })).status, 401);
+  sesi.row.izin = { web_pantau: true };
+  assert.equal((await fetch(u + '/api/akun', { headers: cookie })).status, 200);
+});
