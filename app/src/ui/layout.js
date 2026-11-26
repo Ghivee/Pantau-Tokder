@@ -11,7 +11,7 @@ import { ssoInfo } from '../core/sso.js';
 import { renderApps } from './tkapps.js';
 
 // Halaman yang dibuka lewat tombol di halaman induknya; induknya yang tetap disorot.
-const INDUK = { pengajuan: 'presensi' };
+const INDUK = { pengajuan: 'presensi', kalender: 'rangkuman' };
 
 export function renderNav() {
   renderApps();

@@ -1,5 +1,6 @@
 import { activeEditors, editorById } from './data.js';
 import { S } from './state.js';
+import { tglPanjang } from '../lib/format.js';
 import { sum, today } from '../lib/format.js';
 import { hariPresensi, jamWib } from '../pages/presensi.js';
 import { kontenRows } from '../pages/shared.js';
@@ -47,4 +48,31 @@ export function exportPresensi() {
     if (h.masuk || h.pulang) rows.push([d, e.nama, jamWib(h.masuk && h.masuk.waktu), jamWib(h.pulang && h.pulang.waktu), h.masuk ? h.masuk.telat_menit || 0 : '', h.masuk && h.masuk.jarak != null ? Math.round(h.masuk.jarak) : '']);
   }));
   unduhCsv('presensi-tokder-' + today(), ['Tanggal', 'Karyawan', 'Masuk', 'Pulang', 'Telat (menit)', 'Jarak (m)'], rows);
+}
+
+// Spreadsheet kalender: satu baris per orang per tanggal, mengikuti bulan dan orang yang sedang dipilih.
+export function exportKalender() {
+  const K = S.kal;
+  const D = K && K.data[K.bulan];
+  if (!D) return toast('Data kalender belum termuat', true);
+  const STATUS = { hadir: 'Hadir', telat: 'Telat', izin: 'Izin', sakit: 'Sakit', cuti: 'Cuti', alpa: 'Tidak hadir', belum: 'Belum absen', libur: 'Libur', '': '' };
+  const gabung = (a, f) => a.map(f).join(' | ');
+  const adaJejak = D.hari.some((h) => h.lain);
+  const kepala = ['Tanggal', 'Hari', 'Nama', 'Status', 'Masuk', 'Pulang', 'Telat (menit)', 'Jarak masuk (m)', 'Absen ditolak', 'Izin dan klaim', 'Jumlah video', 'Views', 'Judul video', 'Unggahan draf', 'Tugas'];
+  if (adaJejak) kepala.push('Catatan Jejak', 'Aktivitas pertama', 'Aktivitas terakhir', 'Kali masuk', 'Gagal masuk', 'Peringatan', 'Perangkat', 'Lokasi');
+  const kolomJejak = (j) => (adaJejak ? (j ? [j.jumlah, j.awal, j.akhir, j.masuk, j.gagal, j.peringatan, j.perangkat.join(' | '), j.lokasi.join(' | ')] : ['', '', '', '', '', '', '', '']) : []);
+  const rows = [];
+  D.hari.filter((h) => h.tanggal <= D.hariIni).forEach((h) => {
+    const hari = tglPanjang(h.tanggal).split(',')[0];
+    h.orang.filter((o) => !K.orang || String(o.id) === K.orang).forEach((o) => {
+      rows.push([h.tanggal, hari, (D.orang.find((x) => x.id === o.id) || {}).nama || '', STATUS[o.status], o.masuk ? o.masuk.jam : '', o.pulang ? o.pulang.jam : '', o.masuk ? o.masuk.telat : '', o.masuk && o.masuk.jarak != null ? o.masuk.jarak : '',
+        gabung(o.ditolak, (x) => x.jam + ' ' + x.alasan), gabung(o.pengajuan, (x) => x.jenis + ' (' + x.status + ') ' + (x.alasan || '')), o.video.length, sum(o.video, (v) => v.views || 0), gabung(o.video, (v) => v.judul),
+        gabung(o.unggah, (u) => u.judul + ' [' + u.tujuan.map((t) => t.platform).join('/') + ']'), gabung(o.tugas, (t) => t.jam + ' ' + t.tugas + (t.detail ? ': ' + t.detail : '')), ...kolomJejak(o.jejak)]);
+    });
+    if (!K.orang && h.lain) {
+      h.lain.jejak.forEach((j) => rows.push([h.tanggal, hari, j.nama, '', '', '', '', '', '', '', '', '', '', '', '', ...kolomJejak(j)]));
+      if (h.lain.video.length || h.lain.unggah.length) rows.push([h.tanggal, hari, 'Tanpa pembuat atau pemilik', '', '', '', '', '', '', '', h.lain.video.length, sum(h.lain.video, (v) => v.views || 0), gabung(h.lain.video, (v) => v.judul), gabung(h.lain.unggah, (u) => u.judul), '', ...kolomJejak(null)]);
+    }
+  });
+  unduhCsv('kalender-tokder-' + D.bulan, kepala, rows);
 }

@@ -69,7 +69,7 @@ router.post('/', requireIzin('upload'), createAuditMiddleware('posting', 'create
     const ids = (a) => (Array.isArray(a) ? a.filter((x) => /^\d+$/.test(String(x))).map(Number) : []);
     const yt = Array.isArray(b.youtube) ? b.youtube.filter((x) => /^UC[\w-]{22}$/.test(String(x))) : [];
     const deskripsi = await denganKode(req, b.deskripsi);
-    res.status(201).json(await posting.buat({ judul: b.judul, deskripsi, blob_url: b.blob_url, ukuran: b.ukuran, mime: b.mime, sosmedIds: ids(b.akun), youtubeIds: yt }, base(req)));
+    res.status(201).json(await posting.buat({ judul: b.judul, deskripsi, blob_url: b.blob_url, ukuran: b.ukuran, mime: b.mime, sosmedIds: ids(b.akun), youtubeIds: yt, editorId: req.editor ? req.editor.id : null }, base(req)));
   } catch (err) { fail(res, err); }
 });
 

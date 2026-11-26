@@ -13,6 +13,7 @@ import { absen, ambilLokasi } from './pages/presensi.js';
 import { muatSaran, pilihChannel, salin, tandaiDibuat } from './pages/saran.js';
 import { statusSinkron } from './pages/akses.js';
 import { aksiJejak, resetJejak } from './pages/jejak.js';
+import { aksiKalender } from './pages/kalender.js';
 import { kirimDraf, pilihMetrik } from './pages/rekap.js';
 import { buatTautan, hapusTautan, imporAfiliasi, muatAfiliasi, salinTautan, salinTeks, tautanDialog } from './pages/tautan.js';
 import { bulanLabel, daftarSW, diIOS, muatUlang, pushDidukung, swReg, terpasang } from './pages/shared.js';
@@ -237,6 +238,7 @@ document.addEventListener('click', async (ev) => {
   const act = el.dataset.act;
   if (act === 'close-overlay') { if (ev.target === el || el.tagName === 'BUTTON' || el.tagName === 'A') closeOverlay(); return; }
   if (act.startsWith('jejak-')) { await aksiJejak(act, el); return; }
+  if (act.startsWith('kal-') || act === 'csv-kalender') { aksiKalender(act, el); return; }
   switch (act) {
     case 'login': closeOverlay(); loginDialog(); break;
     case 'masuk-akun': { const sso = await ssoInfo(); if (sso.aktif) { tirai('Membuka halaman masuk…'); masukDenganMaster(sso.masterUrl); } else loginDialog(); break; }
@@ -252,7 +254,7 @@ document.addEventListener('click', async (ev) => {
         if (!e.status || e.status >= 500) { bukaTirai(); toast('Belum keluar. ' + e.message, true); break; }
       }
       const info = await ssoInfo();
-      saveSession(null); resetJejak();
+      saveSession(null); resetJejak(); S.kal = null;
       tandaiKeluar();
       if (info.aktif && keluarSemua(info.masterUrl)) break;
       navigate('/'); bukaTirai(); umumkanKeluar(); break;

@@ -148,6 +148,7 @@ app.use('/api/aplikasi', require('./routes/aplikasi'));
 app.use('/api/akses', require('./routes/akses'));
 app.use('/api/akun', require('./routes/akun'));
 app.use('/api/jejak', require('./routes/jejak'));
+app.use('/api/kalender', require('./routes/kalender'));
 app.use('/api/draf-pendapatan', require('./routes/drafPendapatan'));
 app.use('/api', cspReportRouter);
 

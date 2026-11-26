@@ -272,6 +272,8 @@ const STATEMENTS = [
     galat TEXT,
     updated_at TIMESTAMP DEFAULT NOW()
   )`,
+  // Siapa yang mengunggah (kosong = pemilik atau unggahan lama).
+  `ALTER TABLE posting ADD COLUMN IF NOT EXISTS editor_id INTEGER`,
   `CREATE INDEX IF NOT EXISTS posting_target_posting_idx ON posting_target (posting_id)`,
   `CREATE INDEX IF NOT EXISTS social_post_tanggal_idx ON social_post (tanggal DESC)`,
   `CREATE INDEX IF NOT EXISTS social_post_akun_idx ON social_post (platform, akun_id)`,

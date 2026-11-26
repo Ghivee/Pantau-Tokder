@@ -52,6 +52,13 @@ export function resetJejak() {
   J.buka.clear();
 }
 export const bukaTab = (tab) => { J.tab = tab; render(); muat(tab); };
+// Dari Kalender: riwayat lengkap satu orang pada satu tanggal (WIB).
+export function bukaRiwayat(nama, tanggal) {
+  J.filter = { hari: '', jenis: '', sumber: '', hasil: '', nama, risikoMin: '', q: '', dari: tanggal + 'T00:00:00+07:00', sampai: tanggal + 'T23:59:59.999+07:00' };
+  J.riw = null; J.dimuat = true;
+  bukaTab('riwayat');
+  if (!J.ring) muat('pengguna');
+}
 
 // ---- tampilan
 const alasan = (x) => (x.alasan.length ? `<ul class="jj-alasan">${x.alasan.map((a) => `<li>${esc(a)}</li>`).join('')}</ul>` : '');
@@ -127,7 +134,8 @@ function tabPengguna() {
 function tabRiwayat() {
   const f = J.filter, r = J.riw, orang = J.ring ? J.ring.pengguna.map((u) => u.nama) : [];
   const opsi = (arr, pilih) => arr.map(([v, l]) => `<option value="${esc(v)}" ${pilih === v ? 'selected' : ''}>${esc(l)}</option>`).join('');
-  const bar = `<section class="card jj-filter"><div class="jj-grid">
+  const bar = `<section class="card jj-filter">${f.dari ? `<p class="notice" role="status">Menampilkan ${esc(f.nama)} pada ${esc(f.dari.slice(0, 10))}. Tekan Reset untuk melihat semua.</p>` : ''}
+    <div class="jj-grid">
       <label class="field"><span>Orang</span><select class="input" id="jf-nama">${opsi([['', 'Semua'], ...orang.map((n) => [n, n])], f.nama)}</select></label>
       <label class="field"><span>Jenis</span><select class="input" id="jf-jenis">${opsi([['', 'Semua'], ...Object.entries(JENIS)], f.jenis)}</select></label>
       <label class="field"><span>Sumber</span><select class="input" id="jf-sumber">${opsi([['', 'Tokder dan Office'], ['tokder', 'Tokder'], ['master', 'Office']], f.sumber)}</select></label>

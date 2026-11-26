@@ -3,6 +3,7 @@ import './pages/analytics.js';
 import './pages/akses.js';
 import './pages/akun.js';
 import './pages/jejak.js';
+import './pages/kalender.js';
 import './pages/gaji.js';
 import './pages/hari-ini.js';
 import './pages/harian.js';
