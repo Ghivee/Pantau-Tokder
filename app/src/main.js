@@ -2,7 +2,6 @@ import '../styles/index.css';
 import './pages/analytics.js';
 import './pages/akses.js';
 import './pages/akun.js';
-import './pages/aplikasi.js';
 import './pages/jejak.js';
 import './pages/gaji.js';
 import './pages/hari-ini.js';
@@ -57,8 +56,8 @@ matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => rend
 
 ssoMasuk.then(async (r) => {
   const masukBaru = r.ada && !r.galat;
-  // Alamat tujuan dipasang sebelum data dimuat, jadi halaman lain tidak sempat tampil sekejap. Data simpanan lama dibuang.
-  if (masukBaru) { simpanCache(null); history.replaceState(null, '', '/aplikasi'); }
+  // Data simpanan lama dibuang. Alamat yang diminta (mis. /presensi dari Master) dipertahankan.
+  if (masukBaru) simpanCache(null);
   await load();
   if (r.galat) toast(r.galat, true);
   else if (S.session) { try { sessionStorage.removeItem('pt_keluar'); } catch (e) { /* penyimpanan mati */ } } else umumkanKeluar();

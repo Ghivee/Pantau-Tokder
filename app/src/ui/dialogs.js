@@ -63,7 +63,7 @@ export async function loginDialog(tab = 'karyawan', buka = false) {
         closeOverlay();
         tirai('Membuka Tokder…');
         simpanCache(null);
-        history.replaceState(null, '', '/aplikasi');
+        history.replaceState(null, '', '/');
         await load();
         bukaTirai();
         toast('Berhasil masuk');

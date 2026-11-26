@@ -4,7 +4,7 @@ const { fail } = require('../utils/httpError');
 const { urlDariEnv } = require('../services/ssoMasterService');
 const akses = require('../services/aksesWebService');
 
-// Daftar web untuk halaman "Aplikasi". Pemilik melihat semuanya; karyawan hanya yang diizinkan pemilik.
+// Daftar web untuk bilah pindah aplikasi. Pemilik melihat semuanya; karyawan hanya yang diizinkan pemilik.
 router.get('/', async (req, res) => {
   try {
     const master = urlDariEnv('MASTER_APP_URL'), telprom = urlDariEnv('TELPROM_APP_URL');

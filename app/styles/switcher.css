@@ -17,3 +17,20 @@ body.tk-ada .side{top:calc(var(--tk-h) + env(safe-area-inset-top,0px));height:ca
 body.tk-ada .shell{min-height:calc(100vh - var(--tk-h) - env(safe-area-inset-top,0px))}
 body.tk-ada .brand img{width:56px;height:56px}
 @media (max-width:900px){body.tk-ada::before{display:none}body.tk-ada .appbar{top:calc(var(--tk-h) + env(safe-area-inset-top,0px))}}
+
+/* ---------- susunan seragam: logo kiri atas, menu dan pengaturan kiri bawah ---------- */
+.brand{flex-direction:row;justify-content:flex-start;text-align:left;gap:12px;padding:16px 20px}
+.brand img,body.tk-ada .brand img{width:40px;height:40px}
+.side-foot .nav-bawah{margin:0 -20px}
+@media (max-width:900px){
+  .appbar{height:52px;box-sizing:border-box;padding-top:0;padding-bottom:0;margin-bottom:8px}
+  .appbar img.logo{width:32px;height:32px}
+  .appbar .ttl b{font-size:17px;font-weight:700}
+  .tabbar a,.tabbar button{min-height:58px;gap:4px;font-size:11px;font-weight:600}
+  .tabbar svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .tabbar [aria-current="page"]{color:var(--tk-aktif)}
+}
+:root{--tk-aktif:#4a6600}
+:root[data-theme="dark"]{--tk-aktif:#a9cf23}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--tk-aktif:#a9cf23}}
+.side .nav a[aria-current="page"],.side .nav a[aria-current="page"] svg{color:var(--tk-aktif)}
