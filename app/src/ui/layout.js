@@ -8,8 +8,10 @@ import { avatar, peranLabel } from './bits.js';
 import { icon } from './icons.js';
 import { pingHalaman } from '../core/jejak.js';
 import { ssoInfo } from '../core/sso.js';
+import { renderApps } from './tkapps.js';
 
 export function renderNav() {
+  renderApps();
   const cur = route();
   // Sebelum masuk hanya halaman depan yang tampil: tanpa sidebar dan bilah atas.
   document.querySelector('.shell').classList.toggle('publik', !S.session);
