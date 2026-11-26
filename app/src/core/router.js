@@ -36,7 +36,7 @@ export const beranda = () => (me() && MENU_LENGKAP ? 'hari-ini' : 'rangkuman');
 export function menuGroups() {
   // Tampilan ringkas untuk pemilik dan karyawan: Rangkuman, Saran, Upload, Presensi. Affiliate dibuka dari Rangkuman atau menu. Halaman lain (Hari ini, Harian, Gaji, dst.)
   // tidak dihapus, hanya disembunyikan dari menu; set MENU_LENGKAP = true untuk menampilkannya lagi.
-  if (!MENU_LENGKAP) return [{ label: 'Menu', ids: ['aplikasi', 'rangkuman', 'saran', 'sosmed', 'presensi', 'affiliate', 'karyawan', 'akses', 'jejak', 'pengaturan', 'akun'] }];
+  if (!MENU_LENGKAP) return [{ label: 'Menu', ids: ['aplikasi', 'rangkuman', 'saran', 'sosmed', 'presensi', 'pengajuan', 'gaji', 'affiliate', 'karyawan', 'akses', 'jejak', 'pengaturan', 'akun'] }];
   if (me()) return [
     { label: 'Kerja saya', ids: ['hari-ini', 'harian', 'performa', 'presensi', 'pengajuan', 'gaji'] },
     { label: 'Channel', ids: ['rangkuman', 'saran', 'affiliate', 'sosmed', 'tren', 'analytics', 'konten', 'identifikasi'] },

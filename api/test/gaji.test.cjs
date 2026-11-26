@@ -83,3 +83,20 @@ test('push subscriptions are checked before they are stored', () => {
   assert.throws(() => validasi({ ...ok, endpoint: 'http://evil.example/x' }));
   assert.throws(() => validasi({ ...ok, keys: { p256dh: '<script>', auth: 'x' } }));
 });
+
+test('gaji gabungan: bonus penjualan = pcs terjual semua channel × tarif per pcs', () => {
+  const pakai = (penjualan, bonus_pcs = 500) => hitung(base({ aturan: { ...base().aturan, bonus_pcs }, penjualan }));
+  const line = (r) => r.baris.find((b) => b.label === 'Bonus penjualan');
+  const r = pakai({ terhubung: true, pcs: 1284, per_channel: { shopee: 800, tiktok: 484 } });
+  assert.strictEqual(line(r).jumlah, 642000);
+  assert.match(line(r).ket, /1\.284 pcs/);
+  assert.strictEqual(r.penjualan.pcs, 1284);
+  const tanpa = hitung(base({ penjualan: { terhubung: true, pcs: 1284 } }));
+  assert.strictEqual(tanpa.baris.find((b) => b.label === 'Bonus penjualan'), undefined, 'tarif 0: baris tidak tampil');
+  assert.strictEqual(r.total - tanpa.total, 642000);
+  const putus = pakai({ terhubung: false, pcs: 0, galat: 'Sambungan Master belum diatur' });
+  assert.strictEqual(line(putus).jumlah, 0);
+  assert.match(line(putus).ket, /belum terbaca: Sambungan Master/);
+  assert.strictEqual(putus.penjualan.pcs, null);
+  assert.deepStrictEqual(validasiAturan({ bonus_pcs: '750' }).bonus_pcs, 750);
+});

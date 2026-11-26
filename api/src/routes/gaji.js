@@ -6,6 +6,13 @@ const gaji = require('../services/gajiService');
 const { requireAdmin } = require('../middlewares/sessionAuth');
 const { createAuditMiddleware } = require('../utils/auditLog');
 const push = require('../services/pushService');
+const masterGaji = require('../services/masterGajiService');
+
+// Total gaji bulan itu (final dan draf) ke Master untuk Laba. Kunci akun Master dari editors.akun_master.
+async function kirimKeMaster(bulan) {
+  const [{ list }, eds] = await Promise.all([gaji.hitungBulan(bulan), db.query('SELECT id, akun_master FROM editors')]);
+  return masterGaji.kirim(bulan, list, eds.rows);
+}
 const BLN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 const namaBulan = (b) => BLN[+b.slice(5, 7) - 1] + ' ' + b.slice(0, 4);
 
@@ -118,9 +125,22 @@ router.post('/final', requireAdmin, createAuditMiddleware('settings', 'gaji_fina
     const ids = Array.isArray(b.editor_ids) && b.editor_ids.length ? b.editor_ids.map(idOf) : null;
     const final = await gaji.finalkan(bulan, ids);
     await Promise.all(final.map((id) => push.kirim({ editorId: id }, { title: `Slip gaji ${namaBulan(bulan)} sudah final`, body: 'Buka menu Gaji untuk melihat rinciannya.', url: '/gaji', tag: 'gaji-' + bulan })));
-    res.json({ final });
+    // Kirim total ke Master sekalian; gagal di sini tidak membatalkan finalisasi.
+    let master = null;
+    try { await kirimKeMaster(bulan); master = 'terkirim'; } catch (e) { master = e.message; }
+    res.json({ final, master });
   } catch (err) {
     fail(res, err);
+  }
+});
+
+// POST /api/gaji/kirim-master { bulan } — kirim total gaji bulan itu ke Master (dipakai Laba).
+router.post('/kirim-master', requireAdmin, createAuditMiddleware('settings', 'gaji_kirim_master', (req) => req.body && req.body.bulan, null, (req) => req.body), async (req, res) => {
+  try {
+    const data = await kirimKeMaster(bulanOf((req.body || {}).bulan));
+    res.json({ terkirim: Object.keys(data.staff).length, final: data.final, total: Object.values(data.staff).reduce((a, s) => a + s.total, 0) });
+  } catch (err) {
+    fail(res, err.status ? err : bad(502, err.message));
   }
 });
 
