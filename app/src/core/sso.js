@@ -1,4 +1,5 @@
 import { api } from './data.js';
+import { toast } from '../ui/bits.js';
 
 // "Masuk dengan Master": Master mengirim token Supabase lewat bagian # alamat (tidak ikut dikirim ke server).
 // Token langsung dihapus dari alamat, ditukar dengan sesi Pantau, dan tidak disimpan di browser.
@@ -28,6 +29,13 @@ export function keluarSemua(masterUrl) {
   if (!/^https:\/\//.test(masterUrl || '')) return false;
   location.href = masterUrl + '/?keluar=1';
   return true;
+}
+
+// Penanda agar halaman depan bisa memberi tahu "sudah keluar" setelah pulang dari Master.
+export function tandaiKeluar() { try { sessionStorage.setItem('pt_keluar', '1'); } catch (e) { /* penyimpanan mati */ } }
+export function umumkanKeluar() {
+  try { if (!sessionStorage.getItem('pt_keluar')) return; sessionStorage.removeItem('pt_keluar'); } catch (e) { return; }
+  toast('Anda sudah keluar');
 }
 
 // Ganti kata sandi hanya bisa di Master (pemegang sesi akun).

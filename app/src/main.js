@@ -25,13 +25,14 @@ import './pages/tautan.js';
 import './pages/tren.js';
 import './actions.js';
 import './ui/undo.js';
-import { load } from './core/data.js';
-import { tangkapTokenSso } from './core/sso.js';
+import { load, simpanCache } from './core/data.js';
+import { S } from './core/state.js';
+import { bukaTirai } from './ui/tirai.js';
+import { tangkapTokenSso, umumkanKeluar } from './core/sso.js';
 import { toast } from './ui/bits.js';
 import { $ } from './lib/dom.js';
 import { closeOverlay, trapTab } from './ui/dialog.js';
 import { render, renderNav } from './ui/layout.js';
-import { navigate } from './core/router.js';
 
 // Token SSO dari Master harus ditangkap lebih dulu (sinkron, sebelum fromHash di bawah): kalau tidak, #sso=... dianggap
 // rute lama dan dipindah ke path, sehingga SSO gagal dan tokennya ikut tertulis di alamat.
@@ -55,7 +56,13 @@ window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() =
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => renderNav());
 
 ssoMasuk.then(async (r) => {
+  const masukBaru = r.ada && !r.galat;
+  // Alamat tujuan dipasang sebelum data dimuat, jadi halaman lain tidak sempat tampil sekejap. Data simpanan lama dibuang.
+  if (masukBaru) { simpanCache(null); history.replaceState(null, '', '/aplikasi'); }
   await load();
-  if (r.galat) setTimeout(() => toast(r.galat, true), 600);
-  else if (r.ada) navigate('/aplikasi');
+  if (r.galat) toast(r.galat, true);
+  else if (S.session) { try { sessionStorage.removeItem('pt_keluar'); } catch (e) { /* penyimpanan mati */ } } else umumkanKeluar();
 });
+
+// Kembali lewat tombol Back dari halaman masuk: browser memulihkan halaman lama apa adanya, termasuk layar peralihan.
+window.addEventListener('pageshow', (ev) => { if (ev.persisted) { bukaTirai(); load(); } });

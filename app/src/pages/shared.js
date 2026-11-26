@@ -8,7 +8,7 @@ import { loadGaji } from './gaji.js';
 import { ringkasJadwal } from './presensi.js';
 import { toast } from '../ui/bits.js';
 import { icon } from '../ui/icons.js';
-import { render, renderNav } from '../ui/layout.js';
+import { render, renderLatar, renderNav } from '../ui/layout.js';
 
 export function kontenRows() {
   const k = S.konten;
@@ -51,7 +51,7 @@ export function loadInsight(force = false) {
   insightJob = api('/api/insight', { timeout: 30000 })
     .then((r) => { S.insight = { ...r, retMap: new Map(r.retensi.map((x) => [x.id, x])), naikMap: new Map(r.naik.map((x) => [x.id, x])) }; })
     .catch((e) => { S.insight = { error: e.message, retensi: [], naik: [], retMap: new Map(), naikMap: new Map() }; })
-    .finally(() => { insightJob = null; if (['performa', 'tren', 'rangkuman'].includes(route()) && !$('#overlay').innerHTML) render(); });
+    .finally(() => { insightJob = null; if (['performa', 'tren', 'rangkuman'].includes(route())) renderLatar(); });
   return insightJob;
 }
 

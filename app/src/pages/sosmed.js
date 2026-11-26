@@ -130,6 +130,8 @@ AFTER.sosmed = function () {
       if (!file) { err.textContent = 'Pilih file video dulu'; return; }
       if (!akun.length && !youtube.length) { err.textContent = 'Pilih minimal satu tujuan'; return; }
       btn.disabled = true;
+      const tahan = (e) => { e.preventDefault(); e.returnValue = ''; };
+      window.addEventListener('beforeunload', tahan);
       try {
         const ext = (file.name.split('.').pop() || 'mp4').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 5) || 'mp4';
         const blob = await upload('posting/video.' + ext, file, {
@@ -144,6 +146,7 @@ AFTER.sosmed = function () {
         toast('Video terunggah. Cek hasil per platform di bawah.');
         pantauPosting();
       } catch (e) { err.textContent = e.message || 'Gagal mengunggah'; prog.textContent = ''; }
+      window.removeEventListener('beforeunload', tahan);
       btn.disabled = false;
     });
   };

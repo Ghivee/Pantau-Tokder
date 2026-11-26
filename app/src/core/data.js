@@ -1,10 +1,10 @@
 import { route } from './router.js';
 import { PALETTE, topikOf } from './rules.js';
 import { S, saveSession } from './state.js';
-import { $ } from '../lib/dom.js';
 import { WIB, fmt, median, nf, today } from '../lib/format.js';
 import { daftarSW, loadInsight, pushDidukung } from '../pages/shared.js';
-import { render, renderNav } from '../ui/layout.js';
+import { render, renderLatar, renderNav } from '../ui/layout.js';
+import { toast } from '../ui/bits.js';
 
 export async function api(path, opts = {}) {
   const ctl = new AbortController();
@@ -33,6 +33,7 @@ export async function api(path, opts = {}) {
       saveSession(null);
       render();
       err.message = 'Sesi Anda sudah berakhir. Silakan masuk lagi.';
+      toast(err.message, true);
     }
     throw err;
   }
@@ -105,7 +106,7 @@ export async function load() {
   render();
   if (S.session) {
     autoSync(); loadInsight(true);
-    cekNotif().then(() => { if (['rangkuman', 'ringkasan', 'pengaturan', 'pengajuan', 'presensi'].includes(route()) && !$('#overlay').innerHTML) render(); });
+    cekNotif().then(() => { if (['rangkuman', 'ringkasan', 'pengaturan', 'pengajuan', 'presensi'].includes(route())) renderLatar(); });
   }
 }
 
@@ -118,7 +119,7 @@ export async function refresh() {
   try {
     await fetchAll();
     loadInsight(true);
-    if (!$('#overlay').innerHTML && !document.activeElement.matches('input, select, textarea')) render(); else renderNav();
+    renderLatar();
   } catch (e) {
     console.warn('Refresh failed:', e.message);
   } finally {
