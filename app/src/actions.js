@@ -1,7 +1,8 @@
 import { analyticsChannels, api, editorById, load, normalize, optional, refresh } from './core/data.js';
 import { exportCsv, exportGaji, exportPresensi } from './core/export.js';
 import { navigate } from './core/router.js';
-import { gantiSandi, keluarSemua, masukDenganMaster, ssoInfo } from './core/sso.js';
+import { gantiSandi, keluarSemua, masukDenganMaster, ssoInfo, tandaiKeluar, umumkanKeluar } from './core/sso.js';
+import { bukaTirai, tirai } from './ui/tirai.js';
 import { S, saveSession } from './core/state.js';
 import { $, esc } from './lib/dom.js';
 import { angkaUang, bacaCsv } from './lib/csv.js';
@@ -233,16 +234,24 @@ document.addEventListener('click', async (ev) => {
   if (act.startsWith('jejak-')) { await aksiJejak(act, el); return; }
   switch (act) {
     case 'login': closeOverlay(); loginDialog(); break;
-    case 'masuk-akun': { const sso = await ssoInfo(); if (sso.aktif) masukDenganMaster(sso.masterUrl); else loginDialog(); break; }
+    case 'masuk-akun': { const sso = await ssoInfo(); if (sso.aktif) { tirai('Membuka halaman masuk…'); masukDenganMaster(sso.masterUrl); } else loginDialog(); break; }
     case 'masuk-cadangan': loginDialog('karyawan', true); break;
     case 'lainnya': moreSheet(); break;
-    case 'logout':
+    case 'logout': {
       closeOverlay();
-      await matikanNotif(true);
-      try { await api('/api/auth/logout', { method: 'POST' }); } catch (e) { /* the cookie is cleared or already invalid */ }
+      tirai('Mengeluarkan akun…');
+      // Mematikan notifikasi tidak boleh menahan proses keluar.
+      await Promise.race([matikanNotif(true), new Promise((r) => setTimeout(r, 2500))]).catch(() => {});
+      try { await api('/api/auth/logout', { method: 'POST' }); } catch (e) {
+        // Tanpa jawaban server cookie masih berlaku: jangan berpura-pura sudah keluar.
+        if (!e.status || e.status >= 500) { bukaTirai(); toast('Belum keluar. ' + e.message, true); break; }
+      }
+      const info = await ssoInfo();
       saveSession(null); resetJejak();
-      { const info = await ssoInfo(); if (info.aktif && keluarSemua(info.masterUrl)) break; }
-      toast('Anda sudah keluar'); navigate('/'); break;
+      tandaiKeluar();
+      if (info.aktif && keluarSemua(info.masterUrl)) break;
+      navigate('/'); bukaTirai(); umumkanKeluar(); break;
+    }
     case 'retry': S.error = null; $('#page').innerHTML = '<div class="skeleton" style="height:320px"></div>'; await load(); break;
     case 'theme': {
       closeOverlay();
@@ -320,7 +329,7 @@ document.addEventListener('click', async (ev) => {
     case 'tautan-hapus': hapusTautan(el.dataset.kode); break;
     case 'rekap-metrik': pilihMetrik(el.dataset.v); break;
     case 'draf-kirim': await kirimDraf(); break;
-    case 'sso-master': masukDenganMaster(el.dataset.url); break;
+    case 'sso-master': closeOverlay(); tirai('Membuka halaman masuk…'); masukDenganMaster(el.dataset.url); break;
     case 'ganti-sandi': gantiSandi((await ssoInfo()).masterUrl); break;
     case 'akses-izin': {
       const id = +el.dataset.id, nilai = el.checked;

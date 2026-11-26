@@ -65,7 +65,7 @@ function halamanDepan() {
           <button class="btn primary depan-tombol" data-act="masuk-akun">Masuk dengan Akun Tokder</button>
           <button class="btn ghost depan-cadangan" data-act="masuk-cadangan">Pakai PIN atau password</button>
         </div>
-        <p class="muted depan-catatan">Hanya untuk pemilik dan karyawan Tokder. Tidak ada pendaftaran terbuka. Waktu masuk dan perangkat dicatat demi keamanan.</p>
+        <p class="muted depan-catatan">Hanya untuk pemilik dan karyawan Tokder. Tidak ada pendaftaran terbuka.</p>
       </section>
       <section class="card depan-isi" aria-labelledby="depan-isi-judul">
         <h2 id="depan-isi-judul">Di dalam dasbor</h2>
@@ -96,6 +96,30 @@ function siapkanHalamanDepan(page) {
   });
 }
 
+// Isi halaman terakhir yang digambar, untuk membandingkan saat penyegaran di belakang layar.
+let htmlTerakhir = '';
+
+// True bila orang sedang mengisi atau mengirim sesuatu di halaman ini.
+function sedangDiisi(page) {
+  if (page.querySelector('form button:disabled')) return true;
+  if (page.contains(document.activeElement) && document.activeElement.matches('input, select, textarea')) return true;
+  return $$('input, textarea, select', page).some((el) => {
+    if (el.type === 'file') return el.files.length > 0;
+    if (el.type === 'checkbox' || el.type === 'radio') return el.checked !== el.defaultChecked;
+    if (el.tagName === 'SELECT') { const awal = [...el.options].findIndex((o) => o.defaultSelected); return el.selectedIndex !== Math.max(0, awal); }
+    return el.value !== el.defaultValue;
+  });
+}
+
+// Untuk penyegaran otomatis: gambar ulang hanya bila isinya berubah dan tidak ada yang sedang diisi.
+export function renderLatar() {
+  const page = $('#page'), r = route();
+  if (S.session && !S.error) {
+    if ($('#overlay').innerHTML || sedangDiisi(page) || (page.dataset.route === r && PAGES[r]() === htmlTerakhir)) { renderNav(); return; }
+  }
+  render();
+}
+
 export function render() {
   renderNav();
   const r = route();
@@ -115,7 +139,8 @@ export function render() {
     page.innerHTML = `<section class="card state" role="alert"><b>Data belum bisa dimuat</b><p>${esc(S.error)}</p><button class="btn primary" data-act="retry">${icon('sync')}Coba lagi</button></section>`;
     return;
   }
-  page.innerHTML = PAGES[r]();
+  htmlTerakhir = PAGES[r]();
+  page.innerHTML = htmlTerakhir;
   page.dataset.route = r;
   // Penjelasan dipangkas satu baris lewat CSS; teks lengkapnya tetap bisa dibaca dengan mengarahkan kursor.
   $$('.head p, .card-h p, .kpi .d', page).forEach((el) => { el.title = el.textContent.trim(); });

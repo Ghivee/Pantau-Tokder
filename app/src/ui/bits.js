@@ -39,6 +39,7 @@ export function toast(msg, bad = false) {
   t.className = 'toast' + (bad ? ' bad' : '');
   t.setAttribute('role', 'status');
   t.textContent = msg;
+  document.querySelectorAll('.toast:not(.undo)').forEach((x) => x.remove());
   document.body.append(t);
   setTimeout(() => t.remove(), 3200);
 }

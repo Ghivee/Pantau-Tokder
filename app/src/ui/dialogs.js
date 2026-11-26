@@ -1,5 +1,6 @@
+import { bukaTirai, tirai } from './tirai.js';
 import { assign, refreshAktivitas } from '../actions.js';
-import { activeEditors, api, belumDikenali, editorById, load, normalize } from '../core/data.js';
+import { activeEditors, api, belumDikenali, editorById, load, normalize, simpanCache } from '../core/data.js';
 import { ROUTES, TABS, badgeOf, bisaBuka, menuGroups, navigate, pathOf, route, routeLabel } from '../core/router.js';
 import { TUGAS, TUGAS_LAIN, slotsOf, targetOf } from '../core/rules.js';
 import { S, canAssign, isAdmin, lihatUang, me } from '../core/state.js';
@@ -38,7 +39,6 @@ export async function loginDialog(tab = 'karyawan', buka = false) {
   openDialog(`
       <div class="masuk-kepala"><img src="/logo.svg" alt="" width="52" height="52"><h2>Masuk ke Tokder</h2></div>
       ${sso.aktif ? '<button type="button" class="btn primary" data-act="sso-master" data-url="' + esc(sso.masterUrl) + '" style="width:100%">Masuk dengan Akun Tokder</button><p class="muted" style="text-align:center;margin:8px 0 14px">Satu akun untuk Tokder, Master, dan Telprom.</p>' : ''}
-      <p class="muted" style="text-align:center;margin:0 0 10px;font-size:12px">Waktu masuk dan perangkat dicatat demi keamanan.</p>
       ${sso.aktif ? `<details class="login-cadangan"${buka ? ' open' : ''}><summary>Masuk cadangan (PIN atau password Tokder)</summary>` : ''}
       <div class="seg" role="group" aria-label="Masuk sebagai"><button data-tab="karyawan" aria-pressed="${tab === 'karyawan'}">Karyawan</button><button data-tab="admin" aria-pressed="${tab === 'admin'}">Pemilik</button></div>
       <form id="login-form" class="dialog-form stack">
@@ -61,9 +61,12 @@ export async function loginDialog(tab = 'karyawan', buka = false) {
           else await api('/api/auth/editor-login', { method: 'POST', body: { editor_id: +f.get('editor'), pin: f.get('pin') } });
         } finally { btn.disabled = false; }
         closeOverlay();
-        toast('Berhasil masuk');
+        tirai('Membuka Tokder…');
+        simpanCache(null);
+        history.replaceState(null, '', '/aplikasi');
         await load();
-        navigate('/aplikasi');
+        bukaTirai();
+        toast('Berhasil masuk');
       } catch (e) { $('#login-err', d).textContent = e.message; }
     });
   });

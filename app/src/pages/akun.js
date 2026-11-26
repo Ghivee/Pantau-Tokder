@@ -12,8 +12,7 @@ PAGES.akun = function () {
   return `<header class="head"><div><h1>Akun saya</h1><p>${a && !a.error ? esc(a.nama) + ' · ' + esc(a.jenis) : a && a.error ? esc(a.error) : 'Akun Tokder'}</p></div></header>
     <section class="card"><div class="card-h"><h2>Keamanan</h2><p>Satu Akun Tokder dipakai untuk Tokder, Master, dan Telprom.</p></div>
       <div class="tools"><button class="btn" data-act="ganti-sandi">Ganti kata sandi</button><button class="btn ghost" data-act="logout">Keluar dari semua web</button></div>
-      <p class="muted" style="margin-top:8px">Kata sandi diganti di Master, lalu Anda dikembalikan ke sini.</p>
-      <p class="muted">Demi keamanan, waktu masuk, perangkat, dan aktivitas di Tokder dicatat.</p></section>`;
+      <p class="muted" style="margin-top:8px">Kata sandi diganti di Master, lalu Anda dikembalikan ke sini.</p></section>`;
 };
 
 AFTER.akun = async function () {
