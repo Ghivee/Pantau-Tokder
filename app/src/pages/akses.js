@@ -6,7 +6,7 @@ import { esc } from '../lib/dom.js';
 import { render } from '../ui/layout.js';
 
 // Akses karyawan: pemilik mengatur izin SATU PER SATU untuk tiap orang (berdasarkan nama, bukan jabatan).
-// Mencakup fitur Pantau, web yang tampil di halaman Aplikasi, dan izin di dalam Master (diselaraskan ke Master).
+// Mencakup fitur Pantau, web yang tampil di bilah aplikasi, dan izin di dalam Master (diselaraskan ke Master).
 export const statusSinkron = (s) => (!s ? '' : s.ok ? '<span class="pill ok">Master: tersinkron</span>' : `<span class="pill warn" title="${esc(s.galat || '')}">Master belum tersinkron</span> <button class="btn sm ghost" data-act="akses-sinkron">Coba lagi</button>`);
 
 export function aksesCard() {

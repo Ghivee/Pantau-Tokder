@@ -3,7 +3,6 @@ import { closeOverlay } from '../ui/dialog.js';
 import { render } from '../ui/layout.js';
 
 export const ROUTES = [
-  { id: 'aplikasi', label: 'Aplikasi', icon: 'grid' },
   { id: 'hari-ini', label: 'Hari ini', icon: 'home', karyawan: true },
   { id: 'rangkuman', label: 'Rangkuman', icon: 'rangkuman' },
   { id: 'saran', label: 'Saran', icon: 'video' },
@@ -22,7 +21,7 @@ export const ROUTES = [
   { id: 'karyawan', label: 'Tim', icon: 'team', admin: true },
   { id: 'panduan', label: 'Panduan', icon: 'book' },
   { id: 'monetisasi', label: 'Pendapatan', icon: 'money', admin: true },
-  { id: 'akses', label: 'Akses', icon: 'team', admin: true },
+  { id: 'akses', label: 'Akses', icon: 'kunci', admin: true },
   { id: 'jejak', label: 'Jejak', icon: 'shield', admin: true },
   { id: 'akun', label: 'Akun saya', icon: 'user' },
   { id: 'pengaturan', label: 'Pengaturan', icon: 'gear', admin: true },
@@ -36,16 +35,16 @@ export const beranda = () => (me() && MENU_LENGKAP ? 'hari-ini' : 'rangkuman');
 export function menuGroups() {
   // Tampilan ringkas untuk pemilik dan karyawan: Rangkuman, Saran, Upload, Presensi. Affiliate dibuka dari Rangkuman atau menu. Halaman lain (Hari ini, Harian, Gaji, dst.)
   // tidak dihapus, hanya disembunyikan dari menu; set MENU_LENGKAP = true untuk menampilkannya lagi.
-  if (!MENU_LENGKAP) return [{ label: 'Menu', ids: ['aplikasi', 'rangkuman', 'saran', 'sosmed', 'presensi', 'affiliate', 'karyawan', 'akses', 'jejak', 'pengaturan', 'akun'] }];
+  if (!MENU_LENGKAP) return [{ label: 'Menu', ids: ['rangkuman', 'saran', 'sosmed', 'presensi', 'affiliate', 'karyawan', 'akses', 'jejak', 'pengaturan', 'akun'] }];
   if (me()) return [
     { label: 'Kerja saya', ids: ['hari-ini', 'harian', 'performa', 'presensi', 'pengajuan', 'gaji'] },
     { label: 'Channel', ids: ['rangkuman', 'saran', 'affiliate', 'sosmed', 'tren', 'analytics', 'konten', 'identifikasi'] },
-    { label: 'Bantuan', ids: ['aplikasi', 'akun', 'panduan'] },
+    { label: 'Bantuan', ids: ['akun', 'panduan'] },
   ];
   return [
     { label: 'Pantau', ids: ['rangkuman', 'saran', 'affiliate', 'ringkasan', 'harian', 'performa', 'tren', 'konten', 'analytics', 'sosmed'] },
     { label: 'Tim', ids: ['presensi', 'pengajuan', 'gaji', 'karyawan', 'identifikasi'] },
-    { label: 'Pemilik', ids: ['aplikasi', 'akses', 'jejak', 'akun', 'monetisasi', 'pengaturan', 'panduan'] },
+    { label: 'Pemilik', ids: ['akses', 'jejak', 'akun', 'monetisasi', 'pengaturan', 'panduan'] },
   ];
 }
 

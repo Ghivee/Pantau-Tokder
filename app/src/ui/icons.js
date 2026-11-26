@@ -1,4 +1,6 @@
 const ICON = {
+  kunci: '<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M16 7l3 3M14 9l2 2"/>',
+  menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
   shield: '<path d="M12 3l8 3v6c0 4.5-3.2 8.3-8 9.5C7.2 20.3 4 16.5 4 12V6l8-3z"/><path d="M9 12l2 2 4-4"/>',
   user: '<circle cx="12" cy="8" r="3.6"/><path d="M4.5 20.5c.9-4 3.7-6.2 7.5-6.2s6.6 2.2 7.5 6.2"/>',
   grid: '<rect x="3.5" y="3.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.6"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.6"/>',

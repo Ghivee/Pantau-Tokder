@@ -10,14 +10,19 @@ import { pingHalaman } from '../core/jejak.js';
 import { ssoInfo } from '../core/sso.js';
 import { renderApps } from './tkapps.js';
 
+// Selalu di kiri bawah menu samping.
+const BAWAH = ['pengaturan', 'akun'];
+const tautanMenu = (r, cur) => `<a href="${pathOf(r.id)}" ${r.id === cur ? 'aria-current="page"' : ''}>${icon(r.icon)}<span>${routeLabel(r)}</span>${badgeOf(r.id) ? `<span class="count">${badgeOf(r.id)}</span>` : ''}</a>`;
+
 export function renderNav() {
   renderApps();
   const cur = route();
   // Sebelum masuk hanya halaman depan yang tampil: tanpa sidebar dan bilah atas.
   document.querySelector('.shell').classList.toggle('publik', !S.session);
-  $('#nav').innerHTML = S.session ? menuGroups().map((g, _i, all) => (all.length > 1 ? `<div class="nav-label" role="presentation">${g.label}</div>` : '') + g.ids.map((id) => ROUTES.find((x) => x.id === id)).filter(bisaBuka).map((r) =>
-    `<a href="${pathOf(r.id)}" ${r.id === cur ? 'aria-current="page"' : ''}>${icon(r.icon)}<span>${routeLabel(r)}</span>${badgeOf(r.id) ? `<span class="count">${badgeOf(r.id)}</span>` : ''}</a>`
-  ).join('')).join('') : '';
+  const grup = S.session ? menuGroups().map((g) => ({ label: g.label, list: g.ids.map((id) => ROUTES.find((x) => x.id === id)).filter(bisaBuka) })) : [];
+  const atas = grup.map((g) => ({ label: g.label, list: g.list.filter((r) => !BAWAH.includes(r.id)) })).filter((g) => g.list.length);
+  const bawah = BAWAH.flatMap((id) => grup.flatMap((g) => g.list).filter((r) => r.id === id));
+  $('#nav').innerHTML = atas.map((g) => (atas.length > 1 ? `<div class="nav-label" role="presentation">${g.label}</div>` : '') + g.list.map((r) => tautanMenu(r, cur)).join('')).join('');
   const who = me();
   const theme = document.documentElement.dataset.theme;
   const dark = theme ? theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
@@ -27,13 +32,14 @@ export function renderNav() {
   $('#appbar').innerHTML = `
       <img class="logo" src="/logo.svg" alt="">
       <div class="ttl"><b>Tokder</b><small>${last || syncing ? '<span class="dot"></span>' : ''}${freshText}</small></div>
-      ${S.session ? `<button data-act="lainnya" aria-label="Akun dan menu lain">${who2 ? avatar(who2, 'sm') : '<span class="ava sm" style="background:var(--ink);color:var(--paper)">P</span>'}</button>` : '<button class="btn sm primary" data-act="login" style="border-radius:9px;padding:0 14px">Masuk</button>'}`;
+      ${S.session ? '' : '<button class="btn sm primary" data-act="login" style="border-radius:9px;padding:0 14px">Masuk</button>'}`;
   const tabs = TABS();
   const moreActive = !tabs.includes(cur);
   const sisa = sum(ROUTES.filter((r) => !tabs.includes(r.id) && bisaBuka(r) && menuGroups().some((g) => g.ids.includes(r.id))), (r) => badgeOf(r.id));
-  $('#tabbar').innerHTML = !S.session ? '' : tabs.map((id) => { const r = ROUTES.find((x) => x.id === id); return `<a href="${pathOf(id)}" ${id === cur ? 'aria-current="page"' : ''}>${icon(r.icon)}<span>${r.short || routeLabel(r)}</span>${badgeOf(id) ? `<span class="count">${badgeOf(id) > 99 ? '99+' : badgeOf(id)}</span>` : ''}</a>`; }).join('') +
-    `<button data-act="lainnya" ${moreActive ? 'aria-current="page"' : ''}>${icon('more')}<span>Lainnya</span>${sisa ? `<span class="count">${sisa > 99 ? '99+' : sisa}</span>` : ''}</button>`;
+  $('#tabbar').innerHTML = !S.session ? '' : `<button data-act="lainnya" ${moreActive ? 'aria-current="page"' : ''}>${icon('menu')}<span>Menu</span>${sisa ? `<span class="count">${sisa > 99 ? '99+' : sisa}</span>` : ''}</button>` +
+    tabs.map((id) => { const r = ROUTES.find((x) => x.id === id); return `<a href="${pathOf(id)}" ${id === cur ? 'aria-current="page"' : ''}>${icon(r.icon)}<span>${r.short || routeLabel(r)}</span>${badgeOf(id) ? `<span class="count">${badgeOf(id) > 99 ? '99+' : badgeOf(id)}</span>` : ''}</a>`; }).join('');
   $('#side-foot').innerHTML = `
+      ${bawah.length ? `<nav class="nav nav-bawah" id="nav-bawah" aria-label="Pengaturan dan akun">${bawah.map((r) => tautanMenu(r, cur)).join('')}</nav>` : ''}
       <div class="fresh" title="Data YouTube ditarik otomatis tiap 15 menit selama aplikasi terbuka">${last || syncing ? `<span class="dot${syncing ? ' live' : ''}"></span>` : ''}${freshText}</div>
       ${S.session ? `<div class="who">${who ? avatar(who, 'sm') : '<span class="ava sm" style="background:var(--ink);color:var(--paper)">P</span>'}<div class="t"><b>${who ? esc(who.nama) : 'Pemilik'}</b><small>${who ? peranLabel(who.peran) : 'Akses penuh'}</small></div></div>` : ''}
       <div class="side-actions">
@@ -53,7 +59,7 @@ const ISI_DASBOR = [
   ['rangkuman', 'Rangkuman', 'Tayangan, suka, dan komentar video tim dari YouTube, TikTok, Instagram, dan Facebook.'],
   ['naik', 'Upload', 'Satu video diunggah sekali, lalu dikirim sebagai draf ke akun milik tim.'],
   ['team', 'Tim', 'Hasil kerja harian tiap anggota, dengan akses yang diatur pemilik.'],
-  ['grid', 'Aplikasi', 'Master dan Telprom terbuka dengan Akun Tokder yang sama.'],
+  ['pin', 'Presensi', 'Absen masuk dan pulang dari radius kantor, tanpa foto.'],
 ];
 
 function halamanDepan() {
