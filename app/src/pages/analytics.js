@@ -45,7 +45,7 @@ PAGES.analytics = function () {
           <div class="kpi"><span class="l">Views</span><span class="v">${show(fmt(cur.views))}</span>${has ? change(cur.views, pv.views) : '<span class="d">belum ada data</span>'}</div>
           <div class="kpi"><span class="l">Jam tonton</span><span class="v">${show(jamMenit(cur.menit))}</span>${has ? change(cur.menit, pv.menit) : ''}</div>
           <div class="kpi"><span class="l">Subscriber bersih</span><span class="v ${cur.naik - cur.turun < 0 ? 'bad' : ''}">${show(signed(cur.naik - cur.turun))}</span>${has ? `<span class="d">+${nf.format(cur.naik)} baru, −${nf.format(cur.turun)} berhenti</span>` : ''}</div>
-          <div class="kpi"><span class="l">Rata-rata ditonton</span><span class="v mono" style="font-size:24px">${show(avgDur(cur))}</span><span class="d">menit:detik per view</span></div>
+          <div class="kpi"><span class="l">Rata-rata ditonton</span><span class="v mono" style="font-size:22px">${show(avgDur(cur))}</span><span class="d">menit:detik per view</span></div>
           ${showRev ? `<div class="kpi"><span class="l">Perkiraan pendapatan</span><span class="v">${rpOrDash(cur.rev)}</span>${change(cur.rev, pv.rev)}</div>` : ''}
         </section>
         ${strategiHtml(days, chans)}

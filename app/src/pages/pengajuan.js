@@ -19,7 +19,7 @@ function pengajuanRow(p, owner) {
   const e = editorById(p.editor_id);
   const aksi = owner && p.status === 'menunggu'
     ? `<button class="btn sm primary" data-act="putuskan" data-id="${p.id}" data-v="disetujui">Setujui</button><button class="btn sm ghost danger" data-act="putuskan" data-id="${p.id}" data-v="ditolak">Tolak</button>`
-    : !owner && p.status === 'menunggu' ? `<button class="btn sm ghost" data-act="batal-pengajuan" data-id="${p.id}">Batalkan</button>` : '';
+    : !owner && p.status === 'menunggu' ? `<button class="btn sm ghost danger" data-act="batal-pengajuan" data-id="${p.id}">Batalkan</button>` : '';
   return `<tr>${owner ? `<td data-label="Karyawan"><span class="ed">${avatar(e, 'xs')}${esc(e ? e.nama : '—')}</span></td>` : ''}
       <td data-label="Jenis"><b>${JENIS[p.jenis] || esc(p.jenis)}</b></td>
       <td data-label="Tanggal">${rentangTgl(p)}</td>
@@ -82,7 +82,7 @@ export function ajukanDialog(jenis) {
         ${klaim ? '' : '<p class="muted m-0 fs-13" id="aj-hari"></p>'}
         <label class="field"><span>${klaim ? 'Untuk apa' : 'Alasan'}</span><textarea class="input" name="alasan" maxlength="300" required placeholder="${klaim ? 'Misal: beli pupuk untuk video uji kocor, nota disimpan' : 'Misal: kontrol ke dokter'}"></textarea>${klaim ? '<small>Simpan nota; pemilik bisa memintanya sebelum menyetujui.</small>' : ''}</label>
         <div class="err" id="aj-err" role="alert"></div>
-        <div class="actions"><button type="button" class="btn ghost" data-act="close-overlay">Batal</button><button class="btn primary">Kirim</button></div>
+        <div class="actions"><button type="button" class="btn ghost danger" data-act="close-overlay">Batal</button><button class="btn primary">Kirim</button></div>
       </form>`, (d) => {
     const f = $('#aj-form', d), info = $('#aj-hari', d);
     const hitungHari = () => {
@@ -111,7 +111,7 @@ export function putuskanDialog(id, status) {
       <form id="pt-form" class="stack">
         <label class="field"><span>Catatan untuk karyawan (opsional)</span><input class="input" name="catatan" maxlength="200"></label>
         <div class="err" id="pt-err" role="alert"></div>
-        <div class="actions"><button type="button" class="btn ghost" data-act="close-overlay">Batal</button><button class="btn primary">${status === 'disetujui' ? 'Setujui' : 'Tolak'}</button></div>
+        <div class="actions"><button type="button" class="btn ghost danger" data-act="close-overlay">Batal</button><button class="btn primary">${status === 'disetujui' ? 'Setujui' : 'Tolak'}</button></div>
       </form>`, (d) => {
     $('#pt-form', d).addEventListener('submit', async (ev) => {
       ev.preventDefault();

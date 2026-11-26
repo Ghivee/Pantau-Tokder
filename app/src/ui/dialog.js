@@ -37,7 +37,7 @@ export function trapTab(ev) {
 }
 
 export function confirmDialog(title, msg, okLabel, onOk) {
-  openDialog(`<h2>${esc(title)}</h2><p>${esc(msg)}</p><div class="actions"><button class="btn ghost" data-act="close-overlay">Batal</button><button class="btn primary" id="ok">${esc(okLabel)}</button></div>`, (d) => {
+  openDialog(`<h2>${esc(title)}</h2><p>${esc(msg)}</p><div class="actions"><button class="btn ghost danger" data-act="close-overlay">Batal</button><button class="btn primary${/^(Hapus|Keluar|Putuskan|Batalkan|Tolak|Cabut)/.test(okLabel) ? ' danger' : ''}" id="ok">${esc(okLabel)}</button></div>`, (d) => {
     $('#ok', d).addEventListener('click', async () => { closeOverlay(); await onOk(); });
   });
 }

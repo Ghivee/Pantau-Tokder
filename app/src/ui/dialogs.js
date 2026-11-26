@@ -1,7 +1,7 @@
 import { bukaTirai, tirai } from './tirai.js';
 import { assign, refreshAktivitas } from '../actions.js';
 import { activeEditors, api, belumDikenali, editorById, load, normalize, simpanCache } from '../core/data.js';
-import { ROUTES, TABS, badgeOf, bisaBuka, menuGroups, navigate, pathOf, route, routeLabel } from '../core/router.js';
+import { navigate, route } from '../core/router.js';
 import { TUGAS, TUGAS_LAIN, slotsOf, targetOf } from '../core/rules.js';
 import { S, canAssign, isAdmin, lihatUang, me } from '../core/state.js';
 import { ssoInfo } from '../core/sso.js';
@@ -12,20 +12,6 @@ import { drawRetention } from './charts.js';
 import { closeOverlay, ingatFokus, openDialog } from './dialog.js';
 import { icon } from './icons.js';
 import { render } from './layout.js';
-
-// Phone: the routes and account actions that don't fit in the bottom bar.
-export function moreSheet() {
-  const who = me();
-  const tabs = TABS();
-  const groups = S.session ? menuGroups().map((g) => ({ label: g.label, list: g.ids.map((id) => ROUTES.find((x) => x.id === id)).filter((r) => bisaBuka(r) && !tabs.includes(r.id)) })).filter((g) => g.list.length) : [];
-  openDialog(`
-      ${S.session ? `<div class="who">${who ? avatar(who, 'sm') : '<span class="ava sm" style="background:var(--ink);color:var(--paper)">P</span>'}<div class="t"><b>${who ? esc(who.nama) : 'Pemilik'}</b><small>${who ? peranLabel(who.peran) : 'Akses penuh'}</small></div></div>` : '<h2>Menu</h2>'}
-      <div class="sheet-list">
-        ${groups.map((g) => `<div class="sheet-label">${g.label}</div>` + g.list.map((r) => `<a href="${pathOf(r.id)}">${icon(r.icon)}${routeLabel(r)}${badgeOf(r.id) ? `<span class="count">${badgeOf(r.id)}</span>` : ''}</a>`).join('')).join('')}
-        <div class="sheet-label">Akun</div>
-        ${S.session ? `<button data-act="logout">${icon('out')}Keluar</button>` : `<button data-act="login">${icon('out')}Masuk</button>`}
-      </div>`);
-}
 
 export async function loginDialog(tab = 'karyawan', buka = false) {
   let eds = [];
@@ -44,7 +30,7 @@ export async function loginDialog(tab = 'karyawan', buka = false) {
           <label class="field"><span>PIN</span><input class="input" name="pin" type="password" inputmode="numeric" autocomplete="current-password" required><small>PIN diberikan pemilik. Belum punya? Minta pemilik mengaturnya di menu Karyawan.</small></label>`
         : `<label class="field"><span>Password pemilik</span><input class="input" name="password" type="password" autocomplete="current-password" required></label>`}
         <div class="err" id="login-err" role="alert"></div>
-        <div class="actions"><button type="button" class="btn ghost" data-act="close-overlay">Batal</button><button class="btn primary">Masuk</button></div>
+        <div class="actions"><button type="button" class="btn ghost danger" data-act="close-overlay">Batal</button><button class="btn primary">Masuk</button></div>
       </form>${sso.aktif ? '</details>' : ''}`, (d) => {
     $$('[data-tab]', d).forEach((b) => b.addEventListener('click', () => loginDialog(b.dataset.tab, true)));
     $('#login-form', d).addEventListener('submit', async (ev) => {
@@ -88,7 +74,7 @@ export function catatDialog(editorId) {
         <label class="field"><span>Channel</span><select class="input" name="channel_id"><option value="">Semua / tidak spesifik</option>${S.channels.map((c) => `<option value="${esc(c.id)}">${esc(c.nama)}</option>`).join('')}</select></label>
         <label class="field"><span>Keterangan</span><textarea class="input" name="detail" maxlength="300" placeholder="Misal: cek harga rawit di 5 pasar induk"></textarea></label>
         <div class="err" id="catat-err" role="alert"></div>
-        <div class="actions"><button type="button" class="btn ghost" data-act="close-overlay">Batal</button><button class="btn primary">Simpan</button></div>
+        <div class="actions"><button type="button" class="btn ghost danger" data-act="close-overlay">Batal</button><button class="btn primary">Simpan</button></div>
       </form>`, (d) => {
     const tugas = $('[name=tugas]', d), jumlah = $('[name=jumlah]', d);
     tugas.addEventListener('change', () => { if (tugas.value === 'Balas komentar' && jumlah.value === '1') jumlah.value = '10'; });
@@ -131,7 +117,7 @@ export function editorDialog(id) {
         <label class="field"><span>${e.punya_pin ? 'PIN baru (kosongkan bila tidak diganti)' : 'PIN untuk masuk'}</span><input class="input" name="pin" type="password" inputmode="numeric" minlength="4" maxlength="12" autocomplete="new-password" placeholder="4–12 angka"></label>
         ${e.punya_pin ? '<label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" name="hapus_pin"> Hapus PIN (karyawan tidak bisa masuk)</label>' : ''}
         <div class="err" id="ed-err" role="alert"></div>
-        <div class="actions"><button type="button" class="btn ghost" data-act="close-overlay">Batal</button><button class="btn primary">Simpan</button></div>
+        <div class="actions"><button type="button" class="btn ghost danger" data-act="close-overlay">Batal</button><button class="btn primary">Simpan</button></div>
       </form>`, (d) => {
     $('#ed-form', d).addEventListener('submit', async (ev) => {
       ev.preventDefault();
@@ -159,7 +145,7 @@ export function goalDialog() {
       <div class="row"><label class="field"><span>Target (Rp)</span><input class="input" type="number" name="target_omset" min="0" value="${+g.target_omset || 0}"></label>
       <label class="field"><span>Tercapai (Rp)</span><input class="input" type="number" name="tercapai" min="0" value="${+g.tercapai || 0}"></label></div>
       <div class="err" id="goal-err" role="alert"></div>
-      <div class="actions"><button type="button" class="btn ghost" data-act="close-overlay">Batal</button><button class="btn primary">Simpan</button></div></form>`, (d) => {
+      <div class="actions"><button type="button" class="btn ghost danger" data-act="close-overlay">Batal</button><button class="btn primary">Simpan</button></div></form>`, (d) => {
     $('#goal-form', d).addEventListener('submit', async (ev) => {
       ev.preventDefault();
       const f = Object.fromEntries(new FormData(ev.target));
