@@ -100,7 +100,7 @@ function hitung({ bulan, editor, aturan, cfg, jam, presensiRows, cuti, klaim, pe
   add('Bonus views', Math.floor(v.views / 1000) * a.bonus_1000_views, `${v.views.toLocaleString('id-ID')} views video bulan ini`, a.bonus_1000_views > 0);
   const jual = penjualan && penjualan.terhubung ? { pcs: Number(penjualan.pcs) || 0, per_channel: penjualan.per_channel || {} } : null;
   add('Bonus penjualan', jual ? jual.pcs * a.bonus_pcs : 0,
-    jual ? `${jual.pcs.toLocaleString('id-ID')} pcs terjual semua channel × Rp${a.bonus_pcs.toLocaleString('id-ID')}` : 'Data penjualan Master belum terbaca' + (penjualan && penjualan.galat ? ': ' + penjualan.galat : ''), a.bonus_pcs > 0);
+    jual ? `${jual.pcs.toLocaleString('id-ID')} pcs terjual semua channel × Rp${a.bonus_pcs.toLocaleString('id-ID')}` : 'Data penjualan Office belum terbaca' + (penjualan && penjualan.galat ? ': ' + penjualan.galat : ''), a.bonus_pcs > 0);
   klaim.forEach((k) => add('Klaim: ' + k.alasan, Number(k.jumlah) || 0, k.dari));
   penyesuaian.forEach((p) => add(p.keterangan, Number(p.jumlah), 'penyesuaian pemilik'));
   add('Potongan tidak hadir', -h.alpa * a.potong_alpa, `${h.alpa} hari tanpa absen dan tanpa izin`, a.potong_alpa > 0 && h.alpa > 0);

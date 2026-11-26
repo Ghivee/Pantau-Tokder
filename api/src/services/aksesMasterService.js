@@ -27,21 +27,21 @@ const dariDaftarMaster = (daftar) => Object.fromEntries(Object.entries(MASTER).m
 
 // Izin yang sekarang berlaku di Master: { via: ['order_lihat', ...], deni: [...] }.
 async function bacaAktual() {
-  if (!master.siap()) throw new Error('Sambungan Master belum diatur');
+  if (!master.siap()) throw new Error('Sambungan Office belum diatur');
   const r = await master.rest('POST', 'rpc/baca_akses', {}, null);
-  if (r.status === 404) throw new Error('Fungsi baca_akses belum ada di Master (jalankan supabase/pantau-atur.sql)');
-  if (r.status >= 300 || !Array.isArray(r.json)) throw new Error('Master menolak membaca akses (' + r.status + ')');
+  if (r.status === 404) throw new Error('Fungsi baca_akses belum ada di Office (jalankan supabase/pantau-atur.sql)');
+  if (r.status >= 300 || !Array.isArray(r.json)) throw new Error('Office menolak membaca akses (' + r.status + ')');
   const out = Object.fromEntries(STAFF.map((s) => [s, []]));
   for (const x of r.json) if (out[x.staff]) out[x.staff].push(x.izin);
   return out;
 }
 
 async function tulis(staff, daftar) {
-  if (!master.siap()) throw new Error('Sambungan Master belum diatur');
-  if (!STAFF.includes(staff)) throw new Error('Karyawan ini belum punya akun Master');
+  if (!master.siap()) throw new Error('Sambungan Office belum diatur');
+  if (!STAFF.includes(staff)) throw new Error('Karyawan ini belum punya akun Office');
   const r = await master.rest('POST', 'rpc/set_akses', { p_staff: staff, p_izin: daftar }, null);
-  if (r.status === 404) throw new Error('Fungsi set_akses belum ada di Master (jalankan supabase/pantau-atur.sql)');
-  if (r.status >= 300) throw new Error('Master menolak perubahan akses' + (r.json && r.json.message ? ': ' + r.json.message : ' (' + r.status + ')'));
+  if (r.status === 404) throw new Error('Fungsi set_akses belum ada di Office (jalankan supabase/pantau-atur.sql)');
+  if (r.status >= 300) throw new Error('Office menolak perubahan akses' + (r.json && r.json.message ? ': ' + r.json.message : ' (' + r.status + ')'));
 }
 
 module.exports = { STAFF, kunciStaff, keDaftarMaster, dariDaftarMaster, bacaAktual, tulis };

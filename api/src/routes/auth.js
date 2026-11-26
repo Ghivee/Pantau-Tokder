@@ -193,7 +193,7 @@ router.post('/sso', authLimiter, async (req, res) => {
       : { tipe: 'karyawan', id: hasil.editorId, nama, akun: profil.email, kunci: 'k:' + hasil.editorId, metode: 'sso', sesi: sesiId } });
     res.json({ success: true, role: hasil.tipe });
   } catch (err) {
-    fail(res, err, 'Gagal masuk dengan Master');
+    fail(res, err, 'Gagal masuk dengan Office');
   }
 });
 

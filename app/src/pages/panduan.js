@@ -13,7 +13,7 @@ import { icon } from '../ui/icons.js';
 // "Cara kerja" buttons on other pages open the matching answer (/panduan#p-gaji).
 const MENU_INFO = {
   jejak: 'Riwayat lengkap siapa masuk, dari mana, dengan perangkat apa, dan apa yang dilakukan, plus peringatan bila ada yang tidak biasa.',
-  aplikasi: 'Pilih web yang ingin dibuka: Tokder, Master (order, kas, tim), atau Telprom (naskah dan rekam).',
+  aplikasi: 'Pilih web yang ingin dibuka: Tokder, Office (order, kas, tim), atau Telprom (naskah dan rekam).',
   'hari-ini': 'Halaman utama karyawan: absen, jadwal video, tugas, izin dan gaji hari ini.',
   rangkuman: 'Views, CTR, retensi, real-time dan klik afiliasi tiga channel dalam satu tabel dan satu diagram pembanding. CTR dan klik afiliasi diisi lewat Impor CSV.',
   affiliate: 'Semua kebutuhan affiliate: produk affiliate terlaris, produk dicari, dan tautan pelacak (buat, salin, lihat klik).',

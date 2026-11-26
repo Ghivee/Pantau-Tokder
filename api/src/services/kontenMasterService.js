@@ -17,7 +17,7 @@ async function masuk() {
     headers: { 'Content-Type': 'application/json', apikey: KEY_ENV() },
     body: JSON.stringify({ email: 'pantau@master.app', password: PASS_ENV() }),
   });
-  if (!r.ok) { sesi = null; throw new Error('Login akun pantau di Master gagal (' + r.status + ')'); }
+  if (!r.ok) { sesi = null; throw new Error('Login akun pantau di Office gagal (' + r.status + ')'); }
   const j = await r.json();
   sesi = { token: j.access_token, exp: Date.now() + (j.expires_in || 3600) * 1000 };
   return sesi.token;
@@ -31,8 +31,8 @@ async function daftar() {
   const r = await fetch(URL_ENV() + '/rest/v1/konten?select=judul,channel,petugas,status,youtube_id&youtube_id=not.is.null&limit=2000', {
     headers: { apikey: KEY_ENV(), Authorization: 'Bearer ' + token },
   });
-  if (r.status === 401) { sesi = null; throw new Error('Sesi Master ditolak'); }
-  if (!r.ok) throw new Error('Tabel konten Master belum bisa dibaca (' + r.status + ')');
+  if (r.status === 401) { sesi = null; throw new Error('Sesi Office ditolak'); }
+  if (!r.ok) throw new Error('Tabel konten Office belum bisa dibaca (' + r.status + ')');
   const out = {};
   for (const k of await r.json()) if (k.youtube_id) out[k.youtube_id] = { judul: k.judul, channel: k.channel || null, petugas: k.petugas || null, status: k.status };
   cache = { at: Date.now(), daftar: out };
@@ -41,7 +41,7 @@ async function daftar() {
 
 // Panggilan REST umum ke Master dengan akun yang sama. Mengembalikan { status, json }.
 async function rest(method, path, body, prefer = 'return=minimal') {
-  if (!siap()) throw new Error('Sambungan Master belum diatur');
+  if (!siap()) throw new Error('Sambungan Office belum diatur');
   const panggil = async () => fetch(URL_ENV() + '/rest/v1/' + path, {
     method,
     headers: { 'Content-Type': 'application/json', apikey: KEY_ENV(), Authorization: 'Bearer ' + (await masuk()), ...(prefer ? { Prefer: prefer } : {}) },
@@ -56,18 +56,4 @@ async function rest(method, path, body, prefer = 'return=minimal') {
 
 const reset = () => { sesi = null; cache = null; };
 
-// Naskah yang belum tayang (belum punya youtube_id), terbaru dulu: bahan judul untuk menu Upload.
-// Isi naskah dipotong; Pantau hanya butuh judul dan cuplikan untuk dikenali.
-async function siapUnggah() {
-  if (!siap()) return { terhubung: false, daftar: [] };
-  const token = await masuk();
-  const r = await fetch(URL_ENV() + '/rest/v1/konten?select=id,judul,status,naskah,diubah&youtube_id=is.null&status=neq.ide&order=diubah.desc&limit=30', {
-    headers: { apikey: KEY_ENV(), Authorization: 'Bearer ' + token },
-  });
-  if (r.status === 401) { sesi = null; throw new Error('Sesi Master ditolak'); }
-  if (!r.ok) throw new Error('Tabel konten Master belum bisa dibaca (' + r.status + ')');
-  const daftar = (await r.json()).map((k) => ({ id: k.id, judul: k.judul, status: k.status, cuplikan: String(k.naskah || '').replace(/\s+/g, ' ').trim().slice(0, 160) }));
-  return { terhubung: true, daftar };
-}
-
-module.exports = { daftar, siapUnggah, siap, rest, reset };
+module.exports = { daftar, siap, rest, reset };

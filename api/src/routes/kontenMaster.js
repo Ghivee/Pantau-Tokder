@@ -6,15 +6,7 @@ const kontenMaster = require('../services/kontenMasterService');
 router.get('/', async (req, res) => {
   try { res.json(await kontenMaster.daftar()); } catch (err) {
     console.error('konten-master', err.message);
-    res.json({ terhubung: false, daftar: {}, galat: 'Konten Master belum bisa dibaca' });
-  }
-});
-
-// Naskah yang belum tayang, untuk mengisi judul di menu Upload.
-router.get('/siap', async (req, res) => {
-  try { res.json(await kontenMaster.siapUnggah()); } catch (err) {
-    console.error('konten-master/siap', err.message);
-    res.json({ terhubung: false, daftar: [], galat: 'Naskah Master belum bisa dibaca' });
+    res.json({ terhubung: false, daftar: {}, galat: 'Konten Office belum bisa dibaca' });
   }
 });
 

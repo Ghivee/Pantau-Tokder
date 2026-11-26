@@ -174,7 +174,7 @@ async function aksiBaru(act, el, ev) {
     case 'gaji-muat': delete S.gajiCache[S.gajiBulan]; render(); break;
     case 'gaji-master': {
       const b = S.gajiBulan; el.disabled = true;
-      try { const r = await api('/api/gaji/kirim-master', { method: 'POST', body: { bulan: b }, timeout: 30000 }); toast(`Gaji ${bulanLabel(b)} terkirim ke Master: ${idr(r.total)} untuk ${r.terkirim} orang${r.final ? '' : ' (masih ada yang draf)'}`); } catch (e) { toast(e.message, true); }
+      try { const r = await api('/api/gaji/kirim-master', { method: 'POST', body: { bulan: b }, timeout: 30000 }); toast(`Gaji ${bulanLabel(b)} terkirim ke Office: ${idr(r.total)} untuk ${r.terkirim} orang${r.final ? '' : ' (masih ada yang draf)'}`); } catch (e) { toast(e.message, true); }
       el.disabled = false; break;
     }
     case 'gaji-ke': ev.preventDefault(); S.gajiBulan = el.dataset.v; render(); window.scrollTo({ top: 0 }); break;
@@ -187,7 +187,7 @@ async function aksiBaru(act, el, ev) {
       const names = G.list.filter((r) => r.status !== 'final' && (!ids || ids.includes(r.editor_id))).map((r) => r.nama);
       const jalan = b === today().slice(0, 7);
       confirmDialog(`Finalkan gaji ${bulanLabel(b)}?`, `${names.join(', ')}. Angka dikunci menjadi slip resmi dan tidak ikut berubah bila presensi, izin atau aturan berubah.${jalan ? ' Bulan ini belum selesai: hari-hari yang tersisa tidak akan terhitung.' : ''}`, 'Finalkan', async () => {
-        try { const r = await api('/api/gaji/final', { method: 'POST', body: { bulan: b, editor_ids: ids || undefined } }); toast(r.master === 'terkirim' ? 'Gaji difinalkan dan dikirim ke Master' : 'Gaji difinalkan. Belum terkirim ke Master: ' + r.master, r.master !== 'terkirim'); await loadGaji(b); render(); } catch (e) { toast(e.message, true); }
+        try { const r = await api('/api/gaji/final', { method: 'POST', body: { bulan: b, editor_ids: ids || undefined } }); toast(r.master === 'terkirim' ? 'Gaji difinalkan dan dikirim ke Office' : 'Gaji difinalkan. Belum terkirim ke Office: ' + r.master, r.master !== 'terkirim'); await loadGaji(b); render(); } catch (e) { toast(e.message, true); }
       });
       break;
     }
@@ -338,14 +338,14 @@ document.addEventListener('click', async (ev) => {
         const e = S.editors.find((x) => x.id === id); if (e) { e.izin = r.izin; e.izin_tersimpan = true; }
         S.aplikasi = null;
         const st = $('#ak-st-' + id); if (st) st.innerHTML = statusSinkron(r.sinkron);
-        toast(r.sinkron.ok ? 'Akses diubah' : 'Tersimpan di Tokder, tapi belum sampai ke Master', !r.sinkron.ok);
+        toast(r.sinkron.ok ? 'Akses diubah' : 'Tersimpan di Tokder, tapi belum sampai ke Office', !r.sinkron.ok);
       } catch (e) { el.checked = !nilai; toast(e.message, true); }
       break;
     }
     case 'akses-akun': {
       try {
         const r = await api('/api/akses/' + el.dataset.id + '/akun-master', { method: 'PUT', body: { akun: el.dataset.akun }, timeout: 30000 });
-        toast(r.sinkron && !r.sinkron.ok ? 'Tersimpan, tapi izin belum sampai ke Master' : el.dataset.akun ? 'Akun Master dipetakan' : 'Pemetaan akun Master dilepas', !!(r.sinkron && !r.sinkron.ok));
+        toast(r.sinkron && !r.sinkron.ok ? 'Tersimpan, tapi izin belum sampai ke Office' : el.dataset.akun ? 'Akun Office dipetakan' : 'Pemetaan akun Office dilepas', !!(r.sinkron && !r.sinkron.ok));
         S.akses = undefined; render();
       } catch (e) { toast(e.message, true); }
       break;
@@ -354,7 +354,7 @@ document.addEventListener('click', async (ev) => {
       try {
         const r = await api('/api/akses/sinkron', { method: 'POST', timeout: 30000 });
         const gagal = r.hasil.filter((h) => !h.ok);
-        toast(gagal.length ? 'Masih gagal untuk ' + gagal.map((h) => h.nama).join(', ') : 'Semua izin Master tersinkron', gagal.length > 0);
+        toast(gagal.length ? 'Masih gagal untuk ' + gagal.map((h) => h.nama).join(', ') : 'Semua izin Office tersinkron', gagal.length > 0);
         S.akses = undefined; render();
       } catch (e) { toast(e.message, true); }
       break;

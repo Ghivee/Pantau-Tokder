@@ -10,9 +10,9 @@ import { render } from '../ui/layout.js';
 PAGES.akun = function () {
   const a = S.akun;
   return `<header class="head"><div><h1>Akun saya</h1><p>${a && !a.error ? esc(a.nama) + ' · ' + esc(a.jenis) : a && a.error ? esc(a.error) : 'Akun Tokder'}</p></div></header>
-    <section class="card"><div class="card-h"><h2>Keamanan</h2><p>Satu Akun Tokder dipakai untuk Tokder, Master, dan Telprom.</p></div>
+    <section class="card"><div class="card-h"><h2>Keamanan</h2><p>Satu Akun Tokder dipakai untuk Tokder, Office, dan Telprom.</p></div>
       <div class="tools"><button class="btn" data-act="ganti-sandi">Ganti kata sandi</button><button class="btn ghost" data-act="logout">Keluar dari semua web</button></div>
-      <p class="muted" style="margin-top:8px">Kata sandi diganti di Master, lalu Anda dikembalikan ke sini.</p></section>`;
+      <p class="muted" style="margin-top:8px">Kata sandi diganti di Office, lalu Anda dikembalikan ke sini.</p></section>`;
 };
 
 AFTER.akun = async function () {

@@ -58,8 +58,8 @@ async function hitung(ym) {
 // Status draf yang sudah ada di Master: { kunci: status }.
 async function statusMaster() {
   const r = await master.rest('GET', 'kas_harian?select=sumber_kunci,status&sumber_kunci=not.is.null&limit=500');
-  if (r.status === 404) throw new Error('Tabel kas belum ada di Master (jalankan supabase/kas.sql)');
-  if (r.status >= 300 || !Array.isArray(r.json)) throw new Error('Master menolak membaca draf (' + r.status + ')');
+  if (r.status === 404) throw new Error('Tabel kas belum ada di Office (jalankan supabase/kas.sql)');
+  if (r.status >= 300 || !Array.isArray(r.json)) throw new Error('Office menolak membaca draf (' + r.status + ')');
   return Object.fromEntries(r.json.map((x) => [x.sumber_kunci, x.status]));
 }
 
@@ -76,7 +76,7 @@ async function pratinjau() {
 
 async function kirim() {
   const p = await pratinjau();
-  if (!p.terhubung) throw new Error('Sambungan Master belum diatur');
+  if (!p.terhubung) throw new Error('Sambungan Office belum diatur');
   if (!p.rupiah) throw new Error('Pendapatan belum dikonversi ke rupiah; tunggu sinkron YouTube berikutnya');
   let dibuat = 0, sudah = 0;
   for (const b of p.bulan) {
@@ -84,7 +84,7 @@ async function kirim() {
       if (d.di_master) { sudah++; continue; }
       const r = await master.rest('POST', 'kas_harian', { tanggal: d.tanggal, platform: d.platform, jumlah: d.jumlah, catatan: d.catatan, sumber_kunci: d.kunci });
       if (r.status === 409) { sudah++; continue; } // dibuat bersamaan oleh permintaan lain
-      if (r.status >= 300) throw new Error('Master menolak draf ' + d.kunci + (r.json && r.json.message ? ': ' + r.json.message : ' (' + r.status + ')'));
+      if (r.status >= 300) throw new Error('Office menolak draf ' + d.kunci + (r.json && r.json.message ? ': ' + r.json.message : ' (' + r.status + ')'));
       dibuat++;
     }
   }

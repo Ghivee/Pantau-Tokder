@@ -142,12 +142,12 @@ function kartuDraf() {
   if (!isAdmin() || !R.draf) return '';
   const d = R.draf;
   const isi = d.galat ? `<p class="muted">${esc(d.galat)}</p>`
-    : !d.terhubung ? '<p class="muted">Belum tersambung ke Master (butuh pengaturan MASTER_* di Vercel).</p>'
+    : !d.terhubung ? '<p class="muted">Belum tersambung ke Office (butuh pengaturan MASTER_* di Vercel).</p>'
     : d.rupiah === false ? '<p class="muted">Pendapatan belum dalam rupiah; tunggu sinkron YouTube berikutnya.</p>'
     : d.bulan.map((b) => `<div class="mrow"><span class="nm">${esc(b.label)}</span><span class="vl">${b.draf.length ? b.draf.map((x) => `<span>${x.platform === 'youtube' ? 'YouTube' : 'Afiliasi'} Rp ${nf.format(x.jumlah)} <small class="muted">${x.di_master ? esc(STATUS_DRAF[x.di_master] || x.di_master) : 'belum dikirim'}</small></span>`).join('<br>') : '<span class="muted">tidak ada pendapatan</span>'}</span></div>`).join('');
   const ada = d.terhubung && d.rupiah !== false && !d.galat && d.bulan.some((b) => b.draf.some((x) => !x.di_master));
-  return `<section class="card"><div class="card-h"><h2>Draf pendapatan ke Master</h2><span class="muted">estimasi bulan yang sudah selesai</span></div>${isi}
-    ${ada ? '<button class="btn primary" data-act="draf-kirim"' + (R.drafKirim ? ' disabled' : '') + '>Kirim draf ke Master</button><p class="muted">Draf masuk ke antrean Kas di Master. Anda atau istri menyesuaikan dengan pembayaran di bank sebelum menyetujui.</p>' : ''}</section>`;
+  return `<section class="card"><div class="card-h"><h2>Draf pendapatan ke Office</h2><span class="muted">estimasi bulan yang sudah selesai</span></div>${isi}
+    ${ada ? '<button class="btn primary" data-act="draf-kirim"' + (R.drafKirim ? ' disabled' : '') + '>Kirim draf ke Office</button><p class="muted">Draf masuk ke antrean Kas di Office. Anda atau istri menyesuaikan dengan pembayaran di bank sebelum menyetujui.</p>' : ''}</section>`;
 }
 
 export async function muatDraf() {
@@ -157,7 +157,7 @@ export async function muatDraf() {
 
 export async function kirimDraf() {
   R.drafKirim = true; segarkanRekap();
-  try { const r = await api('/api/draf-pendapatan', { method: 'POST', timeout: 30000 }); toast(r.dibuat ? `${r.dibuat} draf dikirim ke Master` : 'Semua draf sudah ada di Master'); } catch (e) { toast(e.message, true); }
+  try { const r = await api('/api/draf-pendapatan', { method: 'POST', timeout: 30000 }); toast(r.dibuat ? `${r.dibuat} draf dikirim ke Office` : 'Semua draf sudah ada di Office'); } catch (e) { toast(e.message, true); }
   R.drafKirim = false;
   await muatDraf();
 }
