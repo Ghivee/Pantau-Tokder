@@ -1,70 +1,74 @@
 /* Tema bersama Tokder, Master, dan Telprom. Berkas ini SAMA PERSIS di ketiga web: ubah di satu, salin ke yang lain.
-   Warna mengikuti mode HP. Token diberi awalan tk- supaya tidak bentrok dengan variabel lama tiap web. */
+   Mengikuti Apple Human Interface Guidelines: warna sistem, huruf sistem (San Francisco di perangkat Apple, Inter di
+   perangkat lain), kartu putih di latar abu, bilah buram, kontrol segmen, dan tab bar berwarna aksen. Mengikuti mode HP. */
 @font-face{font-family:"Inter";src:url("/fonts/inter.woff2") format("woff2");font-weight:100 900;font-display:swap}
-@font-face{font-family:"Playfair Display";src:url("/fonts/playfair.woff2") format("woff2");font-weight:400 900;font-display:swap}
-@font-face{font-family:"JetBrains Mono";src:url("/fonts/jetbrains-mono.woff2") format("woff2");font-weight:100 800;font-display:swap}
 
 :root{
-  --tk-card:#F4EFE4;--tk-ring:#2E2E2E;--tk-input:#D2CBBB;--tk-muted:#CFC8B8;--tk-accent:#E6E4D7;--tk-border:#D2CBBB;--tk-radius:0.5rem;
-  --tk-chart-1:#F26A4B;--tk-chart-2:#1E1E1E;--tk-chart-3:#5E5A52;--tk-chart-4:#A89F8F;--tk-chart-5:#CFC8B8;
-  --tk-popover:#F4EFE4;--tk-primary:#2E2E2E;--tk-sidebar:#E3DDCF;--tk-secondary:#D8D2C4;--tk-background:#E9E4D8;
-  --tk-foreground:#1E1E1E;--tk-destructive:#DC2626;--tk-card-foreground:#1E1E1E;--tk-muted-foreground:#5E5A52;--tk-accent-foreground:#2E2E2E;
-  --tk-primary-foreground:#E6E4D7;--tk-secondary-foreground:#2E2E2E;--tk-destructive-foreground:#FFFFFF;
-  --tk-ok:#2F6B3A;--tk-warn:#8A5300;--tk-danger-text:#B91C1C;
-  --tk-shadow:0 4px 10px rgba(0,0,0,.1);
-  --tk-font-sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
-  --tk-font-serif:"Playfair Display",Georgia,serif;
-  --tk-font-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
-  --tk-h:56px;--tk-dock:64px;
+  --tk-background:#F2F2F7;--tk-card:#FFFFFF;--tk-muted:#E5E5EA;--tk-fill:rgba(118,118,128,.12);
+  --tk-foreground:#000000;--tk-secondary-label:#3A3A3C;--tk-muted-foreground:#636366;
+  --tk-separator:rgba(60,60,67,.18);--tk-bar:rgba(249,249,249,.86);--tk-segment:#FFFFFF;
+  --tk-tint:#0066CC;--tk-primary:#0071E3;--tk-primary-foreground:#FFFFFF;--tk-tint-soft:rgba(0,113,227,.1);
+  --tk-ok:#1E7A34;--tk-warn:#A34E00;--tk-danger:#D70015;--tk-green:#34C759;
+  --tk-chart-1:#007AFF;--tk-chart-2:#FF9500;--tk-chart-3:#34C759;--tk-chart-4:#AF52DE;--tk-chart-5:#30B0C7;
+  --tk-radius:12px;--tk-radius-sm:9px;
+  --tk-shadow:0 8px 30px rgba(0,0,0,.12);--tk-segment-shadow:0 1px 3px rgba(0,0,0,.12),0 0 0 .5px rgba(0,0,0,.04);
+  --tk-font-sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Inter",system-ui,"Segoe UI",Roboto,sans-serif;
+  --tk-font-mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --tk-h:52px;--tk-dock:58px;
   color-scheme:light;
 }
-/* .tk-gelap dipakai area yang selalu gelap (layar rekam Telprom). */
 @media (prefers-color-scheme:dark){
   :root{
-    --tk-card:#1C1C1C;--tk-ring:#D1CFC0;--tk-input:#2C2C2C;--tk-muted:#2A2A2A;--tk-accent:#363636;--tk-border:#2C2C2C;
-    --tk-chart-2:#D9CFC2;--tk-chart-3:#8E8A83;--tk-chart-4:#5C5A56;--tk-chart-5:#3B3B3B;
-    --tk-popover:#1C1C1C;--tk-primary:#D1CFC0;--tk-sidebar:#101010;--tk-secondary:#222222;--tk-background:#141414;
-    --tk-foreground:#E8E3DA;--tk-destructive:#EF4444;--tk-card-foreground:#E8E3DA;--tk-muted-foreground:#8E8A83;--tk-accent-foreground:#D1CFC0;
-    --tk-primary-foreground:#363636;--tk-secondary-foreground:#D1CFC0;
-    --tk-ok:#7FBF8A;--tk-warn:#E0A84E;--tk-danger-text:#F87171;
-    --tk-shadow:0 6px 15px rgba(0,0,0,.3);
+    --tk-background:#000000;--tk-card:#1C1C1E;--tk-muted:#2C2C2E;--tk-fill:rgba(118,118,128,.24);
+    --tk-foreground:#FFFFFF;--tk-secondary-label:#D1D1D6;--tk-muted-foreground:#98989F;
+    --tk-separator:rgba(84,84,88,.65);--tk-bar:rgba(22,22,23,.86);--tk-segment:#636366;
+    --tk-tint:#409CFF;--tk-primary:#0A7AEB;--tk-tint-soft:rgba(10,132,255,.2);
+    --tk-ok:#30D158;--tk-warn:#FF9F0A;--tk-danger:#FF6961;--tk-green:#30D158;
+    --tk-chart-1:#0A84FF;--tk-chart-2:#FF9F0A;--tk-chart-3:#30D158;--tk-chart-4:#BF5AF2;--tk-chart-5:#40C8E0;
+    --tk-shadow:0 8px 30px rgba(0,0,0,.6);
     color-scheme:dark;
   }
 }
+/* .tk-gelap dipakai area yang selalu gelap (layar rekam Telprom). */
 .tk-gelap{
-  --tk-card:#1C1C1C;--tk-input:#2C2C2C;--tk-muted:#2A2A2A;--tk-accent:#363636;--tk-border:#2C2C2C;--tk-popover:#1C1C1C;--tk-primary:#D1CFC0;
-  --tk-sidebar:#101010;--tk-secondary:#222222;--tk-background:#141414;--tk-foreground:#E8E3DA;--tk-destructive:#EF4444;--tk-muted-foreground:#8E8A83;
-  --tk-accent-foreground:#D1CFC0;--tk-primary-foreground:#363636;--tk-secondary-foreground:#D1CFC0;--tk-ok:#7FBF8A;--tk-warn:#E0A84E;--tk-danger-text:#F87171;
+  --tk-background:#000000;--tk-card:#1C1C1E;--tk-muted:#2C2C2E;--tk-fill:rgba(118,118,128,.24);--tk-foreground:#FFFFFF;--tk-secondary-label:#D1D1D6;
+  --tk-muted-foreground:#98989F;--tk-separator:rgba(84,84,88,.65);--tk-bar:rgba(22,22,23,.86);--tk-segment:#636366;--tk-tint:#409CFF;--tk-primary:#0A7AEB;
+  --tk-ok:#30D158;--tk-warn:#FF9F0A;--tk-danger:#FF6961;
   color-scheme:dark;
 }
 
-/* ---------- bilah pindah aplikasi (atas) ---------- */
-.tkapps{position:fixed;top:0;left:0;right:0;z-index:35;box-sizing:border-box;display:flex;justify-content:center;gap:6px;height:calc(var(--tk-h) + env(safe-area-inset-top,0px));padding:calc(env(safe-area-inset-top,0px) + 6px) max(8px,env(safe-area-inset-right,0px)) 6px max(8px,env(safe-area-inset-left,0px));margin:0;background:var(--tk-sidebar);border:0;border-bottom:1px solid var(--tk-border);box-shadow:none}
+/* ---------- pindah aplikasi (atas): kontrol segmen ---------- */
+.tkapps{position:fixed;top:0;left:0;right:0;z-index:35;box-sizing:border-box;display:flex;justify-content:center;gap:0;height:calc(var(--tk-h) + env(safe-area-inset-top,0px));padding:calc(env(safe-area-inset-top,0px) + 6px) max(12px,env(safe-area-inset-right,0px)) 6px max(12px,env(safe-area-inset-left,0px));margin:0;background:var(--tk-bar);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);border:0;border-bottom:.5px solid var(--tk-separator);box-shadow:none}
 .tkapps[hidden]{display:none}
-.tkapps a{box-sizing:border-box;flex:1 1 0;min-width:0;max-width:180px;height:44px;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:7px;padding:0 6px;border:1px solid var(--tk-border);border-radius:var(--tk-radius);color:var(--tk-foreground);background:var(--tk-card);text-decoration:none;font:600 13px/1.15 var(--tk-font-sans);letter-spacing:.01em;text-align:left}
-.tkapps a svg{flex:none;width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.tkapps a{box-sizing:border-box;flex:1 1 0;min-width:0;max-width:180px;height:40px;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:7px;padding:0 4px;border:2px solid transparent;border-radius:0;color:var(--tk-foreground);background:linear-gradient(var(--tk-fill),var(--tk-fill)) border-box;text-decoration:none;font:500 13px/1.15 var(--tk-font-sans);letter-spacing:-.01em;text-align:left}
+.tkapps a:first-child{border-radius:var(--tk-radius-sm) 0 0 var(--tk-radius-sm)}
+.tkapps a:last-child{border-radius:0 var(--tk-radius-sm) var(--tk-radius-sm) 0}
+.tkapps a svg{flex:none;width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .tkapps a span{display:block;min-width:0}
 .tkapps a b,.tkapps a small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tkapps a b{font-size:13.5px;font-weight:700}
-.tkapps a small{font-size:10.5px;font-weight:500;color:var(--tk-muted-foreground)}
-.tkapps a[aria-current="page"]{background:var(--tk-primary);border-color:var(--tk-primary);color:var(--tk-primary-foreground)}
-.tkapps a[aria-current="page"] small{color:var(--tk-primary-foreground)}
-.tkapps a:focus-visible{outline:2px solid var(--tk-ring);outline-offset:1px}
+.tkapps a b{font-size:13px;font-weight:600}
+.tkapps a small{font-size:10.5px;font-weight:400;color:var(--tk-muted-foreground)}
+.tkapps a[aria-current="page"]{background:linear-gradient(var(--tk-segment),var(--tk-segment)) padding-box,linear-gradient(var(--tk-fill),var(--tk-fill)) border-box;border-radius:var(--tk-radius-sm);box-shadow:var(--tk-segment-shadow)}
+.tkapps a[aria-current="page"] small{color:var(--tk-secondary-label)}
+@media (prefers-color-scheme:dark){.tkapps a[aria-current="page"] small{color:#fff}}
+.tkapps a[aria-current="page"] svg{color:var(--tk-tint)}
+@media (prefers-color-scheme:dark){.tkapps a[aria-current="page"] svg{color:#fff}}
+.tkapps a:focus-visible{outline:2px solid var(--tk-tint);outline-offset:1px}
 @media (max-width:350px){.tkapps a svg{display:none}}
 
-/* ---------- bilah bawah: tiga menu + Menu di kanan bawah ---------- */
-nav.tkdock{position:fixed;left:0;right:0;bottom:0;top:auto;z-index:20;box-sizing:border-box;display:grid;grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:minmax(0,140px);justify-content:center;gap:4px;width:auto;max-width:none;height:auto;margin:0;transform:none;padding:4px max(6px,env(safe-area-inset-right,0px)) calc(4px + env(safe-area-inset-bottom,0px)) max(6px,env(safe-area-inset-left,0px));background:var(--tk-sidebar);-webkit-backdrop-filter:none;backdrop-filter:none;border:0;border-top:1px solid var(--tk-border)}
+/* ---------- tab bar bawah: tiga menu + Menu di kanan bawah ---------- */
+nav.tkdock{position:fixed;left:0;right:0;bottom:0;top:auto;z-index:20;box-sizing:border-box;display:grid;grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:minmax(0,140px);justify-content:center;gap:0;width:auto;max-width:none;height:auto;margin:0;transform:none;padding:2px max(4px,env(safe-area-inset-right,0px)) env(safe-area-inset-bottom,0px) max(4px,env(safe-area-inset-left,0px));background:var(--tk-bar);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);border:0;border-top:.5px solid var(--tk-separator)}
 @media (max-width:620px){nav.tkdock{grid-auto-columns:minmax(0,1fr)}}
 nav.tkdock[hidden]{display:none}
-nav.tkdock>a,nav.tkdock>button{position:relative;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;width:auto;max-width:none;min-width:0;height:auto;min-height:56px;margin:0;padding:4px 2px;border:0;border-radius:var(--tk-radius);background:transparent;color:var(--tk-muted-foreground);font:600 11px/1.2 var(--tk-font-sans);letter-spacing:.01em;text-decoration:none;cursor:pointer;box-shadow:none}
+nav.tkdock>a,nav.tkdock>button{position:relative;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;width:auto;max-width:none;min-width:0;height:auto;min-height:54px;margin:0;padding:4px 2px;border:0;border-radius:var(--tk-radius-sm);background:transparent;color:var(--tk-muted-foreground);font:500 10.5px/1.2 var(--tk-font-sans);letter-spacing:0;text-decoration:none;cursor:pointer;box-shadow:none}
 nav.tkdock>a::before,nav.tkdock>button::before{content:none;display:none}
-nav.tkdock svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;color:inherit}
-nav.tkdock>[aria-current="page"],nav.tkdock>.on{background:var(--tk-primary);color:var(--tk-primary-foreground)}
-nav.tkdock>[aria-current="page"] svg,nav.tkdock>.on svg{color:var(--tk-primary-foreground)}
-nav.tkdock>:focus-visible{outline:2px solid var(--tk-ring);outline-offset:-2px}
+nav.tkdock svg{width:25px;height:25px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;color:inherit}
+nav.tkdock>[aria-current="page"],nav.tkdock>.on{color:var(--tk-tint)}
+nav.tkdock>[aria-current="page"] svg,nav.tkdock>.on svg{color:var(--tk-tint)}
+nav.tkdock>:focus-visible{outline:2px solid var(--tk-tint);outline-offset:-2px}
 
-/* ---------- kepala: logo kiri atas ---------- */
+/* ---------- bilah navigasi: logo kiri atas ---------- */
 .tkhead{position:fixed;left:0;right:0;top:env(safe-area-inset-top,0px);z-index:6;box-sizing:border-box;height:52px;display:flex;align-items:center;gap:10px;padding:0 16px;background:var(--tk-background)}
 body.tk-ada .tkhead{top:calc(var(--tk-h) + env(safe-area-inset-top,0px))}
-.tkhead img{width:32px;height:32px;border-radius:50%;flex:none}
-.tkhead b{font:700 17px/1.2 var(--tk-font-sans)}
+.tkhead img{width:30px;height:30px;border-radius:50%;flex:none}
+.tkhead b{font:600 17px/1.2 var(--tk-font-sans);letter-spacing:-.01em}

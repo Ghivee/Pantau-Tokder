@@ -1,41 +1,44 @@
-/* Tokder memakai tema bersama (tk.css). Dimuat paling akhir: memetakan variabel lama ke token tema. */
+/* Tokder memakai tema bersama (tk.css, gaya Apple). Dimuat paling akhir: memetakan variabel lama ke token tema. */
 :root:root:root{
-  --paper:var(--tk-background);--surface:var(--tk-card);--sunken:var(--tk-secondary);--ink:var(--tk-foreground);--ink-2:var(--tk-secondary-foreground);
-  --muted:var(--tk-muted-foreground);--line:var(--tk-border);--line-2:var(--tk-muted);--leaf:var(--tk-primary);--leaf-ink:var(--tk-primary-foreground);
-  --leaf-soft:var(--tk-accent);--yt-red:var(--tk-primary);--ok:var(--tk-ok);--ok-soft:var(--tk-accent);--warn:var(--tk-warn);--warn-soft:var(--tk-accent);
-  --bad:var(--tk-danger-text);--bad-soft:var(--tk-accent);--chart-grid:var(--tk-border);--shadow:var(--tk-shadow);
+  --paper:var(--tk-background);--surface:var(--tk-card);--sunken:var(--tk-fill);--ink:var(--tk-foreground);--ink-2:var(--tk-secondary-label);
+  --muted:var(--tk-muted-foreground);--line:var(--tk-separator);--line-2:var(--tk-separator);--leaf:var(--tk-tint);--leaf-ink:var(--tk-primary-foreground);
+  --leaf-soft:var(--tk-tint-soft);--yt-red:var(--tk-tint);--ok:var(--tk-ok);--ok-soft:var(--tk-fill);--warn:var(--tk-warn);--warn-soft:var(--tk-fill);
+  --bad:var(--tk-danger);--bad-soft:var(--tk-fill);--chart-grid:var(--tk-separator);--shadow:var(--tk-shadow);
   --ch-1:var(--tk-chart-1);--ch-2:var(--tk-chart-2);--ch-3:var(--tk-chart-3);
-  --s1:var(--tk-chart-1);--s2:var(--tk-chart-2);--s3:var(--tk-chart-3);--s4:var(--tk-chart-4);--s5:var(--tk-chart-5);
-  --font:var(--tk-font-sans);--mono:var(--tk-font-mono);--r:var(--tk-radius);--r-lg:var(--tk-radius);
+  /* Warna avatar dan penanda: versi gelap warna sistem Apple supaya huruf putih terbaca. */
+  --s1:#0055CC;--s2:#A34E00;--s3:#7B3FA0;--s4:#00708F;--s5:#1E7A34;
+  --font:var(--tk-font-sans);--mono:var(--tk-font-mono);--r:var(--tk-radius-sm);--r-lg:var(--tk-radius);
 }
-body{background:var(--tk-background);letter-spacing:.01em}
-body .head h1,body .depan h1,body .masuk-kepala h2{font-family:var(--tk-font-serif);font-weight:700;letter-spacing:0}
-body .card{border:1px solid var(--tk-border);border-radius:var(--tk-radius);box-shadow:var(--tk-shadow)}
-body .btn,body .btn.sm{border-radius:var(--tk-radius);border:1px solid transparent}
-body .btn:not(.primary):not(.ghost){background:var(--tk-secondary);color:var(--tk-secondary-foreground)}
+body{background:var(--tk-background);letter-spacing:-.01em}
+body .head h1{font-size:34px;line-height:1.12;font-weight:700;letter-spacing:-.022em}
+body .card{border:0;border-radius:var(--tk-radius);box-shadow:none}
+body .btn{border:0;border-radius:var(--tk-radius);font-weight:600}
+body .btn.sm{border-radius:var(--tk-radius-sm)}
+body .btn:not(.primary):not(.ghost){background:var(--tk-fill);color:var(--tk-tint)}
 body .btn.primary{background:var(--tk-primary);color:var(--tk-primary-foreground)}
-body .btn.ghost{color:var(--tk-foreground)}
-body .btn.danger{color:var(--tk-danger-text)}
-body .input,body select.input,body textarea.input{background:var(--tk-card);border:1px solid var(--tk-input);border-radius:var(--tk-radius);color:var(--tk-foreground)}
-body .input:focus{outline:2px solid var(--tk-ring)}
-body .seg{background:var(--tk-muted);border-radius:var(--tk-radius)}
-body .seg button{border-radius:calc(var(--tk-radius) - 2px);color:var(--tk-foreground)}
-:root:root body .seg button[aria-pressed="true"]{background:var(--tk-primary);color:var(--tk-primary-foreground);box-shadow:none}
-body .notice,body .pill,body .dialog,body .chk,body .toast,body .kpi,body .app-card{border-radius:var(--tk-radius)}
-body input[type="file"]::file-selector-button{border-radius:var(--tk-radius)}
-body .mono{font-family:var(--tk-font-mono)}
-a{color:inherit}
+body .btn.ghost{color:var(--tk-tint)}
+body .btn.danger{color:var(--tk-danger)}
+body .input,body select.input,body textarea.input{background:var(--tk-fill);border:0;border-radius:var(--tk-radius-sm);color:var(--tk-foreground)}
+body .input:focus{outline:2px solid var(--tk-tint)}
+body .seg{background:var(--tk-fill);border-radius:var(--tk-radius-sm)}
+body .seg button{border-radius:7px;color:var(--tk-foreground)}
+:root:root body .seg button[aria-pressed="true"]{background:var(--tk-segment);color:var(--tk-foreground);box-shadow:var(--tk-segment-shadow)}
+body .notice,body .kpi,body .app-card,body .dialog{border-radius:var(--tk-radius)}
+body .dialog{border-radius:20px}
+body input[type="file"]::file-selector-button{background:var(--tk-primary);color:var(--tk-primary-foreground);border-radius:var(--tk-radius-sm)}
 
-/* Susunan sama di HP dan komputer: bilah aplikasi, logo kiri atas, tiga menu + Menu di kanan bawah. */
+/* Susunan sama di HP dan komputer: pindah aplikasi, logo kiri atas, tiga menu + Menu di kanan bawah. */
 .shell{grid-template-columns:minmax(0,1fr)}
 .main{padding-top:0;padding-bottom:calc(var(--tk-dock) + 32px + env(safe-area-inset-bottom,0px))}
 body.tk-ada{padding-top:calc(var(--tk-h) + env(safe-area-inset-top,0px))}
 body.tk-ada::before{display:none}
 body.tk-ada .shell{min-height:calc(100vh - var(--tk-h) - env(safe-area-inset-top,0px))}
 .shell:not(.publik) .appbar{display:flex;align-items:center;gap:10px;position:sticky;top:calc(var(--tk-h) + env(safe-area-inset-top,0px));z-index:30;box-sizing:border-box;height:52px;margin:0 calc(-1 * max(16px,env(safe-area-inset-right,0px))) 8px calc(-1 * max(16px,env(safe-area-inset-left,0px)));padding:0 16px;background:var(--tk-background);border:0;-webkit-backdrop-filter:none;backdrop-filter:none}
-.appbar img.logo{width:32px;height:32px;border-radius:50%;object-fit:contain}
+.appbar img.logo{width:30px;height:30px;border-radius:50%;object-fit:contain}
 .appbar .ttl{flex:1;min-width:0}
-.appbar .ttl b{display:block;font:700 17px/1.2 var(--tk-font-sans)}
+.appbar .ttl b{display:block;font:600 17px/1.2 var(--tk-font-sans)}
 .appbar .ttl small{display:none}
 .tabbar:empty{display:none}
-.toast{bottom:calc(var(--tk-dock) + 20px + env(safe-area-inset-bottom,0px))}
+.toast{bottom:calc(var(--tk-dock) + 20px + env(safe-area-inset-bottom,0px));border-radius:var(--tk-radius)}
+.step-h .no{background:var(--tk-primary);color:var(--tk-primary-foreground)}
+.ava{color:#fff}
