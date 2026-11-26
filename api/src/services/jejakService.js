@@ -146,6 +146,8 @@ function rencanakan(req, res) {
     return { jenis: 'gagal', aksi: 'dibatasi_laju', hasil: 'gagal', metodeHttp: metode, rute, status, tuju: 'dibatasi', detail: { alasan_singkat: 'Terlalu banyak percobaan masuk dari satu IP; diblokir pembatas laju' } };
   }
   const masuk = !!(req.isAdmin || req.editor);
+  // Aplikasi memanggil /api/bootstrap sendiri setiap halaman dibuka; tanpa sesi (pengunjung, sesi habis, robot) jawabannya 401 dan itu wajar.
+  if (!masuk && rute === '/api/bootstrap') return null;
   const ditolak = status === 401 || status === 403 || status === 429;
   if (!masuk) {
     // Permintaan tanpa login yang ditolak dicatat paling banyak sekali per menit per IP (anti-banjir).

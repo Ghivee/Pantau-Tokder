@@ -36,7 +36,7 @@ export async function loginDialog(tab = 'karyawan', buka = false) {
   }
   const sso = await ssoInfo();
   openDialog(`
-      <h2>Masuk</h2>
+      <div class="masuk-kepala"><img src="/logo.svg" alt="" width="52" height="52"><h2>Masuk ke Tokder</h2></div>
       ${sso.aktif ? '<button type="button" class="btn primary" data-act="sso-master" data-url="' + esc(sso.masterUrl) + '" style="width:100%">Masuk dengan Akun Tokder</button><p class="muted" style="text-align:center;margin:8px 0 14px">Satu akun untuk Tokder, Master, dan Telprom.</p>' : ''}
       <p class="muted" style="text-align:center;margin:0 0 10px;font-size:12px">Waktu masuk dan perangkat dicatat demi keamanan.</p>
       ${sso.aktif ? `<details class="login-cadangan"${buka ? ' open' : ''}><summary>Masuk cadangan (PIN atau password Tokder)</summary>` : ''}

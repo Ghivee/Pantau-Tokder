@@ -192,3 +192,11 @@ test('skor dibatasi 100, tingkat sesuai ambang, dan setiap aturan punya bobot da
   const parah = nilai({ e: { jenis: 'gagal', hasil: 'gagal', tipe: 'tamu', status: 403 }, info: P.infoPermintaan({ headers: {} }, '1.2.3.4'), kantor: false, riwayat: { gagalIp: 9, gagalAkun: 9, ditolak5m: 50, aksiPerMenit: 500, akunSamaIp: 9 }, sekarang: SIANG });
   assert.ok(parah.risiko <= 100); assert.equal(parah.tingkat, 'tinggi');
 });
+
+test('robot tanpa login hanya bernilai rendah; robot yang sudah masuk sebagai orang tetap peringatan', () => {
+  const bot = P.infoPermintaan({ headers: { 'user-agent': UA.headless } }, '1.1.1.1');
+  const tamu = nilai({ e: { jenis: 'interaksi', hasil: 'gagal', tipe: 'tamu', status: 401 }, info: bot, kantor: false, riwayat: {}, sekarang: SIANG });
+  assert.deepStrictEqual([tamu.risiko, tamu.tingkat], [5, 'normal'], 'dicatat tetapi tidak naik jadi peringatan');
+  const orang = nilai({ e: { jenis: 'masuk', hasil: 'ok', tipe: 'karyawan' }, info: bot, kantor: false, riwayat: {}, sekarang: SIANG });
+  assert.ok(orang.risiko >= 30, 'orang yang login lewat alat otomatis tetap diberi peringatan');
+});

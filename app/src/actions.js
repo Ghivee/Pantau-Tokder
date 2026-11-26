@@ -233,6 +233,8 @@ document.addEventListener('click', async (ev) => {
   if (act.startsWith('jejak-')) { await aksiJejak(act, el); return; }
   switch (act) {
     case 'login': closeOverlay(); loginDialog(); break;
+    case 'masuk-akun': { const sso = await ssoInfo(); if (sso.aktif) masukDenganMaster(sso.masterUrl); else loginDialog(); break; }
+    case 'masuk-cadangan': loginDialog('karyawan', true); break;
     case 'lainnya': moreSheet(); break;
     case 'logout':
       closeOverlay();

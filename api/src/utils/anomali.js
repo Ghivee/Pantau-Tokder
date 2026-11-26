@@ -37,7 +37,8 @@ function nilai({ e, info, kantor, riwayat = {}, sekarang = new Date() }) {
   const pernah = r.masuk >= 1;
   const login = e.jenis === 'masuk' && e.hasil === 'ok';
 
-  if (info.otomatis) tambah('perangkat_otomatis', info.perangkat === 'kosong' ? 'Permintaan tanpa identitas perangkat (user agent kosong).' : `Permintaan berasal dari alat otomatis (${info.browser}), bukan browser biasa.`);
+  // Robot atau skrip yang hanya mengetuk tanpa login (mesin pencari, peninjau, pemantau) tidak perlu jadi peringatan; hanya dicatat.
+  if (info.otomatis) tambah('perangkat_otomatis', info.perangkat === 'kosong' ? 'Permintaan tanpa identitas perangkat (user agent kosong).' : `Permintaan berasal dari alat otomatis (${info.browser}), bukan browser biasa.`, e.tipe === 'tamu' ? 5 : undefined);
 
   if (login) {
     if (pernah && info.sidik && !r.sidik.includes(info.sidik)) tambah('perangkat_baru', `Perangkat belum pernah dipakai akun ini (${info.browser} di ${info.os}${info.model ? ', ' + info.model : ''}).`);
