@@ -62,6 +62,7 @@ test('verifikasi: token valid membaca peran dari profiles memakai token yang sam
     const r = await sso.verifikasi(TOKEN);
     assert.deepStrictEqual(r, { id: 'u1', email: 'via@master.app', role: 'staff', staff: 'via', name: 'Via' });
     assert.ok(p.every(([, h]) => h.Authorization === 'Bearer ' + TOKEN));
+    assert.match(p[1][0], /[?&]id=eq\.u1(&|$)/, 'profil difilter ke id pengguna sendiri');
   } finally { global.fetch = asli; }
 });
 
