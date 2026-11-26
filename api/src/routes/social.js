@@ -11,7 +11,7 @@ const { escapeHtml } = require('../utils/html');
 
 const COOKIE = 'pt_sosmed';
 const secure = () => (process.env.VERCEL || process.env.NODE_ENV === 'production' ? '; Secure' : '');
-const base = (req) => (process.env.PUBLIC_URL || `${req.headers['x-forwarded-proto'] || 'https'}://${req.headers.host || 'pantautokder.vercel.app'}`).replace(/\/+$/, '');
+const base = (req) => (process.env.PUBLIC_URL || `${req.headers['x-forwarded-proto'] || 'https'}://${req.headers.host || 'tokder.vercel.app'}`).replace(/\/+$/, '');
 // Register exactly this address as the redirect URI in the TikTok and Meta developer portals.
 const redirectUri = (req) => base(req) + '/api/social/callback';
 

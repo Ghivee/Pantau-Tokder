@@ -28,7 +28,7 @@ Pantau Tokder memantau kerja harian tim konten di tiga channel: **Tokder**, **Bu
 
 Semua menu hanya bisa dibuka setelah **masuk** (pemilik atau karyawan). Sebelum masuk, website hanya menampilkan tombol Masuk.
 
-Setiap menu punya alamatnya sendiri tanpa tanda `#`, misalnya `pantautokder.vercel.app/presensi`, `/harian` atau `/pengaturan`. Alamat lama yang memakai `#` (misalnya `/#presensi`) otomatis dialihkan ke alamat baru, jadi bookmark lama tetap jalan.
+Setiap menu punya alamatnya sendiri tanpa tanda `#`, misalnya `tokder.vercel.app/presensi`, `/harian` atau `/pengaturan`. Alamat lama yang memakai `#` (misalnya `/#presensi`) otomatis dialihkan ke alamat baru, jadi bookmark lama tetap jalan.
 
 Semua angka berasal dari data asli: YouTube Data API, YouTube Analytics, dan catatan karyawan. Tidak ada data contoh atau perkiraan. Kalau sebuah angka belum tersedia, aplikasi menampilkan "—" atau "Belum ada data" beserta alasannya. Kalau server tidak bisa dihubungi, muncul pesan error dengan tombol **Coba lagi**.
 
@@ -283,7 +283,7 @@ Topik ditebak dari kata di judul, misalnya "harga", "thrips", "pupuk" atau "sema
 ## Halaman hukum dan verifikasi TikTok/Meta
 
 - `assets/privacy.html`, `assets/terms.html`, `assets/data-deletion.html` tampil tanpa login di `/privacy.html`, `/terms.html`, `/data-deletion.html` (Indonesia + English). Ini yang didaftarkan sebagai Privacy Policy URL, Terms of Service URL, dan Data Deletion URL di TikTok for Developers dan Meta for Developers. Tautannya juga ada di bawah menu samping.
-- `assets/tiktok….txt` adalah berkas verifikasi kepemilikan URL dari TikTok; harus tetap bisa dibuka di `https://pantautokder.vercel.app/<nama-berkas>.txt`. Jangan dihapus atau diganti isinya.
+- `assets/tiktok….txt` adalah berkas verifikasi kepemilikan URL dari TikTok; harus tetap bisa dibuka di `https://tokder.vercel.app/<nama-berkas>.txt`. Jangan dihapus atau diganti isinya.
 - Bila fitur baru mengumpulkan data baru (mis. sambungan TikTok/Meta sungguhan), perbarui `privacy.html` bagian 1 dan 3.
 
 ## Sosmed: TikTok, Instagram, Facebook

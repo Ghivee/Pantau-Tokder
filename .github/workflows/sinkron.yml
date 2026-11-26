@@ -17,6 +17,7 @@ jobs:
         run: |
           auth=()
           if [ -n "$CRON_SECRET" ]; then auth=(-H "Authorization: Bearer $CRON_SECRET"); fi
-          code=$(curl -sS -o hasil.json -w '%{http_code}' --max-time 150 "${auth[@]}" https://pantautokder.vercel.app/api/scan/cron)
+          code=$(curl -sS -o hasil.json -w '%{http_code}' --max-time 150 "${auth[@]}" https://tokder.vercel.app/api/scan/cron)
           cat hasil.json; echo
-          test "$code" -lt 500
+          # 404 atau galat lain harus terlihat gagal; 429 berarti baru saja disinkronkan.
+          test "$code" -lt 400 || test "$code" = 429

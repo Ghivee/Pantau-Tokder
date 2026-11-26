@@ -25,7 +25,7 @@ const secure = () => (process.env.VERCEL || process.env.NODE_ENV === 'production
 
 function redirectUri(req) {
   const protocol = req.headers['x-forwarded-proto'] || 'https';
-  const host = req.headers.host || 'pantautokder.vercel.app';
+  const host = req.headers.host || 'tokder.vercel.app';
   return `${protocol}://${host}/api/auth/callback`;
 }
 

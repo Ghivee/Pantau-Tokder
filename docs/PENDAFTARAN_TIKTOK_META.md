@@ -2,20 +2,20 @@
 
 Kode integrasinya sudah ada (menu **Sosmed**). Yang tersisa adalah mendaftarkan app di portal masing-masing dan mengisi kunci di Vercel. Ikuti urutan ini.
 
-Alamat dasar di bawah memakai `https://pantautokder.vercel.app`. Kalau nanti pindah ke domain sendiri, ganti semua alamat, isi variabel `PUBLIC_URL` di Vercel dengan domain baru, dan daftarkan ulang berkas verifikasi TikTok.
+Alamat dasar di bawah memakai `https://tokder.vercel.app`. Kalau nanti pindah ke domain sendiri, ganti semua alamat, isi variabel `PUBLIC_URL` di Vercel dengan domain baru, dan daftarkan ulang berkas verifikasi TikTok.
 
 ## Alamat yang sama di semua portal
 
 | Isian | Nilai |
 |---|---|
-| Redirect URI (OAuth) | `https://pantautokder.vercel.app/api/social/callback` |
-| Privacy Policy URL | `https://pantautokder.vercel.app/privacy.html` |
-| Terms of Service URL | `https://pantautokder.vercel.app/terms.html` |
-| Data Deletion Instructions URL | `https://pantautokder.vercel.app/data-deletion.html` |
-| Data Deletion Request Callback URL (Meta) | `https://pantautokder.vercel.app/api/social/meta/data-deletion` |
-| Deauthorize Callback URL (Meta) | `https://pantautokder.vercel.app/api/social/meta/deauthorize` |
+| Redirect URI (OAuth) | `https://tokder.vercel.app/api/social/callback` |
+| Privacy Policy URL | `https://tokder.vercel.app/privacy.html` |
+| Terms of Service URL | `https://tokder.vercel.app/terms.html` |
+| Data Deletion Instructions URL | `https://tokder.vercel.app/data-deletion.html` |
+| Data Deletion Request Callback URL (Meta) | `https://tokder.vercel.app/api/social/meta/data-deletion` |
+| Deauthorize Callback URL (Meta) | `https://tokder.vercel.app/api/social/meta/deauthorize` |
 | Ikon | `docs/ikon-app/ikon-app-1024x1024.png` (1024×1024, sudah disiapkan di repo) |
-| URL situs / Web URL | `https://pantautokder.vercel.app` (halaman depan publik menjelaskan app dan menaut ke Privacy, Terms, Hapus data) |
+| URL situs / Web URL | `https://tokder.vercel.app` (halaman depan publik menjelaskan app dan menaut ke Privacy, Terms, Hapus data) |
 | Email kontak | `tokodeeres@gmail.com` |
 
 ## A. TikTok (developers.tiktok.com)
@@ -23,9 +23,9 @@ Alamat dasar di bawah memakai `https://pantautokder.vercel.app`. Kalau nanti pin
 1. Daftar/login → **Manage apps → Connect an app**. Tipe: organisasi atau perorangan sesuai kenyataan.
 2. Isi nama (jangan memuat kata "TikTok"), ikon, kategori *Business/Productivity*, deskripsi (di bawah), URL Privacy dan Terms.
 3. **Add products**: *Login Kit*, *Display API*, dan *Content Posting API* (hanya mode upload ke inbox/draf; jangan minta direct post).
-4. **Login Kit → Redirect URI**: alamat di tabel. Platform: *Web*, URL situs `https://pantautokder.vercel.app`.
+4. **Login Kit → Redirect URI**: alamat di tabel. Platform: *Web*, URL situs `https://tokder.vercel.app`.
 5. **Scopes** (empat, persis seperti di kode): `user.info.basic`, `user.info.stats`, `video.list`, `video.upload`. Jangan minta `video.publish`: itu butuh audit TikTok.
-6. **URL properties → URL prefix** `https://pantautokder.vercel.app/`, verifikasi memakai berkas `tiktokjd9X….txt` yang sudah ada di situs. Buka URL berkasnya di browser dulu, baru klik Verify.
+6. **URL properties → URL prefix** `https://tokder.vercel.app/`, verifikasi memakai berkas `tiktokjd9X….txt` yang sudah ada di situs. Buka URL berkasnya di browser dulu, baru klik Verify.
 7. Di mode **Sandbox**: tambahkan akun TikTok channel Anda sebagai *target user*, lalu uji Hubungkan di menu Sosmed.
 8. Salin **Client key** dan **Client secret** ke Vercel: `TIKTOK_CLIENT_KEY`, `TIKTOK_CLIENT_SECRET`. Deploy ulang.
 9. Rekam demo video (lihat bagian D), lalu **Submit for review** dengan penjelasan per scope.
@@ -42,7 +42,7 @@ Penjelasan per scope (kolom review):
 ## B. Instagram (developers.facebook.com)
 
 1. **Create app** → tipe *Business* (atau *Other → Business*). Tambahkan produk **Instagram → API setup with Instagram login**.
-2. **App settings → Basic**: ikon, Privacy Policy URL, Terms of Service URL, kategori, **App Domains** `pantautokder.vercel.app`, **User data deletion**: pilih *Data deletion request URL* = alamat callback di tabel (atau *Instruction URL* = `data-deletion.html`).
+2. **App settings → Basic**: ikon, Privacy Policy URL, Terms of Service URL, kategori, **App Domains** `tokder.vercel.app`, **User data deletion**: pilih *Data deletion request URL* = alamat callback di tabel (atau *Instruction URL* = `data-deletion.html`).
 3. Instagram → **Business login settings**: Redirect URL = alamat di tabel; Deauthorize dan Data deletion callback = alamat di tabel.
 4. Izin yang diminta kode untuk Instagram: `instagram_business_basic`, `instagram_business_manage_insights`, `instagram_business_content_publish`. Pastikan ketiganya aktif di *API setup with Instagram login*.
 5. **App roles**: tambahkan akun Facebook Anda sebagai Admin, dan untuk tiap akun Instagram channel: **Instagram Testers** (Roles → Instagram Testers), lalu terima undangannya di Instagram (Setelan → Apps and websites → Tester invites).
@@ -63,7 +63,7 @@ Penjelasan per scope (kolom review):
 
 ## D. Demo video untuk review (3–4 menit, Inggris, 1080p)
 
-1. Tampilkan alamat `pantautokder.vercel.app` di bilah browser. Masuk sebagai pemilik.
+1. Tampilkan alamat `tokder.vercel.app` di bilah browser. Masuk sebagai pemilik.
 2. Buka menu **Sosmed**, klik **Hubungkan** pada platform yang direview.
 3. Tampilkan layar izin TikTok/Meta secara utuh dengan daftar izinnya (jangan di-skip), setujui.
 4. Kembali ke app: tunjukkan nama akun, pengikut, tabel posting dengan views/suka/komentar. Sebut tiap scope dan di layar mana datanya dipakai.
