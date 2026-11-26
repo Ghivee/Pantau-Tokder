@@ -11,7 +11,7 @@ const { createAuditMiddleware } = require('../utils/auditLog');
 const { requireIzin, bisa } = require('../utils/izin');
 const { susunDeskripsi } = require('../utils/deskripsi');
 
-const base = (req) => (process.env.PUBLIC_URL || `${req.headers['x-forwarded-proto'] || 'https'}://${req.headers.host || 'pantautokder.vercel.app'}`).replace(/\/+$/, '');
+const base = (req) => (process.env.PUBLIC_URL || `${req.headers['x-forwarded-proto'] || 'https'}://${req.headers.host || 'tokder.vercel.app'}`).replace(/\/+$/, '');
 const idOf = (req) => { if (!/^\d+$/.test(req.params.id)) throw bad(400, 'Posting tidak dikenal'); return Number(req.params.id); };
 
 // Video dari karyawan membawa kodenya di deskripsi (mis. #AL), supaya sinkronisasi mengenali pembuatnya.

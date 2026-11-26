@@ -1,7 +1,7 @@
 // Dijalankan oleh GitHub Actions (.github/workflows/posting-youtube.yml), bukan oleh Vercel:
 // mengambil antrean unggahan YouTube dari Pantau Tokder, memindahkan videonya dari Vercel Blob ke
 // YouTube (resumable upload, status privat), lalu melapor balik. Butuh CRON_SECRET yang sama dengan di Vercel.
-const BASE = (process.env.APP_URL || 'https://pantautokder.vercel.app').replace(/\/+$/, '');
+const BASE = (process.env.APP_URL || 'https://tokder.vercel.app').replace(/\/+$/, '');
 const SECRET = process.env.CRON_SECRET;
 const auth = { Authorization: `Bearer ${SECRET}` };
 
