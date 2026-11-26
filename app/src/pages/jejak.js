@@ -159,7 +159,7 @@ PAGES.jejak = function () {
   const n = J.ring ? J.ring.peringatan : 0;
   const tabs = [['peringatan', 'Peringatan' + (n ? ` (${n})` : '')], ['pengguna', 'Pengguna'], ['riwayat', 'Riwayat'], ['sesi', 'Sesi aktif']];
   return `<header class="head"><div><h1>Jejak</h1><p>Siapa masuk, dari mana, dengan perangkat apa, dan apa yang dilakukan. Hanya pemilik yang melihat halaman ini.</p></div>
-      <div class="tools"><button class="btn" data-act="jejak-sinkron">Sinkronkan Master</button></div></header>
+      <div class="tools"><a class="btn ghost" href="/pengaturan">‹ Pengaturan</a><button class="btn" data-act="jejak-sinkron">Sinkronkan Master</button></div></header>
     <div class="seg" role="group" aria-label="Bagian">${tabs.map(([k, l]) => `<button data-act="jejak-tab" data-v="${k}" aria-pressed="${J.tab === k}">${l}</button>`).join('')}</div>
     ${J.galat ? `<div class="notice" role="alert"><span>${esc(J.galat)}</span></div>` : ''}
     <div class="stack-page">${J.tab === 'peringatan' ? tabPeringatan() : J.tab === 'pengguna' ? tabPengguna() : J.tab === 'riwayat' ? tabRiwayat() : tabSesi()}</div>`;

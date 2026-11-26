@@ -15,7 +15,7 @@ PAGES.pengaturan = function () {
     const item = (ok, title, desc, action = '') => `<div class="ck"><span class="st ${ok ? 'ok' : 'bad'}">${ok ? '✓' : '!'}</span><div><b>${title}</b><div>${desc}</div></div>${action}</div>`;
     return `
         <header class="head"><div><h1>Pengaturan</h1><p>Sambungan data, sinkronisasi video dan keamanan.</p></div>
-          <div class="tools"><button class="btn primary" data-act="sync">${icon('sync')}Sinkronkan sekarang</button></div></header>
+          <div class="tools"><a class="btn" href="/jejak">${icon('shield')}Jejak</a><button class="btn primary" data-act="sync">${icon('sync')}Sinkronkan sekarang</button></div></header>
         ${notifCard()}
         <div class="grid-2">
           <section class="card"><div class="card-h"><h2>Sambungan</h2><p>${last ? 'Sinkronisasi terakhir ' + new Date(last.waktu_scan || last.created_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) + ' · ' + (last.jumlah_post_baru ?? 0) + ' video baru' : 'Belum ada catatan sinkronisasi.'}</p></div>

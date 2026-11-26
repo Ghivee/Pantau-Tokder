@@ -258,15 +258,6 @@ document.addEventListener('click', async (ev) => {
       navigate('/'); bukaTirai(); umumkanKeluar(); break;
     }
     case 'retry': S.error = null; $('#page').innerHTML = '<div class="skeleton" style="height:320px"></div>'; await load(); break;
-    case 'theme': {
-      closeOverlay();
-      const cur = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-      const next = cur === 'dark' ? 'light' : 'dark';
-      document.documentElement.dataset.theme = next;
-      try { localStorage.setItem('pt_theme', next); } catch (e) { /* storage off */ }
-      render();
-      break;
-    }
     case 'periode': S.periode = +el.dataset.v; render(); break;
     case 'hari': { const d = addDays(S.day, +el.dataset.v); if (d <= today()) { S.day = d; render(); } break; }
     case 'hari-ini': S.day = today(); render(); break;

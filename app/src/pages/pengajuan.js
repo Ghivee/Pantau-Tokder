@@ -30,7 +30,7 @@ function pengajuanRow(p, owner) {
 
 PAGES.pengajuan = function () {
   const P = S.pengajuan;
-  const head = (p, tools = '') => `<header class="head"><div><h1>Izin & klaim</h1><p>${p}</p></div><div class="tools">${tools}${bantuan('pengajuan')}</div></header>`;
+  const head = (p, tools = '') => `<header class="head"><div><h1>Izin & klaim</h1><p>${p}</p></div><div class="tools"><a class="btn ghost" href="/presensi">‹ Presensi</a>${tools}${bantuan('pengajuan')}</div></header>`;
   if (!P) return head('Data izin dan klaim belum termuat.', '<button class="btn" data-act="retry">Coba lagi</button>');
   const owner = isAdmin();
   const th = `<thead><tr>${owner ? '<th>Karyawan</th>' : ''}<th>Jenis</th><th>Tanggal</th><th>Keterangan</th><th>Status</th><th></th></tr></thead>`;

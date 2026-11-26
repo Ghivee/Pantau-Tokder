@@ -1,7 +1,7 @@
 import { JADWAL_BAWAAN, jamKerja, kalender, ketLibur } from '../core/calendar.js';
 import { activeEditors, api, editorById } from '../core/data.js';
 import { AFTER, PAGES } from '../core/registry.js';
-import { route } from '../core/router.js';
+import { badgeOf, route } from '../core/router.js';
 import { S, isAdmin, me } from '../core/state.js';
 import { $, $$, esc } from '../lib/dom.js';
 import { HARI, WIB, addDays, nf, sum, tglPanjang, tglPendek, toMin, today } from '../lib/format.js';
@@ -70,6 +70,9 @@ export function ipBaruCard() {
       <div class="tools"><button class="btn primary" data-act="ip-baru" data-ip="${esc(k.ip)}" data-ganti="1">Ganti IP lama dengan ini</button><button class="btn" data-act="ip-baru" data-ip="${esc(k.ip)}">Tambahkan saja</button><button class="btn ghost" data-act="ip-abaikan" data-ip="${esc(k.ip)}">Bukan kantor</button></div></section>`;
 }
 
+// Izin & klaim tidak ada di menu; dibuka dari sini.
+const tombolIzin = () => `<a class="btn" href="/pengajuan">Izin & klaim${badgeOf('pengajuan') ? ` <span class="pill warn">${badgeOf('pengajuan')}</span>` : ''}</a>`;
+
 function presensiPage() {
   const P = S.presensi;
   if (!P) {
@@ -87,7 +90,7 @@ function presensiPage() {
     const h = hariPresensi(P.rows, who.id, today());
     const days = [...new Set(P.rows.map((r) => r.tanggal))].sort().reverse();
     return `
-        <header class="head"><div><h1>Presensi</h1><p><span class="muted">${tglPanjang(today())}.</span> ${h.pulang ? 'Absen hari ini sudah lengkap.' : h.masuk ? 'Sudah absen masuk. Jangan lupa absen pulang.' : 'Belum absen masuk hari ini.'}</p></div><div class="tools">${bantuan('presensi')}</div></header>
+        <header class="head"><div><h1>Presensi</h1><p><span class="muted">${tglPanjang(today())}.</span> ${h.pulang ? 'Absen hari ini sudah lengkap.' : h.masuk ? 'Sudah absen masuk. Jangan lupa absen pulang.' : 'Belum absen masuk hari ini.'}</p></div><div class="tools">${tombolIzin()}${bantuan('presensi')}</div></header>
         ${!cfg.siap ? '<div class="notice m-0 mw-none" role="status"><b>Presensi belum diatur.</b> Pemilik perlu mengisi lokasi kantor dan IP Wi-Fi kantor dulu.</div>' : ''}
         <section class="kpis">
           <div class="kpi"><span class="l">Masuk</span><span class="v mono">${jamWib(h.masuk && h.masuk.waktu)}</span><span class="d">${jh ? 'jadwal ' + esc(jh.masuk) : 'libur: ' + esc(ketLibur(today()))}</span></div>
@@ -114,7 +117,7 @@ function presensiPage() {
   const telat = eds.filter((e) => (hariPresensi(P.rows, e.id, today()).masuk || {}).telat_menit > 0).length;
   const ditolakHariIni = P.ditolak.filter((x) => waktuWib(x.waktu).startsWith(tglPendek(today()) + ' ')).length;
   return `
-      <header class="head"><div><h1>Presensi</h1><p><span class="muted">${tglPanjang(today())}.</span> <b>${hadir}</b> dari ${eds.length} karyawan sudah absen masuk${telat ? `, <b>${telat}</b> telat` : ''}.</p></div><div class="tools">${bantuan('presensi')}</div></header>
+      <header class="head"><div><h1>Presensi</h1><p><span class="muted">${tglPanjang(today())}.</span> <b>${hadir}</b> dari ${eds.length} karyawan sudah absen masuk${telat ? `, <b>${telat}</b> telat` : ''}.</p></div><div class="tools">${tombolIzin()}${bantuan('presensi')}</div></header>
       ${!cfg.siap ? '<div class="notice m-0 mw-none" role="status"><b>Presensi belum bisa dipakai.</b> Isi lokasi kantor dan IP Wi-Fi kantor di kartu Aturan presensi.</div>' : ''}
       ${ipBaruCard()}
       <section class="kpis">

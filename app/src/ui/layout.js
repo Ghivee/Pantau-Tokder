@@ -10,22 +10,15 @@ import { pingHalaman } from '../core/jejak.js';
 import { ssoInfo } from '../core/sso.js';
 import { renderApps } from './tkapps.js';
 
-// Selalu di kiri bawah menu samping.
-const BAWAH = ['pengaturan', 'akun'];
-const tautanMenu = (r, cur) => `<a href="${pathOf(r.id)}" ${r.id === cur ? 'aria-current="page"' : ''}>${icon(r.icon)}<span>${routeLabel(r)}</span>${badgeOf(r.id) ? `<span class="count">${badgeOf(r.id)}</span>` : ''}</a>`;
+// Halaman yang dibuka lewat tombol di halaman induknya; induknya yang tetap disorot.
+const INDUK = { pengajuan: 'presensi' };
 
 export function renderNav() {
   renderApps();
   const cur = route();
   // Sebelum masuk hanya halaman depan yang tampil: tanpa sidebar dan bilah atas.
   document.querySelector('.shell').classList.toggle('publik', !S.session);
-  const grup = S.session ? menuGroups().map((g) => ({ label: g.label, list: g.ids.map((id) => ROUTES.find((x) => x.id === id)).filter(bisaBuka) })) : [];
-  const atas = grup.map((g) => ({ label: g.label, list: g.list.filter((r) => !BAWAH.includes(r.id)) })).filter((g) => g.list.length);
-  const bawah = BAWAH.flatMap((id) => grup.flatMap((g) => g.list).filter((r) => r.id === id));
-  $('#nav').innerHTML = atas.map((g) => (atas.length > 1 ? `<div class="nav-label" role="presentation">${g.label}</div>` : '') + g.list.map((r) => tautanMenu(r, cur)).join('')).join('');
   const who = me();
-  const theme = document.documentElement.dataset.theme;
-  const dark = theme ? theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
   const last = lastScanAt();
   const freshText = syncing ? 'Memperbarui data YouTube…' : last ? 'YouTube diperbarui ' + agoText(last) : 'Belum pernah sinkron';
   const who2 = me();
@@ -34,19 +27,10 @@ export function renderNav() {
       <div class="ttl"><b>Tokder</b><small>${last || syncing ? '<span class="dot"></span>' : ''}${freshText}</small></div>
       ${S.session ? '' : '<button class="btn sm primary" data-act="login" style="border-radius:9px;padding:0 14px">Masuk</button>'}`;
   const tabs = TABS();
-  const moreActive = !tabs.includes(cur);
+  const moreActive = !tabs.includes(INDUK[cur] || cur);
   const sisa = sum(ROUTES.filter((r) => !tabs.includes(r.id) && bisaBuka(r) && menuGroups().some((g) => g.ids.includes(r.id))), (r) => badgeOf(r.id));
-  $('#tabbar').innerHTML = !S.session ? '' : `<button data-act="lainnya" ${moreActive ? 'aria-current="page"' : ''}>${icon('menu')}<span>Menu</span>${sisa ? `<span class="count">${sisa > 99 ? '99+' : sisa}</span>` : ''}</button>` +
-    tabs.map((id) => { const r = ROUTES.find((x) => x.id === id); return `<a href="${pathOf(id)}" ${id === cur ? 'aria-current="page"' : ''}>${icon(r.icon)}<span>${r.short || routeLabel(r)}</span>${badgeOf(id) ? `<span class="count">${badgeOf(id) > 99 ? '99+' : badgeOf(id)}</span>` : ''}</a>`; }).join('');
-  $('#side-foot').innerHTML = `
-      ${bawah.length ? `<nav class="nav nav-bawah" id="nav-bawah" aria-label="Pengaturan dan akun">${bawah.map((r) => tautanMenu(r, cur)).join('')}</nav>` : ''}
-      <div class="fresh" title="Data YouTube ditarik otomatis tiap 15 menit selama aplikasi terbuka">${last || syncing ? `<span class="dot${syncing ? ' live' : ''}"></span>` : ''}${freshText}</div>
-      ${S.session ? `<div class="who">${who ? avatar(who, 'sm') : '<span class="ava sm" style="background:var(--ink);color:var(--paper)">P</span>'}<div class="t"><b>${who ? esc(who.nama) : 'Pemilik'}</b><small>${who ? peranLabel(who.peran) : 'Akses penuh'}</small></div></div>` : ''}
-      <div class="side-actions">
-        ${S.session ? `<button class="btn sm ghost" data-act="logout">${icon('out')}Keluar</button>` : `<button class="btn sm primary" data-act="login">Masuk</button>`}
-        <button class="btn sm ghost icon" data-act="theme" aria-label="${dark ? 'Mode terang' : 'Mode gelap'}">${icon(dark ? 'sun' : 'moon')}</button>
-      </div>
-      <div class="legal"><a href="/privacy.html" target="_blank" rel="noopener">Privasi</a> · <a href="/terms.html" target="_blank" rel="noopener">Syarat</a> · <a href="/data-deletion.html" target="_blank" rel="noopener">Hapus data</a></div>`;
+  $('#tabbar').innerHTML = !S.session ? '' : tabs.map((id) => { const r = ROUTES.find((x) => x.id === id); return `<a href="${pathOf(id)}" ${id === (INDUK[cur] || cur) ? 'aria-current="page"' : ''}>${icon(r.icon)}<span>${r.short || routeLabel(r)}</span>${badgeOf(id) ? `<span class="count">${badgeOf(id) > 99 ? '99+' : badgeOf(id)}</span>` : ''}</a>`; }).join('') +
+    `<button data-act="lainnya" ${moreActive ? 'aria-current="page"' : ''}>${icon('menu')}<span>Menu</span>${sisa ? `<span class="count">${sisa > 99 ? '99+' : sisa}</span>` : ''}</button>`;
   $('#notice').innerHTML = S.offline && S.session && !S.error
     ? `<div class="notice" role="status"><b>Tanpa koneksi.</b> Menampilkan data tersimpan jam ${new Date(S.offline + WIB).toISOString().slice(11, 16)} WIB. <button class="btn sm ghost" data-act="retry">Coba lagi</button></div>`
     : S.warnings.length && !S.error
