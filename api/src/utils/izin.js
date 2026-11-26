@@ -13,10 +13,10 @@ const KATALOG = [
   ] },
   { grup: 'Web yang boleh dibuka', butir: [
     { k: 'web_pantau', nama: 'Tokder' },
-    { k: 'web_master', nama: 'Master' },
+    { k: 'web_master', nama: 'Office' },
     { k: 'web_telprom', nama: 'Telprom' },
   ] },
-  { grup: 'Di dalam Master', butir: [
+  { grup: 'Di dalam Office', butir: [
     { k: 'master_order_lihat', nama: 'Melihat order' },
     { k: 'master_order_unggah', nama: 'Mengunggah dan mencatat order' },
     { k: 'master_konten_lihat', nama: 'Melihat konten' },

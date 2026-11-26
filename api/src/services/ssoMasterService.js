@@ -21,19 +21,19 @@ function urlDariEnv(nama) {
 
 // Memverifikasi token ke Supabase. Mengembalikan { id, email, role, staff, name } atau melempar galat berstatus.
 async function verifikasi(token) {
-  if (!aktif()) throw Object.assign(new Error('Masuk dengan Master belum diatur'), { status: 503 });
+  if (!aktif()) throw Object.assign(new Error('Masuk dengan Office belum diatur'), { status: 503 });
   if (!TOKEN_OK.test(String(token || ''))) throw Object.assign(new Error('Token tidak valid'), { status: 400 });
   const h = { apikey: KEY_ENV(), Authorization: 'Bearer ' + token };
   const u = await fetch(URL_ENV() + '/auth/v1/user', { headers: h });
-  if (u.status === 401 || u.status === 403) throw Object.assign(new Error('Sesi Master tidak berlaku. Masuk ulang di Master.'), { status: 401 });
-  if (!u.ok) throw Object.assign(new Error('Master belum bisa dihubungi'), { status: 502 });
+  if (u.status === 401 || u.status === 403) throw Object.assign(new Error('Sesi Office tidak berlaku. Masuk ulang di Office.'), { status: 401 });
+  if (!u.ok) throw Object.assign(new Error('Office belum bisa dihubungi'), { status: 502 });
   const user = await u.json();
-  if (!user || !user.id || !/@master\.app$/i.test(String(user.email || ''))) throw Object.assign(new Error('Akun ini bukan akun Master'), { status: 403 });
+  if (!user || !user.id || !/@master\.app$/i.test(String(user.email || ''))) throw Object.assign(new Error('Akun ini bukan akun Office'), { status: 403 });
   // id=eq. eksplisit: RLS sudah membatasi ke baris sendiri, tapi jangan bergantung pada itu saja.
   const p = await fetch(URL_ENV() + '/rest/v1/profiles?select=role,staff,name&id=eq.' + encodeURIComponent(user.id) + '&limit=1', { headers: h });
-  if (!p.ok) throw Object.assign(new Error('Peran akun belum bisa dibaca dari Master'), { status: 502 });
+  if (!p.ok) throw Object.assign(new Error('Peran akun belum bisa dibaca dari Office'), { status: 502 });
   const row = (await p.json())[0];
-  if (!row) throw Object.assign(new Error('Akun ini belum diberi peran di Master'), { status: 403 });
+  if (!row) throw Object.assign(new Error('Akun ini belum diberi peran di Office'), { status: 403 });
   return { id: user.id, email: user.email, role: row.role, staff: row.staff || null, name: row.name || '' };
 }
 
@@ -50,7 +50,7 @@ function petakan(profil, editors) {
     const cari = [norm(profil.name), staff].filter(Boolean);
     const e = (staff && aktif.find((x) => norm(x.akun_master) === staff)) || aktif.find((x) => !norm(x.akun_master) && cari.includes(norm(x.nama)));
     if (e) return { tipe: 'karyawan', editorId: e.id, nama: e.nama };
-    return { galat: 'Akun Master ini belum dipetakan ke karyawan Pantau. Minta pemilik memilih "Akun Master" orang ini di menu Akses.', status: 403 };
+    return { galat: 'Akun Office ini belum dipetakan ke karyawan Pantau. Minta pemilik memilih "Akun Office" orang ini di menu Akses.', status: 403 };
   }
   return { galat: 'Peran akun ini tidak boleh masuk Pantau', status: 403 };
 }

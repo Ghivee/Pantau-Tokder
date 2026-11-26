@@ -9,7 +9,7 @@ router.use(requireAdmin);
 router.get('/', async (req, res) => {
   try { res.json(await draf.pratinjau()); } catch (err) {
     console.error('draf-pendapatan', err.message);
-    res.status(502).json({ error: 'Master belum bisa dihubungi: ' + err.message });
+    res.status(502).json({ error: 'Office belum bisa dihubungi: ' + err.message });
   }
 });
 

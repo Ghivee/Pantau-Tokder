@@ -45,8 +45,8 @@ async function tarik() {
   let baru = 0;
   for (let putaran = 0; putaran < 6; putaran++) { // paling banyak 3.000 baris per sinkron
     const r = await master.rest('POST', 'rpc/jejak_master_baca', { p_setelah: setelah, p_batas: PER_PANGGILAN }, null);
-    if (r.status === 404) throw new Error('Fungsi jejak_master_baca belum ada di Master (jalankan supabase/jejak.sql)');
-    if (r.status >= 300 || !Array.isArray(r.json)) throw new Error('Master menolak membaca jejak (' + r.status + ')');
+    if (r.status === 404) throw new Error('Fungsi jejak_master_baca belum ada di Office (jalankan supabase/jejak.sql)');
+    if (r.status >= 300 || !Array.isArray(r.json)) throw new Error('Office menolak membaca jejak (' + r.status + ')');
     if (!r.json.length) break;
     for (const row of r.json) {
       const h = await tulis(row);
@@ -75,8 +75,8 @@ async function sinkron({ paksa = false } = {}) {
 async function sesiMaster() {
   if (!master.siap()) return { terhubung: false, sesi: [] };
   const r = await master.rest('POST', 'rpc/jejak_sesi_aktif', {}, null);
-  if (r.status === 404) return { terhubung: true, sesi: [], galat: 'Fungsi jejak_sesi_aktif belum ada di Master (jalankan supabase/jejak.sql)' };
-  if (r.status >= 300 || !Array.isArray(r.json)) return { terhubung: true, sesi: [], galat: 'Master menolak membaca sesi (' + r.status + ')' };
+  if (r.status === 404) return { terhubung: true, sesi: [], galat: 'Fungsi jejak_sesi_aktif belum ada di Office (jalankan supabase/jejak.sql)' };
+  if (r.status >= 300 || !Array.isArray(r.json)) return { terhubung: true, sesi: [], galat: 'Office menolak membaca sesi (' + r.status + ')' };
   const { uraiUA } = require('../utils/perangkat');
   return { terhubung: true, sesi: r.json.map((x) => { const u = uraiUA(x.ua); return { ...x, ua: undefined, browser: u.browser + (u.versi ? ' ' + u.versi : ''), os: u.os, perangkat: u.perangkat, model: u.model, layanan: String(x.email || '').toLowerCase() === AKUN_LAYANAN }; }) };
 }

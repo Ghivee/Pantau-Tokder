@@ -17,7 +17,7 @@ const ATURAN = [
   ['potong_alpa', 'Potongan per hari tidak hadir', 'Hari kerja tanpa absen dan tanpa izin/sakit/cuti yang disetujui'], ['potong_izin', 'Potongan per hari izin', 'Isi 0 bila izin tidak dipotong. Sakit dan cuti tidak pernah dipotong.'],
   ['potong_telat', 'Potongan per kali telat', 'Telat = absen masuk lewat jam masuk + toleransi'], ['tarif_lembur', 'Upah lembur per jam', 'Dihitung dari absen pulang ≥ 30 menit setelah jam pulang'],
   ['bonus_video', 'Bonus per video di atas target'], ['bonus_1000_views', 'Bonus per 1.000 views', 'Views video yang tayang di bulan itu'],
-  ['bonus_pcs', 'Bonus per pcs terjual', 'Dari semua penjualan bulan itu di Master (order selesai, semua channel). Sama untuk semua yang diberi tarif.'],
+  ['bonus_pcs', 'Bonus per pcs terjual', 'Dari semua penjualan bulan itu di Office (order selesai, semua channel). Sama untuk semua yang diberi tarif.'],
 ];
 
 const HARI_PDK = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
@@ -145,9 +145,9 @@ PAGES.gaji = function () {
   const belumAtur = list.filter((r) => !r.aturan_diisi);
   const lastDay = new Date(Date.UTC(+b.slice(0, 4), +b.slice(5, 7), 0)).toISOString().slice(0, 10);
   return head(`${list.length} karyawan, total <b>${idr(sum(list, (r) => r.total))}</b>. ${draf.length ? `${draf.length} masih perkiraan.` : 'Semua sudah final.'}`,
-    `<button class="btn" data-act="csv-gaji">${icon('download')}Excel</button><button class="btn" data-act="gaji-master">Kirim ke Master</button>` + (draf.length ? `<button class="btn primary" data-act="finalkan" data-v="semua">Finalkan ${draf.length > 1 ? 'semua' : ''}</button>` : '')) + `
+    `<button class="btn" data-act="csv-gaji">${icon('download')}Excel</button><button class="btn" data-act="gaji-master">Kirim ke Office</button>` + (draf.length ? `<button class="btn primary" data-act="finalkan" data-v="semua">Finalkan ${draf.length > 1 ? 'semua' : ''}</button>` : '')) + `
       ${belumAtur.length ? `<div class="notice m-0 mw-none" role="status"><b>Aturan gaji belum diisi</b> untuk ${belumAtur.map((r) => esc(r.nama)).join(', ')}. <button class="btn sm" data-act="atur-gaji" data-id="${belumAtur[0].editor_id}">Atur sekarang</button></div>` : ''}
-      ${(() => { const j = list.map((r) => r.penjualan).find((x) => x); if (!j) return ''; return j.pcs == null ? `<div class="notice m-0 mw-none" role="status"><b>Penjualan Master belum terbaca.</b> Bonus penjualan dihitung 0 sampai terbaca (${esc(j.galat || '')}).</div>` : `<p class="muted m-0 fs-13">Penjualan ${bulanLabel(b)} dari Master: <b>${j.pcs.toLocaleString('id-ID')} pcs</b>${j.per_channel ? ' (' + Object.entries(j.per_channel).map(([c, n]) => esc(c) + ' ' + n).join(', ') + ')' : ''}. Dipakai untuk bonus penjualan.</p>`; })()}
+      ${(() => { const j = list.map((r) => r.penjualan).find((x) => x); if (!j) return ''; return j.pcs == null ? `<div class="notice m-0 mw-none" role="status"><b>Penjualan Office belum terbaca.</b> Bonus penjualan dihitung 0 sampai terbaca (${esc(j.galat || '')}).</div>` : `<p class="muted m-0 fs-13">Penjualan ${bulanLabel(b)} dari Office: <b>${j.pcs.toLocaleString('id-ID')} pcs</b>${j.per_channel ? ' (' + Object.entries(j.per_channel).map(([c, n]) => esc(c) + ' ' + n).join(', ') + ')' : ''}. Dipakai untuk bonus penjualan.</p>`; })()}
       ${b === today().slice(0, 7) && today() < lastDay ? `<p class="muted m-0 fs-13">Bulan masih berjalan sampai ${tglPanjang(lastDay)}. Ketidakhadiran dihitung sampai kemarin; hari ini baru dihitung bila sudah absen.</p>` : ''}
       <section class="kpis">
         <div class="kpi"><span class="l">Total gaji</span><span class="v">${idr(sum(list, (r) => r.total))}</span><span class="d">${list.length} karyawan</span></div>
@@ -173,7 +173,7 @@ PAGES.gaji = function () {
           </tr>`; }).join('') || '<tr><td colspan="9" class="muted">Belum ada karyawan aktif.</td></tr>'}
         </tbody></table></div>
       </section>
-      <p class="muted" style="font-size:12.5px;margin:0;max-width:90ch">Gaji = kehadiran + penjualan + konten. Finalkan juga mengirim totalnya ke Master untuk Laba; Kirim ke Master mengirim angka terbaru kapan saja. Finalkan = angka bulan ini dikunci jadi slip resmi; presensi, izin atau aturan yang berubah sesudahnya tidak mengubahnya. Buka lagi bila perlu dihitung ulang. Tandai dibayar setelah transfer.</p>`;
+      <p class="muted" style="font-size:12.5px;margin:0;max-width:90ch">Gaji = kehadiran + penjualan + konten. Finalkan juga mengirim totalnya ke Office untuk Laba; Kirim ke Office mengirim angka terbaru kapan saja. Finalkan = angka bulan ini dikunci jadi slip resmi; presensi, izin atau aturan yang berubah sesudahnya tidak mengubahnya. Buka lagi bila perlu dihitung ulang. Tandai dibayar setelah transfer.</p>`;
 };
 
 AFTER.gaji = () => {

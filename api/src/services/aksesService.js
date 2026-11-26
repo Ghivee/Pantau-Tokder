@@ -60,12 +60,12 @@ async function ubah(editorId, kunci, nilai) {
   const row = rows.find((r) => r.id === editorId);
   if (!row) throw Object.assign(new Error('Karyawan tidak ditemukan'), { status: 404 });
   const staff = am.kunciStaff(row);
-  if (kunci.startsWith('master_') && !staff) throw Object.assign(new Error('Karyawan ini belum punya akun Master'), { status: 400 });
+  if (kunci.startsWith('master_') && !staff) throw Object.assign(new Error('Karyawan ini belum punya akun Office'), { status: 400 });
   const ctx = await konteks();
   const lama = resolve(row);
   // Orang ini belum pernah diatur dan izin Master-nya tidak terbaca: jangan menulis tebakan ke Master.
   if (staff && !lama.tersimpan && !ctx.aktual) {
-    throw Object.assign(new Error('Izin di Master belum terbaca (' + ctx.galatMaster + '). Coba lagi sebentar lagi.'), { status: 503 });
+    throw Object.assign(new Error('Izin di Office belum terbaca (' + ctx.galatMaster + '). Coba lagi sebentar lagi.'), { status: 503 });
   }
   const gabung = async () => {
     const m = await db.query(MERGE, [kunci, nilai, editorId]);
@@ -95,11 +95,11 @@ async function ubah(editorId, kunci, nilai) {
 // Memetakan satu karyawan Pantau ke akun Master-nya ('via' | 'deni' | null). Satu akun Master hanya untuk satu orang.
 async function pilihAkunMaster(editorId, akun) {
   const nilai = akun === '' || akun == null ? null : String(akun).toLowerCase();
-  if (nilai !== null && !am.STAFF.includes(nilai)) throw Object.assign(new Error('Akun Master tidak dikenal'), { status: 400 });
+  if (nilai !== null && !am.STAFF.includes(nilai)) throw Object.assign(new Error('Akun Office tidak dikenal'), { status: 400 });
   const rows = (await db.query(AMBIL)).rows;
   if (!rows.find((r) => r.id === editorId)) throw Object.assign(new Error('Karyawan tidak ditemukan'), { status: 404 });
   const dipakai = nilai && rows.find((r) => r.id !== editorId && am.kunciStaff(r) === nilai);
-  if (dipakai) throw Object.assign(new Error(`Akun Master "${nilai}" sudah dipakai ${dipakai.nama}. Lepas dulu dari orang itu.`), { status: 409 });
+  if (dipakai) throw Object.assign(new Error(`Akun Office "${nilai}" sudah dipakai ${dipakai.nama}. Lepas dulu dari orang itu.`), { status: 409 });
   await db.query('UPDATE editors SET akun_master = $1 WHERE id = $2', [nilai, editorId]);
   // Orang ini sudah pernah diatur izinnya: kirim ke akun Master yang baru dipilih supaya keduanya sama.
   const row = rows.find((r) => r.id === editorId);
