@@ -7,6 +7,7 @@ import { WIB, sum } from '../lib/format.js';
 import { avatar, peranLabel } from './bits.js';
 import { icon } from './icons.js';
 import { pingHalaman } from '../core/jejak.js';
+import { ssoInfo } from '../core/sso.js';
 
 export function renderNav() {
   const cur = route();
@@ -45,6 +46,56 @@ export function renderNav() {
     : '';
 }
 
+// Halaman depan: pintu masuk di kiri, isi dasbor di kanan (ikon dan nama sama dengan menu).
+const ISI_DASBOR = [
+  ['rangkuman', 'Rangkuman', 'Tayangan, suka, dan komentar video tim dari YouTube, TikTok, Instagram, dan Facebook.'],
+  ['naik', 'Upload', 'Satu video diunggah sekali, lalu dikirim sebagai draf ke akun milik tim.'],
+  ['team', 'Tim', 'Hasil kerja harian tiap anggota, dengan akses yang diatur pemilik.'],
+  ['grid', 'Aplikasi', 'Master dan Telprom terbuka dengan Akun Tokder yang sama.'],
+];
+
+function halamanDepan() {
+  return `<div class="depan">
+    <div class="depan-atas">
+      <section class="card depan-masuk" aria-labelledby="depan-judul">
+        <div class="depan-merek"><img src="/logo.svg" alt="Logo Tokder" width="48" height="48"><span>Tokder</span></div>
+        <h1 id="depan-judul">Ruang kerja tim konten cabai</h1>
+        <p class="depan-lead">Dasbor internal tim konten Tokder (channel budidaya cabai) untuk memantau hasil kerja harian dan performa video di YouTube, TikTok, Instagram dan Facebook.</p>
+        <div class="depan-aksi">
+          <button class="btn primary depan-tombol" data-act="masuk-akun">Masuk dengan Akun Tokder</button>
+          <button class="btn ghost depan-cadangan" data-act="masuk-cadangan">Pakai PIN atau password</button>
+        </div>
+        <p class="muted depan-catatan">Hanya untuk pemilik dan karyawan Tokder. Tidak ada pendaftaran terbuka. Waktu masuk dan perangkat dicatat demi keamanan.</p>
+      </section>
+      <section class="card depan-isi" aria-labelledby="depan-isi-judul">
+        <h2 id="depan-isi-judul">Di dalam dasbor</h2>
+        <ul>${ISI_DASBOR.map(([ik, nama, ket]) => `<li><span class="depan-ikon" aria-hidden="true">${icon(ik)}</span><div><b>${nama}</b><p>${ket}</p></div></li>`).join('')}</ul>
+      </section>
+    </div>
+    <section class="card depan-data" aria-labelledby="depan-data-judul">
+      <h2 id="depan-data-judul">Data akun platform</h2>
+      <div class="depan-kolom">
+        <div><h3>Yang dilakukan</h3><p>Pemilik menghubungkan akun milik tim sendiri. Aplikasi membaca nama akun, jumlah pengikut, serta daftar video beserta tayangan, suka, komentar dan bagikan, lalu menampilkannya berdampingan.</p></div>
+        <div><h3>Posting sekali upload</h3><p>Pemilik dan anggota tim yang diberi izin mengunggah satu video, lalu mengirimnya sebagai <em>draf</em> ke akun TikTok, Instagram, Facebook dan YouTube milik tim. Tidak ada yang tayang tanpa tindakan pemilik atau anggota tim yang diberi izin menayangkan.</p></div>
+        <div><h3>Yang tidak dilakukan</h3><p>Tidak membaca pesan atau data penonton, tidak mengubah atau menghapus konten yang sudah ada, tidak menjual atau membagikan data.</p></div>
+      </div>
+    </section>
+    <footer class="depan-kaki">
+      <nav aria-label="Informasi hukum"><a href="/privacy.html">Kebijakan Privasi</a><a href="/terms.html">Syarat Layanan</a><a href="/data-deletion.html">Hapus data</a><a href="mailto:tokodeeres@gmail.com">tokodeeres@gmail.com</a></nav>
+      <p class="muted" lang="en">Tokder is a private dashboard for the Tokder chili-farming video team. The owner connects the team's own TikTok, Instagram, Facebook and YouTube accounts to read the accounts' own profile and video statistics, and to let the owner and authorised team members send the team's own videos to those accounts as drafts, which only the owner or members permitted to publish can then publish. See the Privacy Policy and Terms above.</p>
+    </footer></div>`;
+}
+
+// Bila Akun Tokder belum diatur di server, tombol utama membuka dialog PIN/password dan tombol cadangan disembunyikan.
+function siapkanHalamanDepan(page) {
+  ssoInfo().then((sso) => {
+    if (sso.aktif) return;
+    const utama = page.querySelector('.depan-tombol'), cadangan = page.querySelector('.depan-cadangan');
+    if (utama) utama.textContent = 'Masuk';
+    if (cadangan) cadangan.hidden = true;
+  });
+}
+
 export function render() {
   renderNav();
   const r = route();
@@ -55,21 +106,8 @@ export function render() {
   if (!S.session && !S.error) {
     // Halaman depan publik: dibaca juga oleh reviewer TikTok/Meta, jadi menjelaskan apa aplikasi ini,
     // data apa yang dibaca dari tiap platform, dan menaut ke kebijakan privasi, syarat, dan hapus data.
-    page.innerHTML = `<section class="card landing">
-        <img src="/logo.svg" alt="Logo Tokder" class="landing-logo">
-        <h1>Tokder</h1>
-        <p class="landing-lead">Dasbor internal tim konten Tokder (channel budidaya cabai) untuk memantau hasil kerja harian dan performa video di YouTube, TikTok, Instagram dan Facebook.</p>
-        <button class="btn primary" data-act="login">${icon('out')}Masuk</button>
-        <p class="muted landing-note">Hanya untuk pemilik dan karyawan Tokder. Tidak ada pendaftaran terbuka.</p>
-        <div class="landing-grid">
-          <div><b>Yang dilakukan</b><p>Pemilik menghubungkan akun milik tim sendiri. Aplikasi membaca nama akun, jumlah pengikut, serta daftar video beserta tayangan, suka, komentar dan bagikan, lalu menampilkannya berdampingan.</p></div>
-          <div><b>Posting sekali upload</b><p>Pemilik dan anggota tim yang diberi izin mengunggah satu video, lalu mengirimnya sebagai <em>draf</em> ke akun TikTok, Instagram, Facebook dan YouTube milik tim. Tidak ada yang tayang tanpa tindakan pemilik atau anggota tim yang diberi izin menayangkan.</p></div>
-          <div><b>Yang tidak dilakukan</b><p>Tidak membaca pesan atau data penonton, tidak mengubah atau menghapus konten yang sudah ada, tidak menjual atau membagikan data.</p></div>
-        </div>
-        <nav class="landing-links" aria-label="Informasi hukum">
-          <a href="/privacy.html">Kebijakan Privasi</a> · <a href="/terms.html">Syarat Layanan</a> · <a href="/data-deletion.html">Hapus data</a> · <a href="mailto:tokodeeres@gmail.com">tokodeeres@gmail.com</a>
-        </nav>
-        <p class="muted landing-note" lang="en">Tokder is a private dashboard for the Tokder chili-farming video team. The owner connects the team's own TikTok, Instagram, Facebook and YouTube accounts to read the accounts' own profile and video statistics, and to let the owner and authorised team members send the team's own videos to those accounts as drafts, which only the owner or members permitted to publish can then publish. See the Privacy Policy and Terms above.</p></section>`;
+    page.innerHTML = halamanDepan();
+    siapkanHalamanDepan(page);
     document.title = 'Masuk · Tokder';
     return;
   }
