@@ -1,3 +1,4 @@
+import { icon } from '../ui/icons.js';
 import { analyticsChannels, api } from '../core/data.js';
 import { AFTER, PAGES } from '../core/registry.js';
 import { route } from '../core/router.js';
@@ -258,7 +259,7 @@ function isi() {
 }
 
 PAGES.rangkuman = function () {
-  return `<header class="head"><h1>Rangkuman</h1>
+  return `<header class="head"><h1>Rangkuman</h1><a class="btn" href="/kalender">${icon('day')}Kalender</a>
       <div class="seg" role="group" aria-label="Periode">${[7, 28, 90, 365].map((x) => `<button data-act="an-periode" data-v="${x}" aria-pressed="${S.anPeriode === x}">${x} hari</button>`).join('')}</div></header>
     <div id="rekap-isi" class="stack-page">${isi()}</div>`;
 };

@@ -5,6 +5,7 @@ import { render } from '../ui/layout.js';
 export const ROUTES = [
   { id: 'hari-ini', label: 'Hari ini', icon: 'home', karyawan: true },
   { id: 'rangkuman', label: 'Rangkuman', icon: 'rangkuman' },
+  { id: 'kalender', label: 'Kalender', icon: 'day' },
   { id: 'saran', label: 'Saran', icon: 'video' },
   { id: 'affiliate', label: 'Affiliate', icon: 'link' },
   { id: 'ringkasan', label: 'Ringkasan', icon: 'home', admin: true },

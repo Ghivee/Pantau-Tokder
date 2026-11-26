@@ -36,14 +36,14 @@ async function kirim(posting, row, base) {
   return api.facebookSiapkan(row.akun_id, token, posting.blob_url, posting.judul, posting.deskripsi);
 }
 
-async function buat({ judul, deskripsi, blob_url, ukuran, mime, sosmedIds = [], youtubeIds = [] }, base) {
+async function buat({ judul, deskripsi, blob_url, ukuran, mime, sosmedIds = [], youtubeIds = [], editorId = null }, base) {
   judul = String(judul || '').trim();
   if (!judul) throw bad(400, 'Judul wajib diisi');
   if (judul.length > 100) throw bad(400, 'Judul maksimal 100 huruf');
   if (!/^https:\/\/[a-z0-9.-]+\.public\.blob\.vercel-storage\.com\//i.test(String(blob_url || ''))) throw bad(400, 'Video belum terunggah');
   if (!sosmedIds.length && !youtubeIds.length) throw bad(400, 'Pilih minimal satu akun tujuan');
-  const p = (await db.query(`INSERT INTO posting (judul, deskripsi, blob_url, ukuran, mime) VALUES ($1,$2,$3,$4,$5) RETURNING *`,
-    [judul, String(deskripsi || '').slice(0, 4000), blob_url, Number(ukuran) || null, String(mime || '').slice(0, 60)])).rows[0];
+  const p = (await db.query(`INSERT INTO posting (judul, deskripsi, blob_url, ukuran, mime, editor_id) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
+    [judul, String(deskripsi || '').slice(0, 4000), blob_url, Number(ukuran) || null, String(mime || '').slice(0, 60), editorId])).rows[0];
   for (const id of sosmedIds) {
     const row = await koneksi(id);
     if (!row) continue;
