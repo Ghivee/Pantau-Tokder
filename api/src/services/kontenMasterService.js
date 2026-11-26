@@ -56,4 +56,18 @@ async function rest(method, path, body, prefer = 'return=minimal') {
 
 const reset = () => { sesi = null; cache = null; };
 
-module.exports = { daftar, siap, rest, reset };
+// Naskah yang belum tayang (belum punya youtube_id), terbaru dulu: bahan judul untuk menu Upload.
+// Isi naskah dipotong; Pantau hanya butuh judul dan cuplikan untuk dikenali.
+async function siapUnggah() {
+  if (!siap()) return { terhubung: false, daftar: [] };
+  const token = await masuk();
+  const r = await fetch(URL_ENV() + '/rest/v1/konten?select=id,judul,status,naskah,diubah&youtube_id=is.null&status=neq.ide&order=diubah.desc&limit=30', {
+    headers: { apikey: KEY_ENV(), Authorization: 'Bearer ' + token },
+  });
+  if (r.status === 401) { sesi = null; throw new Error('Sesi Master ditolak'); }
+  if (!r.ok) throw new Error('Tabel konten Master belum bisa dibaca (' + r.status + ')');
+  const daftar = (await r.json()).map((k) => ({ id: k.id, judul: k.judul, status: k.status, cuplikan: String(k.naskah || '').replace(/\s+/g, ' ').trim().slice(0, 160) }));
+  return { terhubung: true, daftar };
+}
+
+module.exports = { daftar, siapUnggah, siap, rest, reset };

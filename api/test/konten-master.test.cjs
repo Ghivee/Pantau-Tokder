@@ -41,3 +41,24 @@ test('login gagal melempar galat yang jelas', async () => {
   const asli = global.fetch; global.fetch = async () => jawab(400, {});
   try { await assert.rejects(svc.daftar(), /Login akun pantau di Master gagal/); } finally { global.fetch = asli; }
 });
+
+test('siapUnggah: hanya naskah tanpa youtube_id, cuplikan dipotong, tanpa env mati', async () => {
+  pasang({});
+  assert.deepStrictEqual(await svc.siapUnggah(), { terhubung: false, daftar: [] });
+  pasang(ENV);
+  const asli = global.fetch; const url = [];
+  global.fetch = async (u) => {
+    url.push(u);
+    if (u.includes('grant_type=password')) return jawab(200, { access_token: 'T', expires_in: 3600 });
+    return jawab(200, [{ id: 'k1', judul: 'Cabai kering', status: 'siap', naskah: 'Halo   semua\n' + 'x'.repeat(300), diubah: '2026-11-26' }]);
+  };
+  try {
+    const r = await svc.siapUnggah();
+    assert.strictEqual(r.terhubung, true);
+    assert.strictEqual(r.daftar[0].judul, 'Cabai kering');
+    assert.ok(r.daftar[0].cuplikan.startsWith('Halo semua x'));
+    assert.strictEqual(r.daftar[0].cuplikan.length, 160);
+    assert.match(url[1], /youtube_id=is\.null/);
+    assert.match(url[1], /status=neq\.ide/);
+  } finally { global.fetch = asli; }
+});

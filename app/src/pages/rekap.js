@@ -4,7 +4,7 @@ import { route } from '../core/router.js';
 import { S, isAdmin, lihatUang } from '../core/state.js';
 import { daysBack } from '../core/stats.js';
 import { $, esc } from '../lib/dom.js';
-import { WIB, addDays, fmt, nf, signed, sum, tglPanjang, tglPendek, today } from '../lib/format.js';
+import { WIB, addDays, fmt, idr, nf, signed, sum, tglPanjang, tglPendek, today } from '../lib/format.js';
 import { thumb, toast } from '../ui/bits.js';
 import { drawLines } from '../ui/charts.js';
 
@@ -12,7 +12,7 @@ import { drawLines } from '../ui/charts.js';
 // real-time dari bacaan total tayangan tiap menit, klik dari pelacak tautan.
 
 
-const R = (S.rekap = { metrik: null, klikTautan: [], klikVideo: [], snap: [], galatMetrik: null, galatRt: null, metrikPilih: 'views', konten: {}, draf: null });
+const R = (S.rekap = { metrik: null, klikTautan: [], klikVideo: [], snap: [], galatMetrik: null, galatRt: null, metrikPilih: 'views', konten: {}, draf: null, af: null, afHari: null });
 const persen = (v) => (v == null ? '—' : nf.format(Math.round(v * 10) / 10) + '%');
 // Warna mengikuti channel (urutan tetap), bukan peringkat nilainya; tiga warna ini sudah divalidasi (lihat pages.css).
 const chColor = (id) => { const i = analyticsChannels().findIndex((c) => c.id === id); return i >= 0 && i < 3 ? `var(--ch-${i + 1})` : 'var(--muted)'; };
@@ -162,6 +162,69 @@ export async function kirimDraf() {
   await muatDraf();
 }
 
+// ---------- ringkasan atas: semua channel digabung ----------
+
+// CTR semua channel dalam satu periode, ditimbang impresi bila ada.
+function ctrSemua(chans, days) {
+  const r = (R.metrik || []).filter((m) => chans.some((c) => c.id === m.channel_id) && days.includes(m.tanggal) && m.ctr != null);
+  if (!r.length) return null;
+  const ber = r.filter((m) => m.impresi);
+  return ber.length ? sum(ber, (m) => m.ctr * m.impresi) / sum(ber, (m) => m.impresi) : sum(r, (m) => m.ctr) / r.length;
+}
+const median = (a) => { if (!a.length) return null; const x = [...a].sort((p, q) => p - q), m = x.length >> 1; return x.length % 2 ? x[m] : (x[m - 1] + x[m]) / 2; };
+const naikPersen = (v, p) => (v == null || !p ? '' : `<span class="dl ${v >= p ? 'ok' : 'bad'}">${signed(Math.round(((v - p) / p) * 100), (x) => nf.format(x) + '%')}</span>`);
+
+// Komisi afiliasi untuk periode yang sama (nominal hanya bila boleh melihat penghasilan).
+async function muatAf() {
+  const h = S.anPeriode;
+  R.afHari = h;
+  try { R.af = await api('/api/afiliasi?hari=' + h); } catch (e) { R.af = { galat: e.message }; }
+  if (R.afHari === h) segarkanRekap();
+}
+
+// Hal yang perlu dilihat: channel yang naik/turun tajam, CTR yang turun, video baru yang melonjak, produk yang naik.
+function perhatian(chans, baris, p) {
+  const out = [];
+  for (const b of baris) {
+    if (b.v != null && b.vp > 0) {
+      const d = (b.v - b.vp) / b.vp;
+      if (d <= -0.15) out.push(['bad', `Views ${esc(b.c.nama)} turun ${nf.format(Math.round(-d * 100))}%`, 'dibanding periode sebelumnya']);
+      else if (d >= 0.3) out.push(['ok', `Views ${esc(b.c.nama)} naik ${nf.format(Math.round(d * 100))}%`, 'dibanding periode sebelumnya']);
+    }
+    const cp = ctrOf(b.c.id, p.prev);
+    if (b.ctr != null && cp != null && b.ctr - cp <= -1) out.push(['bad', `CTR ${esc(b.c.nama)} turun ${nf.format(Math.round((cp - b.ctr) * 10) / 10)} poin`, `${persen(cp)} → ${persen(b.ctr)}. Coba judul atau thumbnail yang lebih tajam.`]);
+  }
+  for (const c of chans) {
+    const lama = S.content.filter((v) => v._ch === c.id && v._age > 14 && v._age <= 90).map((v) => v.views);
+    const med = median(lama);
+    if (!med) continue;
+    const baru = S.content.filter((v) => v._ch === c.id && v._age <= 14 && v.views >= med * 2).sort((a, b) => b.views - a.views)[0];
+    if (baru) out.push(['ok', `"${esc(baru.judul)}" ${nf.format(Math.round((baru.views / med) * 10) / 10)}× video biasa`, `${esc(c.nama)} · buat lanjutan selagi ramai`]);
+  }
+  const naikAf = R.af && !R.af.galat && (R.af.terlaris || []).find((x) => x.tren === 'naik');
+  if (naikAf) out.push(['ok', `Produk "${esc(naikAf.produk)}" makin laku`, 'komisi afiliasi naik dari periode sebelumnya']);
+  return out.slice(0, 4);
+}
+
+function ringkasAtas(chans, baris, p) {
+  const tot = (f) => { const v = baris.map(f).filter((x) => x != null); return v.length ? sum(v) : null; };
+  const v = tot((b) => b.v), vp = tot((b) => b.vp);
+  const ctr = ctrSemua(chans, p.days), ctrP = ctrSemua(chans, p.prev);
+  const tiles = [['Views', v == null ? null : fmt(v), naikPersen(v, vp)],
+    ['CTR rata-rata', ctr == null ? null : persen(ctr), ctr != null && ctrP != null ? `<span class="dl ${ctr >= ctrP ? 'ok' : 'bad'}">${signed(Math.round((ctr - ctrP) * 10) / 10, (x) => nf.format(x))} poin</span>` : '']];
+  if (lihatUang()) { const u = tot((b) => b.uang); tiles.push(['Penghasilan YouTube', u == null ? null : 'Rp ' + fmt(u), '']); }
+  const A = R.af && !R.af.galat ? R.af : null;
+  if (A && A.uang && A.ada_data) tiles.push(['Komisi afiliasi', idr(A.total || 0), naikPersen(A.total, A.total_sebelum)]);
+  else { const k = tot((b) => b.klik), kp = tot((b) => klikOf(b.c.id, p.prev)); tiles.push(['Klik afiliasi', k == null ? null : fmt(k), naikPersen(k, kp)]); }
+  const per = perhatian(chans, baris, p);
+  const af = A && (A.terlaris || []).length ? `<section class="card"><div class="card-h"><h2>Affiliate</h2><a class="btn sm" href="/affiliate">Buka Affiliate</a></div>
+      ${A.terlaris.slice(0, 3).map((x) => `<div class="mrow"><span class="nm">${x.peringkat}. ${esc(x.produk)}</span><span class="vl">${A.uang ? `<b>${idr(x.komisi)}</b>` : ''}<span class="pill ${x.tren === 'naik' ? 'ok' : x.tren === 'turun' ? 'bad' : ''}">${esc(x.tren)}</span></span></div>`).join('')}
+      <p class="muted fs-13">Produk terlaris ${S.anPeriode} hari terakhir. Buat dan salin tautan pelacak di menu Affiliate.</p></section>` : '';
+  return `<section class="card rk-atas" aria-label="Ringkasan semua channel"><div class="rk-grid">${tiles.map(([l, val, d]) => `<div class="rk"><span class="muted">${l}</span><b>${val == null ? '<span class="muted">—</span>' : val}</b>${d || ''}</div>`).join('')}</div>
+      <h2 class="rk-h">Perlu perhatian</h2>
+      ${per.length ? per.map(([c, t, k]) => `<div class="rk-p ${c}"><i aria-hidden="true"></i><div><b>${t}</b><span class="muted">${k}</span></div></div>`).join('') : '<p class="muted">Tidak ada yang mencolok di periode ini.</p>'}</section>${af}`;
+}
+
 function isi() {
   const chans = analyticsChannels();
   const p = periode();
@@ -176,6 +239,7 @@ function isi() {
   return `
     ${belum.length ? `<div class="notice" role="status"><span>${belum.map((c) => esc(c.nama)).join(', ')} belum tersambung.</span></div>` : ''}
     ${R.galatRt ? `<div class="notice" role="status"><span>Real-time: ${esc(R.galatRt)}</span></div>` : ''}
+    ${ringkasAtas(chans, baris, p)}
     ${videoTeratas(chans)}
     ${kartuDraf()}
     <div class="met-grid">
@@ -239,6 +303,7 @@ function mulaiRealtime() {
 
 AFTER.rangkuman = function () {
   gambar();
+  if (R.afHari !== S.anPeriode) muatAf();
   if (R.metrik == null) muatMetrik().then(segarkanRekap);
   if (isAdmin() && !R.drafDimuat) { R.drafDimuat = true; muatDraf(); }
   if (!R.kontenDimuat) { R.kontenDimuat = true; muatKontenMaster().then(segarkanRekap); }

@@ -10,7 +10,7 @@ import { addDays, idr, today } from './lib/format.js';
 import { aturGajiDialog, cetakSlip, loadGaji, slipDialog } from './pages/gaji.js';
 import { ajukanDialog, putuskanDialog } from './pages/pengajuan.js';
 import { absen, ambilLokasi } from './pages/presensi.js';
-import { muatSaran, pilihChannel, salin } from './pages/saran.js';
+import { muatSaran, pilihChannel, salin, tandaiDibuat } from './pages/saran.js';
 import { statusSinkron } from './pages/akses.js';
 import { aksiJejak, resetJejak } from './pages/jejak.js';
 import { kirimDraf, pilihMetrik } from './pages/rekap.js';
@@ -320,6 +320,7 @@ document.addEventListener('click', async (ev) => {
     case 'susun-deskripsi': susunDeskripsi(); break;
     case 'saran-tautan': tautanDialog(el.dataset.v); break;
     case 'saran-judul': salin(el.dataset.v); break;
+    case 'ide-dibuat': tandaiDibuat(el.dataset.v); break;
     case 'saran-ch': pilihChannel(el.dataset.v); break;
     case 'af-hari': muatAfiliasi(+el.dataset.v); break;
     case 'af-impor': imporAfiliasi(); break;
