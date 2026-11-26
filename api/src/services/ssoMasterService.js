@@ -29,7 +29,8 @@ async function verifikasi(token) {
   if (!u.ok) throw Object.assign(new Error('Master belum bisa dihubungi'), { status: 502 });
   const user = await u.json();
   if (!user || !user.id || !/@master\.app$/i.test(String(user.email || ''))) throw Object.assign(new Error('Akun ini bukan akun Master'), { status: 403 });
-  const p = await fetch(URL_ENV() + '/rest/v1/profiles?select=role,staff,name&limit=1', { headers: h });
+  // id=eq. eksplisit: RLS sudah membatasi ke baris sendiri, tapi jangan bergantung pada itu saja.
+  const p = await fetch(URL_ENV() + '/rest/v1/profiles?select=role,staff,name&id=eq.' + encodeURIComponent(user.id) + '&limit=1', { headers: h });
   if (!p.ok) throw Object.assign(new Error('Peran akun belum bisa dibaca dari Master'), { status: 502 });
   const row = (await p.json())[0];
   if (!row) throw Object.assign(new Error('Akun ini belum diberi peran di Master'), { status: 403 });
