@@ -1,1 +1,1 @@
-Inter, Playfair Display, dan JetBrains Mono: SIL Open Font License 1.1 (paket @fontsource-variable).
+Inter: SIL Open Font License 1.1 (paket @fontsource-variable). Di perangkat Apple dipakai huruf sistem.
