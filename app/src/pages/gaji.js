@@ -95,7 +95,7 @@ export async function aturGajiDialog(pilih = 'umum') {
     const a = A.aturan.find((x) => x.editor_id === +pilih) || {};
     return `<form id="ag-form" class="stack">
         <div class="grid-form">${ATURAN.map(([k, l, s]) => `<label class="field"><span>${l}</span><input class="input" type="number" name="${k}" min="0" step="1000" value="${Math.round(+a[k] || 0)}">${s ? `<small>${s}</small>` : ''}</label>`).join('')}</div>
-        <p class="muted" style="margin:0;font-size:12.5px">Semua dalam rupiah. Biarkan 0 untuk komponen yang tidak dipakai. Perubahan tidak mengubah bulan yang sudah final.</p>
+        <p class="muted" style="margin:0;font-size:13px">Semua dalam rupiah. Biarkan 0 untuk komponen yang tidak dipakai. Perubahan tidak mengubah bulan yang sudah final.</p>
         <div class="err" id="ag-err" role="alert"></div>
         <div class="actions"><button type="button" class="btn ghost" data-act="close-overlay">Tutup</button><button class="btn primary">Simpan</button></div></form>`;
   };
@@ -168,12 +168,12 @@ PAGES.gaji = function () {
             <td data-label="Status">${gajiStatus(r)}</td>
             <td class="full"><div class="row-actions"><button class="btn sm" data-act="slip" data-id="${r.editor_id}">Rincian</button>
               ${r.status !== 'final' ? `<button class="btn sm" data-act="finalkan" data-v="${r.editor_id}">Finalkan</button>`
-                : r.dibayar_at ? `<button class="btn sm ghost" data-act="dibayar" data-id="${r.editor_id}" data-v="0">Batal dibayar</button>`
+                : r.dibayar_at ? `<button class="btn sm ghost danger" data-act="dibayar" data-id="${r.editor_id}" data-v="0">Batal dibayar</button>`
                 : `<button class="btn sm primary" data-act="dibayar" data-id="${r.editor_id}" data-v="1">Tandai dibayar</button><button class="btn sm ghost" data-act="buka-gaji" data-id="${r.editor_id}">Buka lagi</button>`}</div></td>
           </tr>`; }).join('') || '<tr><td colspan="9" class="muted">Belum ada karyawan aktif.</td></tr>'}
         </tbody></table></div>
       </section>
-      <p class="muted" style="font-size:12.5px;margin:0;max-width:90ch">Gaji = kehadiran + penjualan + konten. Finalkan juga mengirim totalnya ke Office untuk Laba; Kirim ke Office mengirim angka terbaru kapan saja. Finalkan = angka bulan ini dikunci jadi slip resmi; presensi, izin atau aturan yang berubah sesudahnya tidak mengubahnya. Buka lagi bila perlu dihitung ulang. Tandai dibayar setelah transfer.</p>`;
+      <p class="muted" style="font-size:13px;margin:0;max-width:90ch">Gaji = kehadiran + penjualan + konten. Finalkan juga mengirim totalnya ke Office untuk Laba; Kirim ke Office mengirim angka terbaru kapan saja. Finalkan = angka bulan ini dikunci jadi slip resmi; presensi, izin atau aturan yang berubah sesudahnya tidak mengubahnya. Buka lagi bila perlu dihitung ulang. Tandai dibayar setelah transfer.</p>`;
 };
 
 AFTER.gaji = () => {

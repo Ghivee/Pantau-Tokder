@@ -20,7 +20,7 @@ import { bulanLabel, daftarSW, diIOS, muatUlang, pushDidukung, swReg, terpasang 
 import { pantauPosting, setPosting, showPostList, susunDeskripsi } from './pages/sosmed.js';
 import { toast } from './ui/bits.js';
 import { closeOverlay, confirmDialog, openDialog } from './ui/dialog.js';
-import { catatDialog, editorDialog, goalDialog, loginDialog, moreSheet, videoDrawer } from './ui/dialogs.js';
+import { catatDialog, editorDialog, goalDialog, loginDialog, videoDrawer } from './ui/dialogs.js';
 import { icon } from './ui/icons.js';
 import { render } from './ui/layout.js';
 import { hapusDenganBatal } from './ui/undo.js';
@@ -78,7 +78,7 @@ function imporDialog() {
       <label class="field"><span>File CSV</span><input class="input" type="file" id="im-file" accept=".csv,text/csv"></label>
       <div id="im-isi"></div>
       <div class="err" id="im-err" role="alert"></div>
-      <div class="actions"><button type="button" class="btn ghost" data-act="close-overlay">Batal</button><button class="btn primary" id="im-simpan" disabled>Simpan</button></div>`, (d) => {
+      <div class="actions"><button type="button" class="btn ghost danger" data-act="close-overlay">Batal</button><button class="btn primary" id="im-simpan" disabled>Simpan</button></div>`, (d) => {
     d.classList.add('wide');
     let rows = null, nama = '', hasil = null;
     const isi = $('#im-isi', d), err = $('#im-err', d), simpan = $('#im-simpan', d);
@@ -95,7 +95,7 @@ function imporDialog() {
       hasil = { per, pakai };
       const bl = Object.keys(per).sort();
       $('#im-hasil', d).innerHTML = bl.length
-        ? `<table class="t"><thead><tr><th>Bulan</th><th class="num">Omzet tercapai</th></tr></thead><tbody>${bl.map((b) => `<tr><td>${bulanLabel(b)}</td><td class="num"><b>${idr(per[b])}</b></td></tr>`).join('')}</tbody></table><p class="muted" style="font-size:12.5px;margin:6px 0 0">${pakai} baris dipakai${saring ? `, ${saring} tidak cocok saringan` : ''}${lewat ? `, ${lewat} dilewati karena tanggal atau angkanya tidak terbaca` : ''}. Kolom ${esc(head[ci])} dan ${esc(head[ca])}.</p>`
+        ? `<table class="t"><thead><tr><th>Bulan</th><th class="num">Omzet tercapai</th></tr></thead><tbody>${bl.map((b) => `<tr><td>${bulanLabel(b)}</td><td class="num"><b>${idr(per[b])}</b></td></tr>`).join('')}</tbody></table><p class="muted" style="font-size:13px;margin:6px 0 0">${pakai} baris dipakai${saring ? `, ${saring} tidak cocok saringan` : ''}${lewat ? `, ${lewat} dilewati karena tanggal atau angkanya tidak terbaca` : ''}. Kolom ${esc(head[ci])} dan ${esc(head[ca])}.</p>`
         : '<div class="empty"><b>Tidak ada baris yang terbaca</b>Periksa pilihan kolom tanggal dan jumlah.</div>';
       simpan.disabled = !bl.length || bl.length > 36;
     };
@@ -243,7 +243,6 @@ document.addEventListener('click', async (ev) => {
     case 'login': closeOverlay(); loginDialog(); break;
     case 'masuk-akun': { const sso = await ssoInfo(); if (sso.aktif) { tirai('Membuka halaman masuk…'); masukDenganMaster(sso.masterUrl); } else loginDialog(); break; }
     case 'masuk-cadangan': loginDialog('karyawan', true); break;
-    case 'lainnya': moreSheet(); break;
     case 'logout': {
       closeOverlay();
       tirai('Mengeluarkan akun…');

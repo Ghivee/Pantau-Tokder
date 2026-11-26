@@ -22,7 +22,7 @@ export function imporAfiliasiDialog(selesai) {
       <label class="field"><span>File CSV</span><input class="input" type="file" id="af-file" accept=".csv,text/csv"></label>
       <div id="af-isi"></div>
       <div class="err" id="af-err" role="alert"></div>
-      <div class="actions"><button type="button" class="btn ghost" data-act="close-overlay">Batal</button><button class="btn primary" id="af-simpan" disabled>Simpan</button></div>`, (d) => {
+      <div class="actions"><button type="button" class="btn ghost danger" data-act="close-overlay">Batal</button><button class="btn primary" id="af-simpan" disabled>Simpan</button></div>`, (d) => {
     d.classList.add('wide');
     let rows = null, nama = '', hasil = null, ver = 0;
     const isi = $('#af-isi', d), err = $('#af-err', d), simpan = $('#af-simpan', d);

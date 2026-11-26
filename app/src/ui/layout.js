@@ -30,7 +30,7 @@ export function renderNav() {
   const moreActive = !tabs.includes(INDUK[cur] || cur);
   const sisa = sum(ROUTES.filter((r) => !tabs.includes(r.id) && bisaBuka(r) && menuGroups().some((g) => g.ids.includes(r.id))), (r) => badgeOf(r.id));
   $('#tabbar').innerHTML = !S.session ? '' : tabs.map((id) => { const r = ROUTES.find((x) => x.id === id); return `<a href="${pathOf(id)}" ${id === (INDUK[cur] || cur) ? 'aria-current="page"' : ''}>${icon(r.icon)}<span>${r.short || routeLabel(r)}</span>${badgeOf(id) ? `<span class="count">${badgeOf(id) > 99 ? '99+' : badgeOf(id)}</span>` : ''}</a>`; }).join('') +
-    `<button data-act="lainnya" ${moreActive ? 'aria-current="page"' : ''}>${icon('menu')}<span>Menu</span>${sisa ? `<span class="count">${sisa > 99 ? '99+' : sisa}</span>` : ''}</button>`;
+    `<a href="/menu" ${moreActive ? 'aria-current="page"' : ''}>${icon('menu')}<span>Menu</span>${sisa ? `<span class="count">${sisa > 99 ? '99+' : sisa}</span>` : ''}</a>`;
   $('#notice').innerHTML = S.offline && S.session && !S.error
     ? `<div class="notice" role="status"><b>Tanpa koneksi.</b> Menampilkan data tersimpan jam ${new Date(S.offline + WIB).toISOString().slice(11, 16)} WIB. <button class="btn sm ghost" data-act="retry">Coba lagi</button></div>`
     : S.warnings.length && !S.error

@@ -86,7 +86,7 @@ export function drawRetention(box, data) {
   html += `<polyline points="${line}" fill="none" stroke="var(--leaf)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
   const at = (p) => pts.reduce((a, b) => (Math.abs(b.percent_duration - p) < Math.abs(a.percent_duration - p) ? b : a)).retention;
   box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="Grafik retensi penonton">${html}</svg>
-      <div class="muted" style="font-size:12.5px;margin-top:6px">Masih menonton di tengah video <b>${nf.format(Math.round(at(50)))}%</b>, di akhir <b>${nf.format(Math.round(at(100)))}%</b>.${top > 100 ? ' Di atas 100% berarti bagian itu ditonton ulang.' : ''}</div>`;
+      <div class="muted" style="font-size:13px;margin-top:6px">Masih menonton di tengah video <b>${nf.format(Math.round(at(50)))}%</b>, di akhir <b>${nf.format(Math.round(at(100)))}%</b>.${top > 100 ? ' Di atas 100% berarti bagian itu ditonton ulang.' : ''}</div>`;
 }
 
 // Day ruler: schedule slots, uploads (on time / late) and other tasks on one 24-hour line.
@@ -98,7 +98,7 @@ export function drawRuler(box, st) {
   const every = W < 420 ? 4 : 2;
   for (let h = startH; h <= endH; h += every) {
     const hm = String(h).padStart(2, '0') + ':00';
-    html += `<line x1="${x(hm)}" x2="${x(hm)}" y1="30" y2="38" stroke="var(--line-2)"/><text x="${x(hm)}" y="70" text-anchor="middle" style="font-family:var(--mono);font-size:10.5px">${String(h % 24).padStart(2, '0')}</text>`;
+    html += `<line x1="${x(hm)}" x2="${x(hm)}" y1="30" y2="38" stroke="var(--line-2)"/><text x="${x(hm)}" y="70" text-anchor="middle" style="font-family:var(--mono);font-size:11px">${String(h % 24).padStart(2, '0')}</text>`;
   }
   const nowX = st.day === today() ? x(nowJam()) : null;
   if (nowX != null) html += `<line x1="${nowX}" x2="${nowX}" y1="6" y2="52" stroke="var(--leaf)" stroke-dasharray="2 3"/>`;

@@ -57,9 +57,9 @@ b, strong { font-weight: 600; }
 .btn.primary:hover { background: var(--leaf); filter: brightness(1.06); }
 .btn.ghost { background: transparent; color: var(--leaf); }
 .btn.ghost:hover { background: var(--leaf-soft); }
-.btn.sm { height: 32px; border-radius: 10px; font-size: 14px; padding: 0 12px; }
+.btn.sm { height: 32px; border-radius: 10px; font-size: 15px; padding: 0 12px; }
 .btn.icon { width: 40px; padding: 0; }
-.input, select.input, textarea.input { height: 44px; border: 0; border-radius: 12px; background: var(--sunken); font-size: 16px; padding: 0 14px; }
+.input, select.input, textarea.input { height: 44px; border: 0; border-radius: 12px; background: var(--sunken); font-size: 17px; padding: 0 14px; }
 textarea.input { height: auto; padding: 10px 14px; }
 .input:focus { outline: 2px solid var(--leaf); outline-offset: 0; }
 .field > span { font-size: 13px; font-weight: 500; color: var(--muted); }
@@ -68,7 +68,7 @@ textarea.input { height: auto; padding: 10px 14px; }
 /* Dialog seperti sheet iOS */
 .scrim { background: rgba(0, 0, 0, .4); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
 .dialog { border-radius: 20px; padding: 24px; }
-.dialog h2 { font-size: 20px; font-weight: 700; }
+.dialog h2 { font-size: 22px; font-weight: 700; }
 
 /* Menu samping desktop */
 .side { background: transparent; border-right: 0; }
@@ -87,7 +87,7 @@ textarea.input { height: auto; padding: 10px 14px; }
   .appbar .ttl small { display: none; }
   .appbar .ttl b { font-size: 17px; font-weight: 600; }
   .tabbar { background: color-mix(in srgb, var(--surface) 78%, transparent); -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px); border-top: .5px solid var(--line); }
-  .tabbar a, .tabbar button { font-size: 10.5px; font-weight: 500; min-height: 52px; }
+  .tabbar a, .tabbar button { font-size: 11px; font-weight: 500; min-height: 52px; }
   .tabbar [aria-current="page"] { color: var(--leaf); }
   .tabbar [aria-current="page"]::before { display: none; }
   .head h1 { font-size: 34px; }
@@ -98,7 +98,7 @@ textarea.input { height: auto; padding: 10px 14px; }
 }
 
 /* Pilih berkas dan kotak centang */
-input[type="file"].input { height: auto; padding: 8px 10px; font-size: 14px; }
+input[type="file"].input { height: auto; padding: 8px 10px; font-size: 15px; }
 input[type="file"]::file-selector-button { border: 0; background: var(--leaf); color: var(--leaf-ink); border-radius: 8px; padding: 7px 12px; margin-right: 10px; font: inherit; font-weight: 600; cursor: pointer; }
 .chk { border: 0; background: var(--sunken); border-radius: 10px; min-height: 36px; }
 .checklist .ck { border-top: .5px solid var(--line); }

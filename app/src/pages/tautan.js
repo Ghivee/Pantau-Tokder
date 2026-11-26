@@ -140,7 +140,7 @@ export function tautanDialog(label = '') {
         <label class="field"><span>Video (opsional)</span><select class="input" id="tl-video">${opsiVideo(awal)}</select></label>
       </div>
       <div class="err" id="tl-err" role="alert"></div>
-      <div class="actions"><button type="button" class="btn ghost" data-act="close-overlay">Batal</button><button class="btn primary" data-act="tautan-buat">Buat dan salin</button></div>`, (d) => {
+      <div class="actions"><button type="button" class="btn ghost danger" data-act="close-overlay">Batal</button><button class="btn primary" data-act="tautan-buat">Buat dan salin</button></div>`, (d) => {
     $('#tl-ch', d).addEventListener('change', (ev) => { $('#tl-video', d).innerHTML = opsiVideo(ev.target.value); });
     $('#tl-tempel', d).addEventListener('click', async () => {
       try {

@@ -40,7 +40,7 @@ function kartuIde(c) {
   const satu = (x, done) => {
     const url = keTelprom(x.topik, x.alasan);
     return `<div class="ide-row${done ? ' done' : ''}"><div class="ide-t"><span class="pill ${x.jenis === 'Topik ramai' ? 'ok' : 'leaf'}">${x.jenis}</span><b>${esc(x.topik)}</b><span class="muted">${esc(x.alasan)}</span></div>
-      <div class="ide-a">${url && !done ? `<a class="btn sm primary" href="${esc(url)}" target="_blank" rel="noopener">Jadikan naskah di Telprom</a>` : ''}<button class="btn sm ghost" data-act="ide-dibuat" data-v="${esc(x.k)}" aria-pressed="${done}">${done ? 'Batal tandai' : 'Sudah dibuat'}</button></div></div>`;
+      <div class="ide-a">${url && !done ? `<a class="btn sm primary" href="${esc(url)}" target="_blank" rel="noopener">Jadikan naskah di Telprom</a>` : ''}<button class="btn sm ghost${done ? ' danger' : ''}" data-act="ide-dibuat" data-v="${esc(x.k)}" aria-pressed="${done}">${done ? 'Batal tandai' : 'Sudah dibuat'}</button></div></div>`;
   };
   return `<section class="card"><div class="card-h"><h2>Ide siap dibuat</h2><span class="muted">${esc(pendek(c.nama))}</span></div>
       ${baru.length ? baru.map((x) => satu(x, false)).join('') : '<p class="muted">Semua ide di sini sudah dibuat. Ide baru muncul saat ada topik ramai atau pertanyaan penonton yang baru.</p>'}

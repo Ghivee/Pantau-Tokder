@@ -7,13 +7,13 @@
 .mt-8 { margin-top: 8px !important; } .mt-10 { margin-top: 10px !important; } .mt-12 { margin-top: 12px !important; } .mt-14 { margin-top: 14px !important; }
 .mb-4 { margin-bottom: 4px !important; } .mb-6 { margin-bottom: 6px !important; } .mb-12 { margin-bottom: 12px !important; }
 .mw-none { max-width: none !important; }
-.fs-12 { font-size: 12px !important; } .fs-125 { font-size: 12.5px !important; } .fs-13 { font-size: 13px !important; } .fs-16 { font-size: 16px !important; }
+.fs-12 { font-size: 13px !important; } .fs-125 { font-size: 13px !important; } .fs-13 { font-size: 13px !important; } .fs-16 { font-size: 17px !important; }
 .text-bad { color: var(--bad) !important; }
 .no-underline { text-decoration: none !important; }
 .minh-230 { min-height: 230px; }
 
 /* Keadaan halaman: gagal memuat dan kosong dipakai satu gaya di semua tempat. */
 .state { padding: 48px 20px; text-align: center; color: var(--muted); }
-.state b { display: block; font-size: 16px; font-weight: 500; color: var(--ink); margin-bottom: 4px; }
+.state b { display: block; font-size: 17px; font-weight: 500; color: var(--ink); margin-bottom: 4px; }
 .state p { margin: 0 auto 16px; max-width: 46ch; }
 .drawer-scrim { justify-content: flex-end; padding: 0; }

@@ -45,7 +45,7 @@ PAGES.harian = function () {
           </div>
         </header>
         <div class="people">${list.map(personCard).join('') || '<div class="card empty"><b>Belum ada karyawan aktif</b>Tambahkan di menu Karyawan.</div>'}</div>
-        <p class="muted" style="font-size:12.5px;margin:0;max-width:90ch">Skor harian 0–100: video tayang dibanding target (35 poin), tepat jadwal (25), views dibanding median channel untuk video berumur ≥ 2 hari (20), tugas lain (20). Komponen yang belum ada datanya tidak dihitung. Nilai A ≥ 85, B ≥ 70, C ≥ 55.</p>`;
+        <p class="muted" style="font-size:13px;margin:0;max-width:90ch">Skor harian 0–100: video tayang dibanding target (35 poin), tepat jadwal (25), views dibanding median channel untuk video berumur ≥ 2 hari (20), tugas lain (20). Komponen yang belum ada datanya tidak dihitung. Nilai A ≥ 85, B ≥ 70, C ≥ 55.</p>`;
   };
 
 function personCard(st) {
@@ -68,7 +68,7 @@ function personCard(st) {
         <div class="score"><div class="cap">${st.partial ? 'Skor<br>sementara' : 'Skor<br>' + tglPendek(st.day)}</div><span class="n">${st.skor ?? '—'}</span>${st.nilai ? `<span class="grade ${st.nilai}">${st.nilai}</span>` : ''}</div>
       </div>
       <div class="checks">${checks.map((c) => {
-        if (c.na) return `<div class="check"><span class="l">${c.l}</span><span class="v muted" style="font-size:12.5px;font-weight:500">${c.na}</span></div>`;
+        if (c.na) return `<div class="check"><span class="l">${c.l}</span><span class="v muted" style="font-size:13px;font-weight:500">${c.na}</span></div>`;
         const r = c.t ? c.v / c.t : c.v ? 1 : null;
         const cls = r == null ? '' : r >= 1 ? '' : r > 0 ? 'warn' : 'bad';
         return `<div class="check"><span class="l">${c.l}</span><span class="v">${nf.format(c.v)}<small> / ${nf.format(c.t)}</small></span><span class="meter"><i class="${cls}" style="width:${Math.min(1, r ?? 0) * 100}%"></i></span></div>`;

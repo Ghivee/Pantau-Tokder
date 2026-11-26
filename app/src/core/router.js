@@ -6,6 +6,7 @@ export const ROUTES = [
   { id: 'hari-ini', label: 'Hari ini', icon: 'home', karyawan: true },
   { id: 'rangkuman', label: 'Rangkuman', icon: 'rangkuman' },
   { id: 'kalender', label: 'Kalender', icon: 'day' },
+  { id: 'menu', label: 'Menu', icon: 'menu' },
   { id: 'saran', label: 'Saran', icon: 'video' },
   { id: 'affiliate', label: 'Affiliate', icon: 'link' },
   { id: 'ringkasan', label: 'Ringkasan', icon: 'home', admin: true },
@@ -49,7 +50,7 @@ export function menuGroups() {
   ];
 }
 
-export const TABS = () => (!MENU_LENGKAP ? ['rangkuman', 'sosmed', 'presensi'] : me() ? ['hari-ini', 'presensi', 'performa', 'pengajuan'] : ['rangkuman', 'harian', 'pengajuan', 'gaji']);
+export const TABS = () => (!MENU_LENGKAP ? ['rangkuman', 'presensi', 'sosmed'] : me() ? ['hari-ini', 'presensi', 'performa', 'pengajuan'] : ['rangkuman', 'harian', 'pengajuan', 'gaji']);
 
 export const routeLabel = (r) => (me() && r.id === 'harian' ? 'Harian saya' : me() && r.id === 'performa' ? 'Performa saya' : me() && r.id === 'konten' ? 'Video channel' : r.label);
 

@@ -183,28 +183,67 @@ async function muatAf() {
   if (R.afHari === h) segarkanRekap();
 }
 
-// Hal yang perlu dilihat: channel yang naik/turun tajam, CTR yang turun, video baru yang melonjak, produk yang naik.
+// Enam hal untuk bahan video berikutnya: masalah dulu (merah), lalu peluang dari data tim sendiri (hijau dan biru).
+// Bila datanya belum cukup, sisanya diisi kebiasaan kerja yang diberi label "Tips" supaya tidak dikira temuan.
+const TIPS = [
+  ['Pembuka 3 detik', 'Tampilkan masalah tanaman atau hasil panen di detik pertama, baru jelaskan caranya.'],
+  ['Satu video, satu masalah', 'Pilih satu keluhan petani cabai, jawab sampai tuntas, jangan digabung.'],
+  ['Ambil ide dari komentar', 'Buka komentar video terbaru dan jadikan pertanyaan berulang sebagai judul.'],
+  ['Judul memakai kata pencarian', 'Tulis nama penyakit, harga, atau umur tanaman yang biasa dicari penonton.'],
+  ['Rekam gambar pendukung', 'Ambil jarak dekat daun, buah, dan alat selagi di kebun untuk beberapa video.'],
+  ['Tutup dengan satu ajakan', 'Minta satu hal saja: simpan, tanya di komentar, atau tonton video lanjutan.'],
+];
+
 function perhatian(chans, baris, p) {
-  const out = [];
+  const awas = [], peluang = [];
+  const kali = (x) => nf.format(Math.round(x * 10) / 10);
   for (const b of baris) {
     if (b.v != null && b.vp > 0) {
       const d = (b.v - b.vp) / b.vp;
-      if (d <= -0.15) out.push(['bad', `Views ${esc(b.c.nama)} turun ${nf.format(Math.round(-d * 100))}%`, 'dibanding periode sebelumnya']);
-      else if (d >= 0.3) out.push(['ok', `Views ${esc(b.c.nama)} naik ${nf.format(Math.round(d * 100))}%`, 'dibanding periode sebelumnya']);
+      if (d <= -0.15) awas.push(['bad', `Views ${esc(b.c.nama)} turun ${nf.format(Math.round(-d * 100))}%`, 'Dibanding periode sebelumnya. Ulangi topik yang dulu ramai dengan judul baru.']);
+      else if (d >= 0.3) peluang.push(['ok', `Views ${esc(b.c.nama)} naik ${nf.format(Math.round(d * 100))}%`, 'Dibanding periode sebelumnya. Pertahankan topik dan jadwalnya.']);
     }
     const cp = ctrOf(b.c.id, p.prev);
-    if (b.ctr != null && cp != null && b.ctr - cp <= -1) out.push(['bad', `CTR ${esc(b.c.nama)} turun ${nf.format(Math.round((cp - b.ctr) * 10) / 10)} poin`, `${persen(cp)} → ${persen(b.ctr)}. Coba judul atau thumbnail yang lebih tajam.`]);
+    if (b.ctr != null && cp != null && b.ctr - cp <= -1) awas.push(['bad', `CTR ${esc(b.c.nama)} turun ${kali(cp - b.ctr)} poin`, `${persen(cp)} → ${persen(b.ctr)}. Coba judul atau thumbnail yang lebih tajam.`]);
   }
+  const ids = new Set(chans.map((c) => c.id));
+  const video = S.content.filter((v) => ids.has(v._ch) && v._age <= 90);
+  const matang = video.filter((v) => v._age >= 2); // views video yang baru tayang belum mencerminkan hasilnya
   for (const c of chans) {
-    const lama = S.content.filter((v) => v._ch === c.id && v._age > 14 && v._age <= 90).map((v) => v.views);
-    const med = median(lama);
+    const milik = S.content.filter((v) => v._ch === c.id);
+    const jeda = milik.length ? Math.floor(Math.min(...milik.map((v) => v._age))) : null;
+    if (jeda != null && jeda >= 3) awas.push(['bad', `${esc(c.nama)}: ${jeda} hari tanpa video baru`, 'Siapkan satu video pendek hari ini supaya jadwalnya tidak putus.']);
+    const med = median(milik.filter((v) => v._age > 14 && v._age <= 90).map((v) => v.views));
     if (!med) continue;
-    const baru = S.content.filter((v) => v._ch === c.id && v._age <= 14 && v.views >= med * 2).sort((a, b) => b.views - a.views)[0];
-    if (baru) out.push(['ok', `"${esc(baru.judul)}" ${nf.format(Math.round((baru.views / med) * 10) / 10)}× video biasa`, `${esc(c.nama)} · buat lanjutan selagi ramai`]);
+    const baru = milik.filter((v) => v._age <= 14 && v.views >= med * 2).sort((a, b) => b.views - a.views)[0];
+    if (baru) peluang.push(['ok', `"${esc(baru.judul)}" ${kali(baru.views / med)}× video biasa`, `${esc(c.nama)} · buat lanjutannya selagi ramai.`]);
   }
+  const lemah = video.filter((v) => v._age <= 28 && S.insight && S.insight.retMap && S.insight.retMap.has(v.id))
+    .map((v) => [v, S.insight.retMap.get(v.id).tengah]).filter(([, t]) => t < 40).sort((a, b) => a[1] - b[1])[0];
+  if (lemah) awas.push(['bad', `Penonton cepat pergi di "${esc(lemah[0].judul)}"`, `Tinggal ${persen(lemah[1])} di pertengahan video. Buat pembuka berikutnya lebih langsung.`]);
+
+  // Kelompok yang hasil tengahnya paling tinggi dibanding semua video (minimal 3 video supaya tidak kebetulan).
+  const semua = median(matang.map((v) => v.views));
+  const terbaik = (kunci) => {
+    const g = new Map();
+    matang.forEach((v) => { const k = kunci(v); if (k == null) return; if (!g.has(k)) g.set(k, []); g.get(k).push(v); });
+    return [...g].filter(([, a]) => a.length >= 3).map(([k, a]) => ({ k, a, x: semua ? median(a.map((v) => v.views)) / semua : 0 })).sort((p1, p2) => p2.x - p1.x)[0];
+  };
+  const topik = terbaik((v) => (v._topik === 'Lainnya' ? null : v._topik));
+  if (topik && topik.x >= 1.15) peluang.push(['ide', `Topik "${esc(topik.k)}" ${kali(topik.x)}× lebih ramai`, `Jadikan bahan berikutnya. Contoh terlaris: "${esc([...topik.a].sort((a, b) => b.views - a.views)[0].judul)}".`]);
+  const tanya = video.filter((v) => v._age <= 30 && v.comments >= 3).sort((a, b) => b.comments - a.comments)[0];
+  if (tanya) peluang.push(['ide', `${nf.format(tanya.comments)} komentar di "${esc(tanya.judul)}"`, 'Baca pertanyaannya, lalu jawab yang paling sering lewat video baru.']);
+  const jam = terbaik((v) => v._jam.slice(0, 2));
+  if (jam && jam.x >= 1.15) peluang.push(['ide', `Tayang sekitar pukul ${jam.k}.00 paling ramai`, `${kali(jam.x)}× video biasa dari ${jam.a.length} video. Jadwalkan unggahan di jam itu.`]);
+  const bentuk = terbaik((v) => v.tipe_video);
+  if (bentuk && bentuk.x >= 1.3) peluang.push(['ide', `${bentuk.k === 'short' ? 'Video pendek' : 'Video panjang'} ${kali(bentuk.x)}× lebih ramai`, 'Perbanyak bentuk ini untuk topik berikutnya.']);
   const naikAf = R.af && !R.af.galat && (R.af.terlaris || []).find((x) => x.tren === 'naik');
-  if (naikAf) out.push(['ok', `Produk "${esc(naikAf.produk)}" makin laku`, 'komisi afiliasi naik dari periode sebelumnya']);
-  return out.slice(0, 4);
+  if (naikAf) peluang.push(['ok', `Produk "${esc(naikAf.produk)}" makin laku`, 'Buat video yang menunjukkan produk itu dipakai di kebun.']);
+
+  // Paling banyak tiga masalah supaya peluang tetap kebagian tempat; sisa tempat diisi masalah lain lalu tips.
+  const hasil = [...awas.slice(0, 3), ...peluang, ...awas.slice(3)].slice(0, 6);
+  for (const [t, k] of TIPS) { if (hasil.length >= 6) break; hasil.push(['tips', `Tips: ${t}`, k]); }
+  return hasil;
 }
 
 function ringkasAtas(chans, baris, p) {
@@ -223,7 +262,7 @@ function ringkasAtas(chans, baris, p) {
       <p class="muted fs-13">Produk terlaris ${S.anPeriode} hari terakhir. Buat dan salin tautan pelacak di menu Affiliate.</p></section>` : '';
   return `<section class="card rk-atas" aria-label="Ringkasan semua channel"><div class="rk-grid">${tiles.map(([l, val, d]) => `<div class="rk"><span class="muted">${l}</span><b>${val == null ? '<span class="muted">—</span>' : val}</b>${d || ''}</div>`).join('')}</div>
       <h2 class="rk-h">Perlu perhatian</h2>
-      ${per.length ? per.map(([c, t, k]) => `<div class="rk-p ${c}"><i aria-hidden="true"></i><div><b>${t}</b><span class="muted">${k}</span></div></div>`).join('') : '<p class="muted">Tidak ada yang mencolok di periode ini.</p>'}</section>${af}`;
+      <ol class="rk-daftar">${per.map(([c, t, k]) => `<li class="rk-p ${c}"><i aria-hidden="true"></i><div><b>${t}</b><span class="muted">${k}</span></div></li>`).join('')}</ol></section>${af}`;
 }
 
 function isi() {
