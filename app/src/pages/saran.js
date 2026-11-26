@@ -9,7 +9,44 @@ import { kali } from './shared.js';
 
 // Saran untuk tim produksi, per channel, dari data nyata: topik dan kata judul yang laris di channel itu, komentar penonton,
 // video populer di channel ini dan di channel lain. Kebutuhan affiliate (produk, tautan) ada di menu Affiliate.
-const Z = (S.saranData = { data: null, galat: null, memuat: false, ch: null, komentar: null });
+const Z = (S.saranData = { data: null, galat: null, memuat: false, ch: null, komentar: null, telprom: undefined });
+
+// Ide siap dibuat: dirangkum dari topik yang ramai dan pertanyaan penonton. Satu ketukan membukanya di Telprom
+// (Ide, topik sudah terisi). "Sudah dibuat" disimpan di perangkat ini supaya ide yang sama tidak muncul lagi di atas.
+const DIBUAT = 'pt_ide_dibuat';
+const dibuat = () => { try { return JSON.parse(localStorage.getItem(DIBUAT)) || []; } catch (e) { return []; } };
+export function tandaiDibuat(k) {
+  const a = dibuat().filter((x) => x !== k);
+  if (!dibuat().includes(k)) a.push(k);
+  try { localStorage.setItem(DIBUAT, JSON.stringify(a.slice(-200))); } catch (e) { /* penyimpanan mati */ }
+  tampil();
+}
+const keTelprom = (topik, alasan) => (Z.telprom ? Z.telprom + (Z.telprom.includes('?') ? '&' : '?') + 'ide=' + encodeURIComponent(topik) + '&alasan=' + encodeURIComponent(alasan) : '');
+
+function ideDari(c) {
+  const out = [];
+  for (const x of topikTerakhir(S.content.filter((v) => v._ch === c.id))) {
+    if (x.r < 1.2 || /^lain/i.test(x.t)) continue; // kelompok sisa bukan topik
+    out.push({ k: 't:' + c.id + ':' + x.t, topik: x.t, jenis: 'Topik ramai', alasan: `${x.n} video topik ini rata-rata ${kali(x.r)} views video lain. Terbaik: ${x.best.judul}` });
+  }
+  const K = Z.komentar, k = K && K.tersedia && K.channels.find((y) => y.id === c.id);
+  if (k && !k.galat) for (const t of k.topik) out.push({ k: 'q:' + c.id + ':' + t.topik, topik: t.contoh[0], jenis: 'Ditanyakan penonton', alasan: `${t.n} komentar menanyakan ${t.topik}` });
+  return out;
+}
+
+function kartuIde(c) {
+  const sudah = new Set(dibuat()), semua = ideDari(c), baru = semua.filter((x) => !sudah.has(x.k)).slice(0, 5), lama = semua.filter((x) => sudah.has(x.k));
+  if (!semua.length) return '';
+  const satu = (x, done) => {
+    const url = keTelprom(x.topik, x.alasan);
+    return `<div class="ide-row${done ? ' done' : ''}"><div class="ide-t"><span class="pill ${x.jenis === 'Topik ramai' ? 'ok' : 'leaf'}">${x.jenis}</span><b>${esc(x.topik)}</b><span class="muted">${esc(x.alasan)}</span></div>
+      <div class="ide-a">${url && !done ? `<a class="btn sm primary" href="${esc(url)}" target="_blank" rel="noopener">Jadikan naskah di Telprom</a>` : ''}<button class="btn sm ghost" data-act="ide-dibuat" data-v="${esc(x.k)}" aria-pressed="${done}">${done ? 'Batal tandai' : 'Sudah dibuat'}</button></div></div>`;
+  };
+  return `<section class="card"><div class="card-h"><h2>Ide siap dibuat</h2><span class="muted">${esc(pendek(c.nama))}</span></div>
+      ${baru.length ? baru.map((x) => satu(x, false)).join('') : '<p class="muted">Semua ide di sini sudah dibuat. Ide baru muncul saat ada topik ramai atau pertanyaan penonton yang baru.</p>'}
+      ${Z.telprom === null ? '<p class="muted fs-13">Tombol ke Telprom muncul bila alamat Telprom sudah diatur dan Anda diberi akses Telprom.</p>' : ''}
+      ${lama.length ? `<details class="mt-12"><summary class="muted">Sudah dibuat · ${lama.length}</summary>${lama.map((x) => satu(x, true)).join('')}</details>` : ''}</section>`;
+}
 
 const pendek = (n) => String(n).replace(/\s+Hari Ini$/i, '');
 const warna = (id) => { const i = Z.data ? Z.data.channels.findIndex((c) => c.id === id) : -1; return i >= 0 && i < 3 ? `var(--ch-${i + 1})` : 'var(--muted)'; };
@@ -81,6 +118,7 @@ function isi() {
   const d = Z.data, c = pilihan();
   return `
     <div class="seg scroll" role="group" aria-label="Channel">${d.channels.map((x) => `<button data-act="saran-ch" data-v="${esc(x.id)}" aria-pressed="${x.id === c.id}"><i class="dot" style="background:${warna(x.id)}"></i>${esc(pendek(x.nama))}</button>`).join('')}</div>
+    ${kartuIde(c)}
     ${kartuTopik(c)}
     ${kartuKata(c)}
     ${kartuKomentar(c)}
@@ -105,7 +143,13 @@ async function muatKomentar() {
   tampil();
 }
 
+async function muatTelprom() {
+  try { const t = ((await api('/api/aplikasi')).daftar || []).find((a) => a.id === 'telprom'); Z.telprom = (t && t.langsung) || null; } catch (e) { Z.telprom = null; }
+  tampil();
+}
+
 AFTER.saran = () => {
+  if (Z.telprom === undefined) muatTelprom();
   if (!Z.data || Date.now() - new Date(Z.data.dihitung).getTime() > 3 * 3600 * 1000) muatSaran();
   if (!Z.komentar) muatKomentar();
 };

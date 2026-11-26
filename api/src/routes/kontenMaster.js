@@ -10,4 +10,12 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Naskah yang belum tayang, untuk mengisi judul di menu Upload.
+router.get('/siap', async (req, res) => {
+  try { res.json(await kontenMaster.siapUnggah()); } catch (err) {
+    console.error('konten-master/siap', err.message);
+    res.json({ terhubung: false, daftar: [], galat: 'Naskah Master belum bisa dibaca' });
+  }
+});
+
 module.exports = router;

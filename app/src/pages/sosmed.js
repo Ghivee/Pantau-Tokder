@@ -80,23 +80,49 @@ function postingCard(d) {
   const sosmedAkun = d.platforms.flatMap((p) => p.koneksi);
   const yt = ((S.oauth && S.oauth.channels) || []).filter((c) => c.connected);
   const kotak = (name, val, label, off, note) => `<label class="chk"${off ? ' style="opacity:.55"' : ''}><input type="checkbox" name="${name}" value="${esc(val)}" ${off ? 'disabled' : 'checked'}> ${label}${note ? ` <span class="muted fs-12">${note}</span>` : ''}</label>`;
-  return `<section class="card" id="kartu-posting"><div class="card-h"><h2>Upload</h2></div>
+  return `<section class="card" id="kartu-posting"><div class="card-h"><h2>Unggah video baru</h2></div>
       ${d.blob ? '' : '<div class="notice mb-12 mt-0" role="status"><span>Penyimpanan video belum aktif (Vercel → Storage → Blob).</span></div>'}
       ${bisa('upload') ? `<form id="post-form" class="stack">
+        <div class="step-h"><span class="no" aria-hidden="true">1</span><b>Video</b></div>
+        <label class="field"><span>File video</span><input class="input" type="file" name="video" accept="video/mp4,video/quicktime,video/webm" required></label>
+        <span class="muted fs-13" id="post-file" aria-live="polite"></span>
+        <div class="step-h"><span class="no" aria-hidden="true">2</span><b>Judul dan deskripsi</b></div>
+        <label class="field"><span>Ambil dari naskah</span><select class="input" id="post-naskah"><option value="">Memuat naskah dari Master…</option></select></label>
         <label class="field"><span>Judul</span><input class="input" name="judul" maxlength="100" required></label>
         <label class="field"><span>Deskripsi</span><textarea class="input" name="deskripsi" rows="3" maxlength="4000"></textarea></label>
         <div class="field"><span>Tautan produk</span><div class="kata" id="post-tautan">${tautanPilihan()}</div></div>
         <div><button type="button" class="btn sm" data-act="susun-deskripsi">Susun deskripsi</button></div>
-        <label class="field"><span>Video</span><input class="input" type="file" name="video" accept="video/mp4,video/quicktime,video/webm" required></label>
+        <div class="step-h"><span class="no" aria-hidden="true">3</span><b>Tayang di</b></div>
         <div class="field"><span>Kirim ke</span><div class="kata">
           ${sosmedAkun.map((k) => kotak('akun', k.id, esc(PLAT[k.platform] + ' · ' + (k.nama || k.akun_id)), !k.bisa_posting, k.bisa_posting ? '' : 'hubungkan ulang')).join('')}
           ${yt.map((c) => kotak('yt', c.id, 'YouTube · ' + esc(c.nama), false, '')).join('')}
           ${!sosmedAkun.length && !yt.length ? '<span class="muted">Belum ada akun.</span>' : ''}
         </div></div>
         <div class="err text-bad fs-13" id="post-err" role="alert"></div>
-        <div class="tools"><button class="btn primary" id="post-btn" ${d.blob ? '' : 'disabled'}>Unggah</button><span class="muted" id="post-prog"></span></div>
+        <div class="tools"><button class="btn primary" id="post-btn" ${d.blob ? '' : 'disabled'}>Unggah sebagai draf</button><span class="muted" id="post-prog"></span></div>
+        <p class="muted fs-13">Setiap platform menerima draf dulu. Tayangkan dari daftar di bawah setelah dicek.</p>
       </form>` : ''}
-      <div id="post-list" class="mt-14">${postListHtml()}</div></section>`;
+      <h3 class="mt-14">Riwayat upload</h3>
+      <div id="post-list">${postListHtml()}</div></section>`;
+}
+
+// Naskah dari Master yang belum tayang: memilihnya mengisi judul. Deskripsi lalu disusun dengan tombol Susun deskripsi.
+let naskahSiap = null;
+async function muatNaskah(f) {
+  const sel = $('#post-naskah', f);
+  if (!sel) return;
+  if (!naskahSiap) { try { naskahSiap = await api('/api/konten-master/siap'); } catch (e) { naskahSiap = { terhubung: false, daftar: [] }; } }
+  const L = naskahSiap.daftar || [];
+  sel.innerHTML = !naskahSiap.terhubung ? '<option value="">Master belum tersambung</option>'
+    : L.length ? '<option value="">Pilih naskah (opsional)</option>' + L.map((k, i) => `<option value="${i}">${esc(k.judul)} · ${esc(k.status)}</option>`).join('')
+    : '<option value="">Belum ada naskah yang menunggu tayang</option>';
+  sel.disabled = !L.length;
+  sel.onchange = () => {
+    const k = L[+sel.value];
+    if (!k || sel.value === '') return;
+    const isi = () => { f.elements.judul.value = k.judul.slice(0, 100); toast('Judul diisi dari naskah. Ketuk Susun deskripsi untuk deskripsinya.'); };
+    if (f.elements.judul.value.trim() && f.elements.judul.value.trim() !== k.judul) confirmDialog('Ganti judul?', 'Judul sekarang akan diganti dengan judul naskah.', 'Ganti', isi); else isi();
+  };
 }
 
 PAGES.sosmed = function () {
@@ -110,9 +136,11 @@ PAGES.sosmed = function () {
             ${isAdmin() ? `<button class="btn sm ghost danger" data-act="putus-sosmed" data-id="${k.id}">Putuskan</button>` : ''}</div>`).join('')}
           ${p.siap || !isAdmin() ? '' : `<div class="ck"><span class="st bad">!</span><div><b>Isi di Vercel</b><div class="mono">${p.env.map(esc).join(' · ')}</div></div></div>`}
         </div></section>`;
+    const nAkun = d.platforms.reduce((n, p) => n + p.koneksi.length, 0);
     return head + `
         ${postingCard(d)}
-        <div class="grid-2">${d.platforms.map(kartu).join('')}</div>
+        <details class="card akun-sosmed"${nAkun ? '' : ' open'}><summary><b>Akun tersambung</b> <span class="muted">${nAkun} akun</span></summary>
+        <div class="grid-2 mt-12">${d.platforms.map(kartu).join('')}</div></details>
       `;
   };
 
@@ -121,6 +149,8 @@ AFTER.sosmed = function () {
     muatTautanSekali().then(() => { const el = $('#post-tautan'); if (el && !$$('[name=tautan]:checked', el).length) el.innerHTML = tautanPilihan(); });
     const f = $('#post-form');
     if (!f) return;
+    f.elements.video.addEventListener('change', () => { const x = f.elements.video.files[0]; $('#post-file').textContent = x ? `${x.name} · ${nf.format(Math.max(1, Math.round(x.size / 1048576)))} MB` : ''; });
+    muatNaskah(f);
     f.addEventListener('submit', async (ev) => {
       ev.preventDefault();
       const err = $('#post-err'), prog = $('#post-prog'), btn = $('#post-btn');

@@ -388,3 +388,23 @@ a.app-card:hover { border-color: var(--ink); }
 /* Muncul sedikit tertunda: pemuatan yang cepat tidak sempat menampilkan apa pun. */
 .boot { animation: muncul .2s ease-out .25s both; }
 @keyframes muncul { from { opacity: 0; } to { opacity: 1; } }
+
+/* Rangkuman atas, ide siap dibuat, langkah upload */
+.rk-atas .rk-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.rk { display: grid; gap: 2px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); }
+.rk b { font-size: 22px; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.rk .muted { font-size: 12.5px; }
+.rk-h { font-size: 15px; margin: 16px 0 6px; }
+.rk-p { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-top: 1px solid var(--line); }
+.rk-p:first-of-type { border-top: 0; }
+.rk-p i { width: 8px; height: 8px; border-radius: 50%; margin-top: 7px; flex: none; background: var(--ok); }
+.rk-p.bad i { background: var(--bad); }
+.rk-p div { display: grid; gap: 1px; min-width: 0; }
+.ide-row { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; justify-content: space-between; padding: 12px 0; border-top: 1px solid var(--line); }
+.ide-row:first-of-type { border-top: 0; }
+.ide-row.done { opacity: .65; }
+.ide-t { display: grid; gap: 3px; flex: 1 1 260px; min-width: 0; justify-items: start; }
+.ide-a { display: flex; gap: 8px; flex-wrap: wrap; }
+.step-h { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
+.step-h .no { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--leaf); color: var(--leaf-ink); font-size: 13px; font-weight: 700; }
+.akun-sosmed > summary { cursor: pointer; list-style: revert; }

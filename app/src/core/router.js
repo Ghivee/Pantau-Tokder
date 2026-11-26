@@ -34,9 +34,9 @@ export const beranda = () => (me() && MENU_LENGKAP ? 'hari-ini' : 'rangkuman');
 
 // The menu in groups, ordered by what each role uses most. The bottom bar on phones shows the first four.
 export function menuGroups() {
-  // Tampilan ringkas untuk pemilik dan karyawan: Rangkuman, Saran, Affiliate, Upload. Halaman lain (Hari ini, Harian, Presensi, Gaji, dst.)
+  // Tampilan ringkas untuk pemilik dan karyawan: Rangkuman, Saran, Upload, Presensi. Affiliate dibuka dari Rangkuman atau menu. Halaman lain (Hari ini, Harian, Gaji, dst.)
   // tidak dihapus, hanya disembunyikan dari menu; set MENU_LENGKAP = true untuk menampilkannya lagi.
-  if (!MENU_LENGKAP) return [{ label: 'Menu', ids: ['aplikasi', 'rangkuman', 'saran', 'affiliate', 'sosmed', 'karyawan', 'akses', 'jejak', 'pengaturan', 'akun'] }];
+  if (!MENU_LENGKAP) return [{ label: 'Menu', ids: ['aplikasi', 'rangkuman', 'saran', 'sosmed', 'presensi', 'affiliate', 'karyawan', 'akses', 'jejak', 'pengaturan', 'akun'] }];
   if (me()) return [
     { label: 'Kerja saya', ids: ['hari-ini', 'harian', 'performa', 'presensi', 'pengajuan', 'gaji'] },
     { label: 'Channel', ids: ['rangkuman', 'saran', 'affiliate', 'sosmed', 'tren', 'analytics', 'konten', 'identifikasi'] },
@@ -49,7 +49,7 @@ export function menuGroups() {
   ];
 }
 
-export const TABS = () => (!MENU_LENGKAP ? ['rangkuman', 'saran', 'affiliate', 'sosmed'] : me() ? ['hari-ini', 'presensi', 'performa', 'pengajuan'] : ['rangkuman', 'harian', 'pengajuan', 'gaji']);
+export const TABS = () => (!MENU_LENGKAP ? ['rangkuman', 'saran', 'sosmed', 'presensi'] : me() ? ['hari-ini', 'presensi', 'performa', 'pengajuan'] : ['rangkuman', 'harian', 'pengajuan', 'gaji']);
 
 export const routeLabel = (r) => (me() && r.id === 'harian' ? 'Harian saya' : me() && r.id === 'performa' ? 'Performa saya' : me() && r.id === 'konten' ? 'Video channel' : r.label);
 

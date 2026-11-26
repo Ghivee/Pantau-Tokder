@@ -13,7 +13,7 @@ router.get('/', async (req, res) => {
     const semua = [
       { id: 'pantau', nama: 'Tokder', ket: 'Performa channel, saran, affiliate, dan upload sosmed', url: '', sekarang: true },
       { id: 'master', nama: 'Master', ket: 'Order, kas harian, konten, tim, dan absen', url: master, env: 'MASTER_APP_URL' },
-      { id: 'telprom', nama: 'Telprom', ket: 'Ide, naskah, dan rekam video', url: lompatTelprom, env: 'TELPROM_APP_URL' },
+      { id: 'telprom', nama: 'Telprom', ket: 'Ide, naskah, dan rekam video', url: lompatTelprom, langsung: telprom, env: 'TELPROM_APP_URL' },
     ];
     if (req.isAdmin) return res.json({ daftar: semua });
     // Sudah diatur per orang: pakai izin web_*. Belum: ikuti pengaturan web yang lama.
