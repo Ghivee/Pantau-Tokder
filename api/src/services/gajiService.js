@@ -1,6 +1,7 @@
 const db = require('../config/db');
 const { bad } = require('../utils/httpError');
 const presensi = require('./presensiService');
+const masterGaji = require('./masterGajiService');
 const kalender = require('./kalenderService');
 const { rangeDays, isWorkday, addDays } = require('./pengajuanService');
 
@@ -10,7 +11,7 @@ const { rangeDays, isWorkday, addDays } = require('./pengajuanService');
 
 const CONFIG_KEY = 'gaji_config';
 const DEFAULTS = { jatah_cuti: 12 };
-const ATURAN = ['gaji_pokok', 'tunjangan', 'potongan_tetap', 'potong_alpa', 'potong_izin', 'potong_telat', 'tarif_lembur', 'bonus_video', 'bonus_1000_views'];
+const ATURAN = ['gaji_pokok', 'tunjangan', 'potongan_tetap', 'potong_alpa', 'potong_izin', 'potong_telat', 'tarif_lembur', 'bonus_video', 'bonus_1000_views', 'bonus_pcs'];
 const BULAN = /^\d{4}-(0[1-9]|1[0-2])$/;
 const LEMBUR_MIN = 30; // minutes after closing time before it counts as overtime
 const LEMBUR_MAKS = 6 * 60; // a forgotten check-out cannot become a whole night of overtime
@@ -48,7 +49,8 @@ function validasiAturan(b = {}) {
 
 // The calculation for one person and one month. Pure, so it can be tested and re-run exactly.
 // `jam` is the opening hours: a function of the date (null on a day off), or one set for every working day.
-function hitung({ bulan, editor, aturan, cfg, jam, presensiRows, cuti, klaim, penyesuaian, videos, mulaiPresensi, now = Date.now() }) {
+// `penjualan` = { terhubung, pcs } dari Master: pcs terjual semua channel bulan itu (sama untuk semua staf).
+function hitung({ bulan, editor, aturan, cfg, jam, presensiRows, cuti, klaim, penyesuaian, videos, mulaiPresensi, penjualan = null, now = Date.now() }) {
   const a = { ...Object.fromEntries(ATURAN.map((k) => [k, 0])), ...(aturan || {}) };
   ATURAN.forEach((k) => { a[k] = Number(a[k]) || 0; });
   const jamPada = typeof jam === 'function' ? jam : (d) => (isWorkday(d, cfg) ? jam : null);
@@ -96,6 +98,9 @@ function hitung({ bulan, editor, aturan, cfg, jam, presensiRows, cuti, klaim, pe
   add('Lembur', (h.lembur_menit / 60) * a.tarif_lembur, `${Math.floor(h.lembur_menit / 60)} jam ${h.lembur_menit % 60} menit × Rp${a.tarif_lembur.toLocaleString('id-ID')}/jam`, a.tarif_lembur > 0 && h.lembur_menit > 0);
   add('Bonus video di atas target', lebihVideo * a.bonus_video, `${lebihVideo} video lebih dari target ${v.target}`, a.bonus_video > 0);
   add('Bonus views', Math.floor(v.views / 1000) * a.bonus_1000_views, `${v.views.toLocaleString('id-ID')} views video bulan ini`, a.bonus_1000_views > 0);
+  const jual = penjualan && penjualan.terhubung ? { pcs: Number(penjualan.pcs) || 0, per_channel: penjualan.per_channel || {} } : null;
+  add('Bonus penjualan', jual ? jual.pcs * a.bonus_pcs : 0,
+    jual ? `${jual.pcs.toLocaleString('id-ID')} pcs terjual semua channel × Rp${a.bonus_pcs.toLocaleString('id-ID')}` : 'Data penjualan Master belum terbaca' + (penjualan && penjualan.galat ? ': ' + penjualan.galat : ''), a.bonus_pcs > 0);
   klaim.forEach((k) => add('Klaim: ' + k.alasan, Number(k.jumlah) || 0, k.dari));
   penyesuaian.forEach((p) => add(p.keterangan, Number(p.jumlah), 'penyesuaian pemilik'));
   add('Potongan tidak hadir', -h.alpa * a.potong_alpa, `${h.alpa} hari tanpa absen dan tanpa izin`, a.potong_alpa > 0 && h.alpa > 0);
@@ -107,7 +112,7 @@ function hitung({ bulan, editor, aturan, cfg, jam, presensiRows, cuti, klaim, pe
   return {
     bulan, editor_id: editor.id, nama: editor.nama,
     periode: { dari: mulai, sampai, selesai }, presensi_dipakai: presensiDipakai,
-    hari: h, video: v, aturan: a, aturan_diisi: ATURAN.some((k) => a[k] > 0),
+    hari: h, video: v, penjualan: a.bonus_pcs > 0 ? (jual || { pcs: null, galat: (penjualan && penjualan.galat) || 'belum terbaca' }) : undefined, aturan: a, aturan_diisi: ATURAN.some((k) => a[k] > 0),
     baris, total: Math.max(0, kotor), minus: kotor < 0,
     dihitung_at: new Date(now).toISOString(),
   };
@@ -122,7 +127,7 @@ async function hitungBulan(bulan, { editorId = null, now = Date.now() } = {}) {
   const [cfg, pcfg, eds, aturan, pres, mulai, peng, peny, vids, fin] = await Promise.all([
     getConfig(),
     presensi.getConfig(),
-    db.query(`SELECT id, nama, target_harian, status, created_at FROM editors${editorId ? ' WHERE id = $1' : ''} ORDER BY id`, editorId ? [editorId] : []),
+    db.query(`SELECT id, nama, target_harian, status, created_at, akun_master FROM editors${editorId ? ' WHERE id = $1' : ''} ORDER BY id`, editorId ? [editorId] : []),
     db.query(`SELECT * FROM gaji_aturan${editorId ? ' WHERE editor_id = $1' : ''}`, editorId ? [editorId] : []),
     db.query(`SELECT editor_id, to_char(tanggal, 'YYYY-MM-DD') AS tanggal, jenis, waktu, telat_menit FROM presensi WHERE tanggal BETWEEN $1 AND $2${only}`, p),
     db.query(`SELECT to_char(MIN(tanggal), 'YYYY-MM-DD') AS d FROM presensi`),
@@ -135,6 +140,9 @@ async function hitungBulan(bulan, { editorId = null, now = Date.now() } = {}) {
   ]);
   const by = (rows, id) => rows.filter((r) => r.editor_id === id);
   const finals = Object.fromEntries(fin.rows.map((r) => [r.editor_id, r]));
+  // Penjualan dari Master hanya dibaca bila ada yang memakai bonus per pcs dan masih ada gaji draf.
+  const perluJual = aturan.rows.some((x) => Number(x.bonus_pcs) > 0 && !finals[x.editor_id]);
+  const penjualan = perluJual ? await masterGaji.penjualan(bulan) : null;
   const list = [];
   for (const e of eds.rows) {
     const f = finals[e.id];
@@ -154,6 +162,7 @@ async function hitungBulan(bulan, { editorId = null, now = Date.now() } = {}) {
       penyesuaian: by(peny.rows, e.id),
       videos: by(vids.rows, e.id),
       mulaiPresensi: mulai.rows[0] && mulai.rows[0].d,
+      penjualan,
       now,
     });
     list.push({ ...r, status: 'draf', penyesuaian: by(peny.rows, e.id) });
