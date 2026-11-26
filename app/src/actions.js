@@ -172,6 +172,11 @@ async function aksiBaru(act, el, ev) {
     case 'csv-presensi': exportPresensi(); break;
     case 'atur-gaji': aturGajiDialog(el.dataset.id || 'umum'); break;
     case 'gaji-muat': delete S.gajiCache[S.gajiBulan]; render(); break;
+    case 'gaji-master': {
+      const b = S.gajiBulan; el.disabled = true;
+      try { const r = await api('/api/gaji/kirim-master', { method: 'POST', body: { bulan: b }, timeout: 30000 }); toast(`Gaji ${bulanLabel(b)} terkirim ke Master: ${idr(r.total)} untuk ${r.terkirim} orang${r.final ? '' : ' (masih ada yang draf)'}`); } catch (e) { toast(e.message, true); }
+      el.disabled = false; break;
+    }
     case 'gaji-ke': ev.preventDefault(); S.gajiBulan = el.dataset.v; render(); window.scrollTo({ top: 0 }); break;
     case 'slip': slipDialog(el.dataset.id); break;
     case 'cetak-slip': cetakSlip(el.dataset.id); break;
@@ -182,7 +187,7 @@ async function aksiBaru(act, el, ev) {
       const names = G.list.filter((r) => r.status !== 'final' && (!ids || ids.includes(r.editor_id))).map((r) => r.nama);
       const jalan = b === today().slice(0, 7);
       confirmDialog(`Finalkan gaji ${bulanLabel(b)}?`, `${names.join(', ')}. Angka dikunci menjadi slip resmi dan tidak ikut berubah bila presensi, izin atau aturan berubah.${jalan ? ' Bulan ini belum selesai: hari-hari yang tersisa tidak akan terhitung.' : ''}`, 'Finalkan', async () => {
-        try { await api('/api/gaji/final', { method: 'POST', body: { bulan: b, editor_ids: ids || undefined } }); toast('Gaji difinalkan'); await loadGaji(b); render(); } catch (e) { toast(e.message, true); }
+        try { const r = await api('/api/gaji/final', { method: 'POST', body: { bulan: b, editor_ids: ids || undefined } }); toast(r.master === 'terkirim' ? 'Gaji difinalkan dan dikirim ke Master' : 'Gaji difinalkan. Belum terkirim ke Master: ' + r.master, r.master !== 'terkirim'); await loadGaji(b); render(); } catch (e) { toast(e.message, true); }
       });
       break;
     }
@@ -253,15 +258,6 @@ document.addEventListener('click', async (ev) => {
       navigate('/'); bukaTirai(); umumkanKeluar(); break;
     }
     case 'retry': S.error = null; $('#page').innerHTML = '<div class="skeleton" style="height:320px"></div>'; await load(); break;
-    case 'theme': {
-      closeOverlay();
-      const cur = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-      const next = cur === 'dark' ? 'light' : 'dark';
-      document.documentElement.dataset.theme = next;
-      try { localStorage.setItem('pt_theme', next); } catch (e) { /* storage off */ }
-      render();
-      break;
-    }
     case 'periode': S.periode = +el.dataset.v; render(); break;
     case 'hari': { const d = addDays(S.day, +el.dataset.v); if (d <= today()) { S.day = d; render(); } break; }
     case 'hari-ini': S.day = today(); render(); break;

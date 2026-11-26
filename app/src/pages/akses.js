@@ -33,6 +33,6 @@ export function aksesCard() {
 }
 
 PAGES.akses = function () {
-  return `<header class="head"><div><h1>Akses</h1><p>Atur apa yang boleh dibuka dan dilakukan tiap orang. Berlaku menurut nama, bukan jabatan.</p></div></header>
+  return `<header class="head"><div><h1>Akses</h1><p>Atur apa yang boleh dibuka dan dilakukan tiap orang. Berlaku menurut nama, bukan jabatan.</p></div><div class="tools"><a class="btn ghost" href="/karyawan">‹ Tim</a></div></header>
     ${aksesCard()}`;
 };

@@ -16,8 +16,6 @@ import { render } from './layout.js';
 // Phone: the routes and account actions that don't fit in the bottom bar.
 export function moreSheet() {
   const who = me();
-  const theme = document.documentElement.dataset.theme;
-  const dark = theme ? theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
   const tabs = TABS();
   const groups = S.session ? menuGroups().map((g) => ({ label: g.label, list: g.ids.map((id) => ROUTES.find((x) => x.id === id)).filter((r) => bisaBuka(r) && !tabs.includes(r.id)) })).filter((g) => g.list.length) : [];
   openDialog(`
@@ -25,7 +23,6 @@ export function moreSheet() {
       <div class="sheet-list">
         ${groups.map((g) => `<div class="sheet-label">${g.label}</div>` + g.list.map((r) => `<a href="${pathOf(r.id)}">${icon(r.icon)}${routeLabel(r)}${badgeOf(r.id) ? `<span class="count">${badgeOf(r.id)}</span>` : ''}</a>`).join('')).join('')}
         <div class="sheet-label">Akun</div>
-        <button data-act="theme">${icon(dark ? 'sun' : 'moon')}${dark ? 'Mode terang' : 'Mode gelap'}</button>
         ${S.session ? `<button data-act="logout">${icon('out')}Keluar</button>` : `<button data-act="login">${icon('out')}Masuk</button>`}
       </div>`);
 }

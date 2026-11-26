@@ -33,9 +33,9 @@ export const beranda = () => (me() && MENU_LENGKAP ? 'hari-ini' : 'rangkuman');
 
 // The menu in groups, ordered by what each role uses most. The bottom bar on phones shows the first four.
 export function menuGroups() {
-  // Tampilan ringkas untuk pemilik dan karyawan: Rangkuman, Saran, Upload, Presensi. Affiliate dibuka dari Rangkuman atau menu. Halaman lain (Hari ini, Harian, Gaji, dst.)
-  // tidak dihapus, hanya disembunyikan dari menu; set MENU_LENGKAP = true untuk menampilkannya lagi.
-  if (!MENU_LENGKAP) return [{ label: 'Menu', ids: ['rangkuman', 'saran', 'sosmed', 'presensi', 'affiliate', 'karyawan', 'akses', 'jejak', 'pengaturan', 'akun'] }];
+  // Tampilan ringkas: Rangkuman, Upload, Presensi di bilah bawah; Tim, Gaji, Pengaturan, Akun saya di Menu. Izin & klaim dibuka
+  // dari Presensi, Akses dari Tim, Jejak dari Pengaturan. Halaman lain tidak dihapus; set MENU_LENGKAP = true untuk menampilkannya.
+  if (!MENU_LENGKAP) return [{ label: 'Menu', ids: ['rangkuman', 'sosmed', 'presensi', 'karyawan', 'gaji', 'pengaturan', 'akun'] }];
   if (me()) return [
     { label: 'Kerja saya', ids: ['hari-ini', 'harian', 'performa', 'presensi', 'pengajuan', 'gaji'] },
     { label: 'Channel', ids: ['rangkuman', 'saran', 'affiliate', 'sosmed', 'tren', 'analytics', 'konten', 'identifikasi'] },
@@ -48,14 +48,14 @@ export function menuGroups() {
   ];
 }
 
-export const TABS = () => (!MENU_LENGKAP ? ['rangkuman', 'saran', 'sosmed', 'presensi'] : me() ? ['hari-ini', 'presensi', 'performa', 'pengajuan'] : ['rangkuman', 'harian', 'pengajuan', 'gaji']);
+export const TABS = () => (!MENU_LENGKAP ? ['rangkuman', 'sosmed', 'presensi'] : me() ? ['hari-ini', 'presensi', 'performa', 'pengajuan'] : ['rangkuman', 'harian', 'pengajuan', 'gaji']);
 
 export const routeLabel = (r) => (me() && r.id === 'harian' ? 'Harian saya' : me() && r.id === 'performa' ? 'Performa saya' : me() && r.id === 'konten' ? 'Video channel' : r.label);
 
 
 export const bisaBuka = (r) => (!r.admin || isAdmin()) && (!r.karyawan || !!me());
 
-export const badgeOf = (id) => (id === 'identifikasi' ? S.unmatched : id === 'pengajuan' ? menunggu() : 0);
+export const badgeOf = (id) => (id === 'identifikasi' ? S.unmatched : id === 'pengajuan' || (!MENU_LENGKAP && id === 'presensi') ? menunggu() : 0);
 
 // Pages live at real paths (/harian, /presensi, /harian/3); "/" is the home page of each role.
 export const pathOf = (id) => (id === beranda() ? '/' : '/' + id);

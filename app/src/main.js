@@ -48,6 +48,10 @@ window.addEventListener('hashchange', () => { if (fromHash()) { closeOverlay(); 
 
 fromHash();
 
+// Warna sekarang selalu mengikuti mode HP; pilihan tema lama dibuang.
+try { localStorage.removeItem('pt_theme'); } catch (e) { /* penyimpanan mati */ }
+delete document.documentElement.dataset.theme;
+
 let lastW = innerWidth, rt;
 
 window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { if (Math.abs(innerWidth - lastW) > 40) { lastW = innerWidth; if (!$('#overlay').innerHTML) render(); } }, 200); });
