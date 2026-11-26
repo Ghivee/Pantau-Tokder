@@ -153,6 +153,7 @@ const STATEMENTS = [
     bonus_1000_views NUMERIC DEFAULT 0,
     updated_at TIMESTAMP DEFAULT NOW()
   )`,
+  `ALTER TABLE gaji_aturan ADD COLUMN IF NOT EXISTS bonus_pcs NUMERIC DEFAULT 0`,
   `CREATE TABLE IF NOT EXISTS gaji_penyesuaian (
     id SERIAL PRIMARY KEY,
     editor_id INTEGER NOT NULL REFERENCES editors(id) ON DELETE CASCADE,
